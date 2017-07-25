@@ -27,6 +27,119 @@ The JCMathLib is an open-source library for Java Card platform which provides ob
 **Q:** Sounds good, how can I start to fiddle with the JCMathLibrary library?<br>
 **A:** Buy [suitable](https://www.fi.muni.cz/~xsvenda/jcalgtest/) JavaCard for $10-20 with EC support ([buyers'guide](https://github.com/martinpaljak/GlobalPlatformPro/tree/master/docs/JavaCardBuyersGuide#javacard-buyers-guide-of-2015)), download this library source code, compile example project with [ant-javacard](https://github.com/martinpaljak/ant-javacard) and start playing. Don't forget to read [wiki](https://github.com/mavroudisv/JCMathLib/wiki) for examples and tutorials. 
 
-## Compilation, upload, and use
+## Example applet, compilation, upload, and use
+
+- Download ECExample project, open command line in project's root directory 
+- Compile and convert example into ecexample.cap binary suitable for card ([ant-javacard](https://github.com/martinpaljak/ant-javacard) is used):
+```
+ant -f jcbuild.xml ecexample
+```
+(which results in output similar to this)
+```
+>ant -f jcbuild.xml ecexample
+Buildfile: c:\OpenCrypto\ECExample\jcbuild.xml
+
+ecexample:
+ [javacard] JavaCard 2.x SDK detected in ext/java_card_kit-2_2_2
+      [cap] Setting package name to opencrypto.jcmathlib
+      [cap] Building CAP with 1 applet(s) from package opencrypto.jcmathlib
+      [cap] opencrypto.jcmathlib.ECExample 556E69745465737473
+  [compile] Compiling 15 source files to C:\Temp\classes71248306622090223590454623483186
+      [cap] CAP saved to c:\OpenCrypto\ECExample\ecexample.cap
+
+BUILD SUCCESSFUL
+Total time: 3 seconds
+```
+
+- Upload ecexample.cap to your card using [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) (if already installed, uninstall applet first using *-uninstall* switch)
+```
+gp -install ecexample.cap -v
+```
+(which results in output similar to this)
+```
+>gp -install ecexample.cap -v
+Reader: Generic EMV Smartcard Reader 0
+...
+CAP file (v2.1) generated on Tue Jul 25 14:34:17 CEST 2017
+By Sun Microsystems Inc. converter 1.3 with JDK 1.8.0_65 (Oracle Corporation)
+Package: opencrypto.jcmathlib v0.0
+Applet: ECExample with AID 556E69745465737473
+Import: A0000000620001 v1.0
+Import: A0000000620101 v1.3
+Import: A0000000620102 v1.3
+Import: A0000000620201 v1.3
+Installing applet from package opencrypto.jcmathlib
+```
+
+- Trigger EC operations in process() method: 'gp -apdu '
+```
+gp --apdu 00a4040009556e69745465737473 --apdu 0b000000 -d
+```
+(which results in output similar to this)
+```
+>gp --apdu 00a4040009556e69745465737473 --apdu 0b000000 -d
+# Detected readers from SunPCSC
+[*] Generic EMV Smartcard Reader 0
+SCardConnect("Generic EMV Smartcard Reader 0", T=*) -> T=1, 3BF91300008131FE454A434F503234325233A2
+SCardBeginTransaction("Generic EMV Smartcard Reader 0")
+A>> T=1 (4+0009) 00A40400 09 556E69745465737473
+A<< (0000+2) (21ms) 9000
+A>> T=1 (4+0000) 0B000000      <---------------- THIS COMMAND TRIGGERED OUR EC OPERATIONS!
+A<< (0000+2) (8s378ms) 9000
+...
+SCardEndTransaction()
+SCardDisconnect("Generic EMV Smartcard Reader 0", false)
+```
+
+The code below shows very simple applet demonstarting use of ECPoint class and basic operations. Notice that memory allocation is happening only in applet's constructor. This is common (and good) practice within Java Card development.
+
+```java
+package opencrypto.jcmathlib;
+
+public class ECExample extends javacard.framework.Applet {
+    OCConfig        occ = null;
+    ECCurve         curve = null;
+    ECPoint         point1 = null;
+    ECPoint         point2 = null;
+    
+    final static byte[] ECPOINT_TEST_VALUE = {(byte)0x04, (byte) 0x3B, (byte) 0xC1, (byte) 0x5B, (byte) 0xE5, (byte) 0xF7, (byte) 0x52, (byte) 0xB3, (byte) 0x27, (byte) 0x0D, (byte) 0xB0, (byte) 0xAE, (byte) 0xF2, (byte) 0xBC, (byte) 0xF0, (byte) 0xEC, (byte) 0xBD, (byte) 0xB5, (byte) 0x78, (byte) 0x8F, (byte) 0x88, (byte) 0xE6, (byte) 0x14, (byte) 0x32, (byte) 0x30, (byte) 0x68, (byte) 0xC4, (byte) 0xC4, (byte) 0x88, (byte) 0x6B, (byte) 0x43, (byte) 0x91, (byte) 0x4C, (byte) 0x22, (byte) 0xE1, (byte) 0x67, (byte) 0x68, (byte) 0x3B, (byte) 0x32, (byte) 0x95, (byte) 0x98, (byte) 0x31, (byte) 0x19, (byte) 0x6D, (byte) 0x41, (byte) 0x88, (byte) 0x0C, (byte) 0x9F, (byte) 0x8C, (byte) 0x59, (byte) 0x67, (byte) 0x60, (byte) 0x86, (byte) 0x1A, (byte) 0x86, (byte) 0xF8, (byte) 0x0D, (byte) 0x01, (byte) 0x46, (byte) 0x0C, (byte) 0xB5, (byte) 0x8D, (byte) 0x86, (byte) 0x6C, (byte) 0x09};
+
+    final static byte[] SCALAR_TEST_VALUE = {(byte) 0xE8, (byte) 0x05, (byte) 0xE8, (byte) 0x02, (byte) 0xBF, (byte) 0xEC, (byte) 0xEE, (byte) 0x91, (byte) 0x9B, (byte) 0x3D, (byte) 0x3B, (byte) 0xD8, (byte) 0x3C, (byte) 0x7B, (byte) 0x52, (byte) 0xA5, (byte) 0xD5, (byte) 0x35, (byte) 0x4C, (byte) 0x4C, (byte) 0x06, (byte) 0x89, (byte) 0x80, (byte) 0x54, (byte) 0xB9, (byte) 0x76, (byte) 0xFA, (byte) 0xB1, (byte) 0xD3, (byte) 0x5A, (byte) 0x10, (byte) 0x91};
+
+
+    public ECExample() {
+        // Pre-allocate all helper structures
+        occ = new OCConfig((short) 256); 
+        // Pre-allocate standard SecP256r1 curve and two EC points on this curve
+        curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, occ);
+        point1 = new ECPoint(curve, occ);
+        point2 = new ECPoint(curve, occ);
+    }
+    // Installation of our applet
+    public static void install(byte[] bArray, short bOffset, byte bLength) {
+        new ECExample().register();
+    }
+    public boolean select() {
+        // Restore values which were cleared after card reset 
+        occ.refreshAfterReset(); 
+        return true;
+    }
+    
+    // NOTE: very simple EC usage example - no cla/ins, no communication with host...    
+    public void process(APDU apdu) {
+        if (selectingApplet()) { return; } // Someone is going to use our applet!
+        
+        // Generate first point at random
+        point1.randomize(); 
+        // Set second point to predefined value
+        point2.setW(ECPOINT_TEST_VALUE, (short) 0, (short) ECPOINT_TEST_VALUE.length); 
+        // Add two points together 
+        point1.add(point2); 
+        // Multiply point by large scalar
+        point1.multiplication(SCALAR_TEST_VALUE, (short) 0, (short) SCALAR_TEST_VALUE.length); 
+    }
+}
+```
+
 
 ## Related projects
