@@ -2,6 +2,29 @@
 
 The JCMathLib is an open-source library for Java Card platform which provides objects and operations otherwise missing from standard Java Card API. Namely, we focus on adding support for low-level operations like addition or multiplication of points on elliptic curves in resource efficient way. As a bonus, we provide tooling for shared memory management and performance optimization.
 
+## Quick taste
+```java
+package opencrypto.jcmathlib; 
+
+ // ... in applet's constructor
+ // Pre-allocate all helper structures
+ OCConfig occ = new OCConfig((short) 256); 
+ // Pre-allocate standard SecP256r1 curve and two EC points on this curve
+ ECCurve curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, occ);
+ ECPoint point1 = new ECPoint(curve, occ);
+ ECPoint point2 = new ECPoint(curve, occ);
+    
+ // ... in standard Java Card applet code
+ // Generate first point at random
+ point1.randomize(); 
+ // Set second point to predefined value
+ point2.setW(ECPOINT_TEST_VALUE, (short) 0, (short) ECPOINT_TEST_VALUE.length); 
+ // Add two points together 
+ point1.add(point2); 
+ // Multiply point by large scalar
+ point1.multiplication(SCALAR_TEST_VALUE, (short) 0, (short) SCALAR_TEST_VALUE.length); 
+```
+
 ## FAQ
 **Q:** Hold on, I thought elliptic curves are already supported on smart cards, right? <br>
 **A:** Definitely not on each one. Take a look at [jcalgtest.org](https://jcalgtest.org) - out of 65 cards listed, only about 1/3 have some support. 
