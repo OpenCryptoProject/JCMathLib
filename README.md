@@ -8,11 +8,11 @@ package opencrypto.jcmathlib;
 
  // ... in applet's constructor
  // Pre-allocate all helper structures
- OCConfig occ = new OCConfig((short) 256); 
+ ECConfig ecc = new ECConfig((short) 256); 
  // Pre-allocate standard SecP256r1 curve and two EC points on this curve
- ECCurve curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, occ);
- ECPoint point1 = new ECPoint(curve, occ);
- ECPoint point2 = new ECPoint(curve, occ);
+ ECCurve curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, ecc);
+ ECPoint point1 = new ECPoint(curve, ecc);
+ ECPoint point2 = new ECPoint(curve, ecc);
     
  // ... in standard Java Card applet code
  // Generate first point at random
