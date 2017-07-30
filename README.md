@@ -166,6 +166,6 @@ public class ECExample extends javacard.framework.Applet {
 
 
 ## Future work
+* Additional optimizations and methods (remainder_divide is particular target)
 * Support for other curves like Ed25519
-* Additional optimizations and methods
-* Support for easy tranfer of the Bouncy Castle-enabled crypto code to Java Card environment
+* Long-term vision: support for easy transfer of the Bouncy Castle-enabled crypto code to Java Card environment
