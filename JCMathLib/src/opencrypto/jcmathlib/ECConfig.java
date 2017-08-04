@@ -7,16 +7,16 @@ import javacard.framework.ISOException;
  * @author Petr Svenda
  */
 public class ECConfig {
-    /** 
+    /**
      * The size of speedup engine used for fast modulo exponent computation
      * (must be larger than biggest Bignat used)
      */
-    public short MODULO_RSA_ENGINE_MAX_LENGTH_BITS  = (short) 512; 
+    public short MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 512;
     /**
      * The size of speedup engine used for fast multiplication of large numbers
-     * Must be larger than 2x biggest Bignat used 
+     * Must be larger than 2x biggest Bignat used
      */
-    public short MULT_RSA_ENGINE_MAX_LENGTH_BITS  = (short) 768;
+    public short MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768;
     /**
      * The size of largest integer used in computations
      */
@@ -31,31 +31,7 @@ public class ECConfig {
     public short MAX_COORD_SIZE = (short) 32; // MAX_POINT_SIZE / 2
     
     
-    /**
-     * If true, fast multiplication of large numbers via RSA engine can be used. 
-     * Is set automatically after successful allocation of required engines 
-     */
-    public boolean FLAG_FAST_MULT_VIA_RSA = false;     
-    /**
-     * Threshold length in bits of an operand after which speedup with RSA multiplication is used.
-     * Schoolbook multiplication is used for shorter operands
-     */
-    public short FAST_MULT_VIA_RSA_TRESHOLD_LENGTH = (short) 16;
-            
-    /**
-     * I true, fast multiplication of ECPoints via KeyAgreement can be used
-     * Is set automatically after successful allocation of required engines
-     */
-    public boolean FLAG_FAST_EC_MULT_VIA_KA = false;    
-
-    /**
-     * Object responsible for logical locking and unlocking of shared arrays and objects
-     */
-    public ObjectLocker locker = null;
-    /**
-     * Object responsible for easy management of target placement (RAM/EEPROM) fro allocated objects
-     */
-    public ObjectAllocator memAlloc = null;
+    public ResourceManager rm = null;
     /**
      * Helper structure containing all preallocated objects necessary for Bignat operations
      */
@@ -71,6 +47,13 @@ public class ECConfig {
      *      initialize properly underlying arrays and engines.  
      */
     public ECConfig(short maxECLength) {
+        
+        // Allocate helper objects for BN and EC
+        // Note: due to circular references, we need to split object creation and actual alloaction and initailiztion later (initialize()) 
+        rm = new ResourceManager();
+        bnh = new Bignat_Helper(rm);
+        ech = new ECPoint_Helper(rm);
+
         // Set proper lengths and other internal settings based on required ECC length
         if (maxECLength <= (short) 256) {
             setECC256Config();
@@ -85,26 +68,21 @@ public class ECConfig {
             ISOException.throwIt(ReturnCodes.SW_ECPOINT_INVALIDLENGTH);
         }
         
-        // Allocate long-term helper values
-        locker = new ObjectLocker((short) (ECPoint_Helper.NUM_HELPER_ARRAYS + Bignat_Helper.NUM_HELPER_ARRAYS));
-        //locker.setLockingActive(false); // if required, locking can be disabled
-        memAlloc = new ObjectAllocator();
-        memAlloc.setAllAllocatorsRAM(); 
-        //if required, memory for helper objects and arrays can be in persistent memory to save RAM (or some tradeoff)       
-        //ObjectAllocator.setAllAllocatorsEEPROM();  //ObjectAllocator.setAllocatorsTradeoff();
-        
-        // Allocate helper objects for BN and EC
-        bnh = new Bignat_Helper(this);
-        ech = new ECPoint_Helper(this);
+        // Allocate shared resources and initialize mapping between shared objects and helpers
+        rm.initialize(MAX_POINT_SIZE, MAX_COORD_SIZE, MAX_BIGNAT_SIZE, MULT_RSA_ENGINE_MAX_LENGTH_BITS, bnh);
+        bnh.initialize(MODULO_RSA_ENGINE_MAX_LENGTH_BITS, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
+        ech.initialize();
     }
     
     public void refreshAfterReset() {
-        if (locker != null) { locker.refreshAfterReset();}        
+        if (rm.locker != null) { 
+            rm.locker.refreshAfterReset();
+        }        
     }
     
     void reset() {
-        FLAG_FAST_MULT_VIA_RSA = false;     
-        FLAG_FAST_EC_MULT_VIA_KA = false;   
+        bnh.FLAG_FAST_MULT_VIA_RSA = false;     
+        ech.FLAG_FAST_EC_MULT_VIA_KA = false;   
     }
     
     public void setECC256Config() {
@@ -137,7 +115,7 @@ public class ECConfig {
     }
     
     private void computeDerivedLengths() {
-        MAX_BIGNAT_SIZE = (short) ((short) (MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8) + 1);
+        MAX_BIGNAT_SIZE = (short) ((short) (bnh.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8) + 1);
         MAX_COORD_SIZE = (short) (MAX_POINT_SIZE / 2);
     }
 
@@ -146,8 +124,7 @@ public class ECConfig {
      * when some objects remains locked.
      */
     void unlockAll() {
-        bnh.unlockAll();
-        ech.unlockAll();
-        locker.unlockAll();
+        rm.unlockAll();
+        rm.locker.unlockAll();
     }
 }

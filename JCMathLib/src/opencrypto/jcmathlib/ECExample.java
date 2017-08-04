@@ -20,9 +20,9 @@ public class ECExample extends Applet {
         // Pre-allocate all helper structures
         ecc = new ECConfig((short) 256); 
         // Pre-allocate standard SecP256r1 curve and two EC points on this curve
-        curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, ecc);
-        point1 = new ECPoint(curve, ecc);
-        point2 = new ECPoint(curve, ecc);
+        curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r);
+        point1 = new ECPoint(curve, ecc.ech);
+        point2 = new ECPoint(curve, ecc.ech);
     }
     
     public static void install(byte[] bArray, short bOffset, byte bLength) {

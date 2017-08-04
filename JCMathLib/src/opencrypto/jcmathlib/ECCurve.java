@@ -42,7 +42,7 @@ public class ECCurve {
      * @param G_arr array with base point G
      * @param r_arr array with r
      */
-    public ECCurve(boolean bCopyArgs, byte[] p_arr, byte[] a_arr, byte[] b_arr, byte[] G_arr, byte[] r_arr, ECConfig ecc) {
+    public ECCurve(boolean bCopyArgs, byte[] p_arr, byte[] a_arr, byte[] b_arr, byte[] G_arr, byte[] r_arr) {
         //ECCurve_initialize(p_arr, a_arr, b_arr, G_arr, r_arr);
         this.KEY_LENGTH = (short) (p_arr.length * 8);
         this.POINT_SIZE = (short) G_arr.length;
@@ -72,9 +72,10 @@ public class ECCurve {
         }
 
         // We will not modify values of p/a/b during the lifetime of curve => allocate helper bignats directly from the array
-        this.pBN = new Bignat(this.p, ecc);
-        this.aBN = new Bignat(this.a, ecc);
-        this.bBN = new Bignat(this.b, ecc);
+        // Additionally, these Bignats will be only read from so Bignat_Helper can be null (saving need to pass as argument to ECCurve)
+        this.pBN = new Bignat(this.p, null);
+        this.aBN = new Bignat(this.a, null);
+        this.bBN = new Bignat(this.b, null);
 
         this.disposable_pair = this.newKeyPair(null);
         this.disposable_priv = (ECPrivateKey) this.disposable_pair.getPrivate();

@@ -73,7 +73,6 @@ public class ObjectLocker {
         ISOException.throwIt(ReturnCodes.SW_LOCK_NOFREESLOT);
         return -1;
     }
-    
     /**
      * Locking array (placed in RAM) must be refreshed after card reset. Call this method during select()
      */
@@ -137,6 +136,7 @@ public class ObjectLocker {
      * @throws SW_NOTLOCKED_BIGNAT if was not locked before (inconsistence in
      * lock/unlock sequence)
      */
+    
     public void unlock(Object objToUnlock) {
         if (!bLockingActive) {
             return;
@@ -154,6 +154,7 @@ public class ObjectLocker {
             ISOException.throwIt(ReturnCodes.SW_LOCK_OBJECT_NOT_FOUND);
         }
     }    
+
     public void unlock(byte[] objToUnlock) {
         if (!bLockingActive) {
             return;
@@ -181,6 +182,7 @@ public class ObjectLocker {
      * @param objToUnlock object to be checked
      * @return true of array is logically locked, false otherwise 
      */
+    
     public boolean isLocked(Object objToUnlock) {
         if (!bLockingActive) {
             return false;
@@ -200,7 +202,6 @@ public class ObjectLocker {
     }
     
     
-    
     private void lock(Object objToLock, short lockIndex) {
         if (lockedObjects[lockIndex] != null && !lockedObjects[lockIndex].equals(objToLock)) {
             ISOException.throwIt(ReturnCodes.SW_LOCK_OBJECT_MISMATCH);
@@ -213,6 +214,7 @@ public class ObjectLocker {
             ISOException.throwIt(ReturnCodes.SW_LOCK_ALREADYLOCKED);
         }
     }
+    
     private void unlock(Object objToUnlock, short lockIndex) {
         if (lockedObjects[lockIndex] != null && !lockedObjects[lockIndex].equals(objToUnlock)) {
             ISOException.throwIt(ReturnCodes.SW_LOCK_OBJECT_MISMATCH);
