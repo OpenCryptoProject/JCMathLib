@@ -1,6 +1,6 @@
 # JCMathLib
 
-The JCMathLib is an open-source library for Java Card platform which provides objects and operations otherwise missing from standard Java Card API. Namely, we focus on adding support for low-level operations like addition or multiplication of points on elliptic curves in resource efficient way. As a bonus, we provide tooling for shared memory management and performance optimization.
+The JCMathLib is an open-source library for Java Card platform which provides objects and operations otherwise missing from standard Java Card API. Namely, we focus on adding support for low-level operations like addition or multiplication of points on elliptic curves in resource efficient way. As a bonus, we provide tooling for [shared memory management](https://github.com/OpenCryptoProject/JCMathLib/wiki/Main-components) and [performance optimization](https://github.com/OpenCryptoProject/JCProfiler).
 
 ## Quick taste
 ```java
@@ -165,4 +165,7 @@ public class ECExample extends javacard.framework.Applet {
 ```
 
 
-## Related projects
+## Future work
+* Additional optimizations and methods (remainder_divide is particular target)
+* Support for other curves like Ed25519
+* Long-term vision: support for easy transfer of the Bouncy Castle-enabled crypto code to Java Card environment
