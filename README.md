@@ -2,6 +2,12 @@
 
 The JCMathLib is an open-source library for Java Card platform which provides objects and operations otherwise missing from standard Java Card API. Namely, we focus on adding support for low-level operations like addition or multiplication of points on elliptic curves in resource efficient way. As a bonus, we provide tooling for [shared memory management](https://github.com/OpenCryptoProject/JCMathLib/wiki/Main-components) and [performance optimization](https://github.com/OpenCryptoProject/JCProfiler).
 
+The project comes with three parts:
+* **JCMathLib** - the javacard library itself (on-card code)
+* **JCMathLibExamples** - the simple testing Java client (PC-side client code with simple examples)
+* **JCMathLibTests** - the client to thoroughly test all operations and measure performance (PC-side client)
+
+
 ## Quick taste
 ```java
 package opencrypto.jcmathlib; 
