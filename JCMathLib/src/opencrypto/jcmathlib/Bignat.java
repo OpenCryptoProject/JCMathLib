@@ -1813,6 +1813,18 @@ public class Bignat {
         bnh.fnc_negate_tmp.unlock();
     }
 
+    /**
+     * Shifts stored value to right by specified number of bytes. This operation equals to multiplication by value numBytes * 256.
+     * @param numBytes number of bytes to shift
+     */
+    public void shift_bytes_right(short numBytes) {
+        // Move whole content by numBytes offset
+        bnh.lock(bnh.fnc_shift_bytes_right_tmp);
+        Util.arrayCopyNonAtomic(this.value, (short) 0, bnh.fnc_shift_bytes_right_tmp, (short) 0, (short) (this.value.length));
+        Util.arrayCopyNonAtomic(bnh.fnc_shift_bytes_right_tmp, (short) 0, this.value, numBytes, (short) ((short) (this.value.length) - numBytes));
+        Util.arrayFillNonAtomic(this.value, (short) 0, numBytes, (byte) 0);
+        bnh.unlock(bnh.fnc_shift_bytes_right_tmp);
+    }
     
     /**
      * Allocates required underlying storage array with given maximum size and

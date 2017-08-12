@@ -46,6 +46,7 @@ public class Bignat_Helper extends Base_Helper {
     byte[] fnc_mult_resultArray2 = null;
     byte[] fnc_same_value_array1 = null;
     byte[] fnc_same_value_hash = null;
+    byte[] fnc_shift_bytes_right_tmp = null;
     
     // These Bignats are just pointing to some helper_BN_? so reasonable naming is preserved yet no need to actually allocated whole Bignat object
     Bignat fnc_mod_exp_modBN;
@@ -113,6 +114,8 @@ public class Bignat_Helper extends Base_Helper {
 
         fnc_same_value_array1 = rm.helper_BN_array1;
         fnc_same_value_hash = rm.helper_BN_array2;
+        
+        fnc_shift_bytes_right_tmp = rm.helper_BN_array1;
         
         // BN below are just reassigned allocated helper_BN_? so that same helper_BN_? is not used in parallel (checked by lock() unlock())
         fnc_mod_add_tmp = rm.helper_BN_A;
