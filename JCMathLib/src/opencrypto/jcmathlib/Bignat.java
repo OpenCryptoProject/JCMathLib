@@ -1416,7 +1416,7 @@ public class Bignat {
         subtract(bnh.fnc_mult_resultArray1, (short) 0, (short) bnh.fnc_mult_resultArray1.length, bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length);
 
         // y^2
-        if (x_pow_2 == null) {
+        if (y_pow_2 == null) {
             // y^2 is not precomputed
             Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length, (byte) 0);
             yOffset = (short) (bnh.fnc_mult_resultArray2.length - y.length());
