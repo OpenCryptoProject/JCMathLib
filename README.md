@@ -50,6 +50,17 @@ package opencrypto.jcmathlib;
 **Q:** Sounds good, how can I start to fiddle with the JCMathLibrary library?<br>
 **A:** Buy [suitable](https://www.fi.muni.cz/~xsvenda/jcalgtest/) JavaCard for $10-20 with EC support ([buyers'guide](https://github.com/martinpaljak/GlobalPlatformPro/tree/master/docs/JavaCardBuyersGuide#javacard-buyers-guide-of-2015)), download this library source code, compile example project with [ant-javacard](https://github.com/martinpaljak/ant-javacard) and start playing. Don't forget to read [wiki](https://github.com/mavroudisv/JCMathLib/wiki) for examples and tutorials. 
 
+## Advantages and potential drawbacks
+**Advantages:**
+  * Availability of low-level ECPoint operations (not included in standard javacard API) without a need to use a proprietary API (which usually requires signing a non-disclosure agreement).
+  * Code portability between smart cards from different manufacturers. 
+  * Possibility to use open-source simulator [JCardSim](https://jcardsim.org/) instead of vendor-specific one.
+  
+**Potential drawbacks (in comparison to vendor-specific API):**
+  * Slower speed for some EC operations like addition or scalar multiplication (see [wiki](https://github.com/OpenCryptoProject/JCMathLib/wiki#performance-and-memory-overhead) for times measured on real cards
+  * RAM memory overhead (about 1kB for fastest performance). Is configurable with an option to place all temporary objects in EEPROM (slower performance). 
+  * Lower resilience against various side-channel and fault-induction attacks.
+
 ## Example applet, compilation, upload, and use
 
 - Download ECExample project, open command line in project's root directory 
