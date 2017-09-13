@@ -29,6 +29,7 @@ public class OCUnitTests extends Applet {
     //public final static byte INS_TESTRSAMULT                    = (byte) 0x04;
     public final static byte INS_FREEMEMORY             = (byte) 0x06;
     public final static byte INS_GET_ALLOCATOR_STATS    = (byte) 0x07;
+    public final static byte INS_GET_PROFILE_LOCKS      = (byte) 0x08;
 
     //BigNatural and BigInteger Operations
     public final static byte INS_INT_STR                = (byte) 0x09; 
@@ -193,6 +194,10 @@ public class OCUnitTests extends Applet {
                         offset += 2;
                     }
                     apdu.setOutgoingAndSend((short) 0, offset);
+                    break;
+                case INS_GET_PROFILE_LOCKS:
+                    Util.arrayCopyNonAtomic(m_ecc.rm.locker.profileLockedObjects, (short) 0, apdubuf, (short) 0, (short) m_ecc.rm.locker.profileLockedObjects.length);
+                    apdu.setOutgoingAndSend((short) 0, (short) m_ecc.rm.locker.profileLockedObjects.length);
                     break;
 
                 //==============================================================
