@@ -103,7 +103,7 @@ public class ECCurve {
             existingKeyPair = new KeyPair(KeyPair.ALG_EC_FP, KEY_LENGTH);
         }
         
-        // Some implementation wil not return valid pub key until ecKeyPair.genKeyPair() is called
+        // Some implementation will not return valid pub key until ecKeyPair.genKeyPair() is called
         // Other implementation will fail with exception if same is called => try catch and drop any exception 
         try {
             pubKey = (ECPublicKey) existingKeyPair.getPublic();

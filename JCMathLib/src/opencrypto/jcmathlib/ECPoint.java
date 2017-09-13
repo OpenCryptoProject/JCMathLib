@@ -295,7 +295,7 @@ public class ECPoint {
         multiplication(ech.fnc_multiplication_scalar);
         ech.fnc_multiplication_scalar.unlock();
     }
-        /**
+    /**
      * Multiply value of this point by provided scalar. Stores the result into this point.
      * @param scalar value of scalar for multiplication
      */
