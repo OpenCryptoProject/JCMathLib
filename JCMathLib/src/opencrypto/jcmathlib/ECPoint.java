@@ -2,6 +2,7 @@ package opencrypto.jcmathlib;
 
 import javacard.framework.ISOException;
 import javacard.framework.Util;
+import javacard.security.CryptoException;
 import javacard.security.ECPrivateKey;
 import javacard.security.ECPublicKey;
 import javacard.security.KeyPair;
@@ -459,4 +460,64 @@ public class ECPoint {
         signEngine.init(publicKey, Signature.MODE_VERIFY);
         return signEngine.verify(msg, (short) 0, (short) msg.length, tmpSignArray, (short) 0, signLen);
     }
+    
+    
+    //
+    // ECKey methods
+    //
+    public void setFieldFP(byte[] bytes, short s, short s1) throws CryptoException {
+        thePoint.setFieldFP(bytes, s, s1);
+    }
+
+    public void setFieldF2M(short s) throws CryptoException {
+        thePoint.setFieldF2M(s);
+    }
+
+    public void setFieldF2M(short s, short s1, short s2) throws CryptoException {
+        thePoint.setFieldF2M(s, s1, s2);
+    }
+
+    public void setA(byte[] bytes, short s, short s1) throws CryptoException {
+        thePoint.setA(bytes, s, s1);
+    }
+
+    public void setB(byte[] bytes, short s, short s1) throws CryptoException {
+        thePoint.setB(bytes, s, s1);
+    }
+
+    public void setG(byte[] bytes, short s, short s1) throws CryptoException {
+        thePoint.setG(bytes, s, s1);
+    }
+
+    public void setR(byte[] bytes, short s, short s1) throws CryptoException {
+        thePoint.setR(bytes, s, s1);
+    }
+
+    public void setK(short s) {
+        thePoint.setK(s);
+    }
+
+    public short getField(byte[] bytes, short s) throws CryptoException {
+        return thePoint.getField(bytes, s);
+    }
+
+    public short getA(byte[] bytes, short s) throws CryptoException {
+        return thePoint.getA(bytes, s);
+    }
+
+    public short getB(byte[] bytes, short s) throws CryptoException {
+        return thePoint.getB(bytes, s);
+    }
+
+    public short getG(byte[] bytes, short s) throws CryptoException {
+        return thePoint.getG(bytes, s);
+    }
+
+    public short getR(byte[] bytes, short s) throws CryptoException {
+        return thePoint.getR(bytes, s);
+    }
+
+    public short getK() throws CryptoException {
+        return thePoint.getK();
+    }    
 }
