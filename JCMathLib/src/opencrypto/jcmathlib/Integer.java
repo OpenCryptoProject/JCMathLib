@@ -8,7 +8,7 @@ import javacard.framework.Util;
 * @author Vasilios Mavroudis and Petr Svenda
  */
 public class Integer {
-    private ECConfig ecc;
+    private Bignat_Helper bnh;
 
     private Bignat magnitude;
     private byte sign;
@@ -17,9 +17,10 @@ public class Integer {
     /**
      * Allocates integer with provided length and sets to zero. 
      * @param size 
+     * @param bnh Bignat_Helper with all supporting objects
      */
-    public Integer(short size, ECConfig ecc) {
-        allocate(size, (byte) 0, null, (byte) -1, ecc);
+    public Integer(short size, Bignat_Helper bnh) {
+        allocate(size, (byte) 0, null, (byte) -1, bnh);
     }
 
     /**
@@ -28,9 +29,10 @@ public class Integer {
      * @param value array with initial value
      * @param valueOffset start offset within   value
      * @param length length of array
+     * @param bnh Bignat_Helper with all supporting objects
      */
-    public Integer(byte[] value, short valueOffset, short length, ECConfig ecc) {
-        allocate(length, (value[valueOffset] == (byte) 0x00) ? (byte) 0 : (byte) 1, value, (short) (valueOffset + 1), ecc);
+    public Integer(byte[] value, short valueOffset, short length, Bignat_Helper bnh) {
+        allocate(length, (value[valueOffset] == (byte) 0x00) ? (byte) 0 : (byte) 1, value, (short) (valueOffset + 1), bnh);
     }
 
     /**
@@ -38,9 +40,10 @@ public class Integer {
      *
      * @param sign  sign of integer
      * @param value array with initial value  
+     * @param bnh Bignat_Helper with all supporting objects
      */
-    public Integer(byte sign, byte[] value, ECConfig ecc) {
-        allocate((short) value.length, sign, value, (short) 0, ecc);
+    public Integer(byte sign, byte[] value, Bignat_Helper bnh) {
+        allocate((short) value.length, sign, value, (short) 0, bnh);
     }
 
     /**
@@ -48,7 +51,7 @@ public class Integer {
      * @param other integer to copy from
      */
     public Integer(Integer other) {
-        allocate(other.getSize(), other.getSign(), other.getMagnitude_b(), (short) 0, other.ecc);
+        allocate(other.getSize(), other.getSign(), other.getMagnitude_b(), (short) 0, other.bnh);
     }
 
     /**
@@ -58,14 +61,14 @@ public class Integer {
      * @param magnitude initial magnitude
      * @param bMakeCopy if true, magnitude is directly used (no copy). If false, new storage array is allocated.
      */
-    public Integer(byte sign, Bignat magnitude, boolean bMakeCopy, ECConfig ecc) {
+    public Integer(byte sign, Bignat magnitude, boolean bMakeCopy, Bignat_Helper bnh) {
         if (bMakeCopy) {
             // Copy from provided bignat
-            allocate(magnitude.length(), sign, magnitude.as_byte_array(), (short) 0, ecc);
+            allocate(magnitude.length(), sign, magnitude.as_byte_array(), (short) 0, bnh);
         }
         else {
             // Use directly provided Bignat as storage - no allocation
-            initialize(sign, magnitude, ecc);
+            initialize(sign, magnitude, bnh);
         }
     }
     
@@ -77,10 +80,10 @@ public class Integer {
      * @param bnStorage magnitude (object is directly used, no copy is
      * preformed)
      */
-    private void initialize(byte sign, Bignat bnStorage, ECConfig ecc) {
+    private void initialize(byte sign, Bignat bnStorage, Bignat_Helper bnh) {
         this.sign = sign;
         this.magnitude = bnStorage;
-        this.ecc = ecc;
+        this.bnh = bnh;
     }
 
     /**
@@ -92,13 +95,13 @@ public class Integer {
      * performed)
      * @param fromArrayOffset start offset within fromArray
      */
-    private void allocate(short size, byte sign, byte[] fromArray, short fromArrayOffset, ECConfig ecc) {
-        this.ecc = ecc;
-        Bignat mag = new Bignat(size, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, ecc);
+    private void allocate(short size, byte sign, byte[] fromArray, short fromArrayOffset, Bignat_Helper bignatHelper) {
+        this.bnh = bignatHelper;
+        Bignat mag = new Bignat(size, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, this.bnh);
         if (fromArray != null) {
             mag.from_byte_array(size, (short) 0, fromArray, fromArrayOffset);
         }
-        initialize(sign, mag, ecc);
+        initialize(sign, mag, this.bnh);
     }
     
     /**
@@ -268,18 +271,18 @@ public class Integer {
                 this.magnitude.subtract(other.magnitude);
             } else if (this.isPositive() && this.getMagnitude().lesser(other.getMagnitude())) { //this(+) has smaller magnitude than other(-)
                 this.sign = 1;
-                ecc.bnh.fnc_int_add_tmpMag.lock();
-                ecc.bnh.fnc_int_add_tmpMag.clone(other.getMagnitude());
-                ecc.bnh.fnc_int_add_tmpMag.subtract(this.magnitude);
-                this.magnitude.copy(ecc.bnh.fnc_int_add_tmpMag);
-                ecc.bnh.fnc_int_add_tmpMag.unlock();
+                bnh.fnc_int_add_tmpMag.lock();
+                bnh.fnc_int_add_tmpMag.clone(other.getMagnitude());
+                bnh.fnc_int_add_tmpMag.subtract(this.magnitude);
+                this.magnitude.copy(bnh.fnc_int_add_tmpMag);
+                bnh.fnc_int_add_tmpMag.unlock();
             } else if (this.isNegative() && this.getMagnitude().lesser(other.getMagnitude())) {  //this(-) has larger magnitude than other(+)
                 this.sign = 0;
-                ecc.bnh.fnc_int_add_tmpMag.lock();
-                ecc.bnh.fnc_int_add_tmpMag.clone(other.getMagnitude());
-                ecc.bnh.fnc_int_add_tmpMag.subtract(this.magnitude);
-                this.magnitude.copy(ecc.bnh.fnc_int_add_tmpMag);
-                ecc.bnh.fnc_int_add_tmpMag.unlock();
+                bnh.fnc_int_add_tmpMag.lock();
+                bnh.fnc_int_add_tmpMag.clone(other.getMagnitude());
+                bnh.fnc_int_add_tmpMag.subtract(this.magnitude);
+                this.magnitude.copy(bnh.fnc_int_add_tmpMag);
+                bnh.fnc_int_add_tmpMag.unlock();
             } else if (this.getMagnitude().same_value(other.getMagnitude())) {  //this has opposite sign than other, and the same magnitude
                 this.sign = 0;
                 this.zero();
@@ -314,17 +317,17 @@ public class Integer {
         }
 
         // Make mod BN as maximum value (positive, leading 0x80)
-        ecc.bnh.fnc_int_multiply_mod.lock();
-        ecc.bnh.fnc_int_multiply_mod.set_size(this.magnitude.length());
-        ecc.bnh.fnc_int_multiply_mod.zero(); 
-        ecc.bnh.fnc_int_multiply_mod.as_byte_array()[0] = (byte) 0x80;  // Max INT+1 Value 
+        bnh.fnc_int_multiply_mod.lock();
+        bnh.fnc_int_multiply_mod.set_size(this.magnitude.length());
+        bnh.fnc_int_multiply_mod.zero(); 
+        bnh.fnc_int_multiply_mod.as_byte_array()[0] = (byte) 0x80;  // Max INT+1 Value 
 
-        ecc.bnh.fnc_int_multiply_tmpThis.lock();
-        ecc.bnh.fnc_int_multiply_tmpThis.set_size(this.magnitude.length());
-        ecc.bnh.fnc_int_multiply_tmpThis.mod_mult(this.getMagnitude(), other.getMagnitude(), ecc.bnh.fnc_int_multiply_mod);
-        this.magnitude.copy(ecc.bnh.fnc_int_multiply_tmpThis);
-        ecc.bnh.fnc_int_multiply_mod.unlock();
-        ecc.bnh.fnc_int_multiply_tmpThis.unlock();
+        bnh.fnc_int_multiply_tmpThis.lock();
+        bnh.fnc_int_multiply_tmpThis.set_size(this.magnitude.length());
+        bnh.fnc_int_multiply_tmpThis.mod_mult(this.getMagnitude(), other.getMagnitude(), bnh.fnc_int_multiply_mod);
+        this.magnitude.copy(bnh.fnc_int_multiply_tmpThis);
+        bnh.fnc_int_multiply_mod.unlock();
+        bnh.fnc_int_multiply_tmpThis.unlock();
     }
 
     /**
@@ -341,10 +344,10 @@ public class Integer {
             this.setSign((byte) 0);
         }
 
-        ecc.bnh.fnc_int_divide_tmpThis.lock();
-        ecc.bnh.fnc_int_divide_tmpThis.clone(this.magnitude);
-        ecc.bnh.fnc_int_divide_tmpThis.remainder_divide(other.getMagnitude(), this.magnitude);
-        ecc.bnh.fnc_int_divide_tmpThis.unlock();
+        bnh.fnc_int_divide_tmpThis.lock();
+        bnh.fnc_int_divide_tmpThis.clone(this.magnitude);
+        bnh.fnc_int_divide_tmpThis.remainder_divide(other.getMagnitude(), this.magnitude);
+        bnh.fnc_int_divide_tmpThis.unlock();
     }
 
     /**

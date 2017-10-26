@@ -13,7 +13,7 @@ import javacardx.crypto.Cipher;
  * @author Vasilios Mavroudis and Petr Svenda
  */
 public class Bignat {        
-    private final ECConfig ecc;
+    private final Bignat_Helper bnh;
     /**
      * Configuration flag controlling re-allocation of internal array. If true, internal Bignat buffer can be enlarged during clone
      * operation if required (keep false to prevent slow reallocations)
@@ -129,11 +129,10 @@ public class Bignat {
      *      JCSystem.MEMORY_TYPE_PERSISTENT => EEPROM (slower writes, but RAM is saved)
      *      JCSystem.MEMORY_TYPE_TRANSIENT_RESET => RAM 
      *      JCSystem.MEMORY_TYPE_TRANSIENT_DESELECT => RAM
-     * @param ecc {@code ECConfig} class with all relevant settings and helper
-     *      objects
+     * @param bignatHelper {@code Bignat_Helper} class with helper objects
      */
-    public Bignat(short size, byte allocatorType, ECConfig ecc) {
-        this.ecc = ecc;
+    public Bignat(short size, byte allocatorType, Bignat_Helper bignatHelper) {
+        this.bnh = bignatHelper;
         allocate_storage_array(size, allocatorType);
     }
 
@@ -142,10 +141,10 @@ public class Bignat {
      * No copy of array is made. If this Bignat is used in operation which modifies the Bignat value, 
      * content of provided array is changed.
      * @param valueBuffer internal storage
-     * @param ecc {@code ECConfig} class with all relevant settings and helper objects
+     * @param bignatHelper {@code Bignat_Helper} class with all relevant settings and helper objects
      */
-    public Bignat(byte[] valueBuffer, ECConfig ecc) {
-        this.ecc = ecc;
+    public Bignat(byte[] valueBuffer, Bignat_Helper bignatHelper) {
+        this.bnh = bignatHelper;
         this.size = (short) valueBuffer.length;
         this.max_size = (short) valueBuffer.length;
         this.allocatorType = -1; // no allocator
@@ -283,15 +282,15 @@ public class Bignat {
         } 
         else {
             short this_start, other_start, len;
-            ecc.locker.lock(ecc.bnh.fnc_deep_resize_tmp);
+            bnh.lock(bnh.fnc_deep_resize_tmp);
             if (this.size >= new_size) {
                 this_start = (short) (this.size - new_size);
                 other_start = 0;
                 len = new_size;
 
                 // Shrinking/cropping 
-                Util.arrayCopyNonAtomic(value, this_start, ecc.bnh.fnc_deep_resize_tmp, (short) 0, len);
-                Util.arrayCopyNonAtomic(ecc.bnh.fnc_deep_resize_tmp, (short) 0, value, (short) 0, len); // Move bytes in item array towards beggining
+                Util.arrayCopyNonAtomic(value, this_start, bnh.fnc_deep_resize_tmp, (short) 0, len);
+                Util.arrayCopyNonAtomic(bnh.fnc_deep_resize_tmp, (short) 0, value, (short) 0, len); // Move bytes in item array towards beggining
                 // Erase rest of allocated array with zeroes (just as sanitization)
                 short toErase = (short) (this.max_size - new_size);
                 if (toErase > 0) {
@@ -302,15 +301,15 @@ public class Bignat {
                 other_start = (short) (new_size - this.size);
                 len = this.size;
                 // Enlarging => Insert zeroes at begging, move bytes in item array towards the end
-                Util.arrayCopyNonAtomic(value, this_start, ecc.bnh.fnc_deep_resize_tmp, (short) 0, len);
+                Util.arrayCopyNonAtomic(value, this_start, bnh.fnc_deep_resize_tmp, (short) 0, len);
                 // Move bytes in item array towards end
-                Util.arrayCopyNonAtomic(ecc.bnh.fnc_deep_resize_tmp, (short) 0, value, other_start, len);
+                Util.arrayCopyNonAtomic(bnh.fnc_deep_resize_tmp, (short) 0, value, other_start, len);
                 // Fill begin of array with zeroes (just as sanitization)
                 if (other_start > 0) {
                     Util.arrayFillNonAtomic(value, (short) 0, other_start, (byte) 0);
                 }
             }
-            ecc.locker.unlock(ecc.bnh.fnc_deep_resize_tmp);
+            bnh.unlock(bnh.fnc_deep_resize_tmp);
 
             set_size(new_size);
         }
@@ -519,32 +518,32 @@ public class Bignat {
         // Compare using hash engine
         // The comparison is made with hash of point values instead of directly values. 
         // This way, offset of first mismatching byte is not leaked via timing side-channel. 
-        ecc.locker.lock(ecc.bnh.fnc_same_value_array1);
-        ecc.locker.lock(ecc.bnh.fnc_same_value_hash);
+        bnh.lock(bnh.fnc_same_value_array1);
+        bnh.lock(bnh.fnc_same_value_hash);
         if (this.length() == other.length()) {
             // Same length, we can hash directly from BN values
-            ecc.bnh.hashEngine.doFinal(this.value, (short) 0, this.length(), ecc.bnh.fnc_same_value_hash, (short) 0);
-            hashLen = ecc.bnh.hashEngine.doFinal(other.value, (short) 0, other.length(), ecc.bnh.fnc_same_value_array1, (short) 0);
+            bnh.hashEngine.doFinal(this.value, (short) 0, this.length(), bnh.fnc_same_value_hash, (short) 0);
+            hashLen = bnh.hashEngine.doFinal(other.value, (short) 0, other.length(), bnh.fnc_same_value_array1, (short) 0);
         }
         else {
             // Different length of bignats - can be still same if prepended with zeroes 
             // Find the length of longer one and padd other one with starting zeroes
             if (this.length() < other.length()) {
-                this.prepend_zeros(other.length(), ecc.bnh.fnc_same_value_array1, (short) 0);
-                ecc.bnh.hashEngine.doFinal(ecc.bnh.fnc_same_value_array1, (short) 0, other.length(), ecc.bnh.fnc_same_value_hash, (short) 0);
-                hashLen = ecc.bnh.hashEngine.doFinal(other.value, (short) 0, other.length(), ecc.bnh.fnc_same_value_array1, (short) 0);
+                this.prepend_zeros(other.length(), bnh.fnc_same_value_array1, (short) 0);
+                bnh.hashEngine.doFinal(bnh.fnc_same_value_array1, (short) 0, other.length(), bnh.fnc_same_value_hash, (short) 0);
+                hashLen = bnh.hashEngine.doFinal(other.value, (short) 0, other.length(), bnh.fnc_same_value_array1, (short) 0);
             }
             else {
-                other.prepend_zeros(this.length(), ecc.bnh.fnc_same_value_array1, (short) 0);
-                ecc.bnh.hashEngine.doFinal(ecc.bnh.fnc_same_value_array1, (short) 0, this.length(), ecc.bnh.fnc_same_value_hash, (short) 0);
-                hashLen = ecc.bnh.hashEngine.doFinal(this.value, (short) 0, this.length(), ecc.bnh.fnc_same_value_array1, (short) 0);
+                other.prepend_zeros(this.length(), bnh.fnc_same_value_array1, (short) 0);
+                bnh.hashEngine.doFinal(bnh.fnc_same_value_array1, (short) 0, this.length(), bnh.fnc_same_value_hash, (short) 0);
+                hashLen = bnh.hashEngine.doFinal(this.value, (short) 0, this.length(), bnh.fnc_same_value_array1, (short) 0);
             }
         }
 
-        boolean bResult = Util.arrayCompare(ecc.bnh.fnc_same_value_hash, (short) 0, ecc.bnh.fnc_same_value_array1, (short) 0, hashLen) == 0;
+        boolean bResult = Util.arrayCompare(bnh.fnc_same_value_hash, (short) 0, bnh.fnc_same_value_array1, (short) 0, hashLen) == 0;
 
-        ecc.locker.unlock(ecc.bnh.fnc_same_value_array1);
-        ecc.locker.unlock(ecc.bnh.fnc_same_value_hash);
+        bnh.unlock(bnh.fnc_same_value_array1);
+        bnh.unlock(bnh.fnc_same_value_hash);
 
         return bResult;
     }
@@ -1084,8 +1083,8 @@ public class Bignat {
      * @param other short value to add 
      */
     public void add(short other) {
-        Util.setShort(ecc.bnh.tmp_array_short, (short) 0, other); // serialize other into array
-        this.add_carry(ecc.bnh.tmp_array_short, (short) 0, (short) 2); // add as array
+        Util.setShort(bnh.tmp_array_short, (short) 0, other); // serialize other into array
+        this.add_carry(bnh.tmp_array_short, (short) 0, (short) 2); // add as array
     }
 	
     /**
@@ -1167,15 +1166,15 @@ public class Bignat {
             tmp_size = other.size;
         }
         tmp_size++;
-        ecc.bnh.fnc_mod_add_tmp.lock();
-        ecc.bnh.fnc_mod_add_tmp.set_size(tmp_size); 
-        ecc.bnh.fnc_mod_add_tmp.zero();
-        ecc.bnh.fnc_mod_add_tmp.copy(this);
-        ecc.bnh.fnc_mod_add_tmp.add(other);
-        ecc.bnh.fnc_mod_add_tmp.mod(modulo);
-        ecc.bnh.fnc_mod_add_tmp.shrink();
-        this.clone(ecc.bnh.fnc_mod_add_tmp);
-        ecc.bnh.fnc_mod_add_tmp.unlock();
+        bnh.fnc_mod_add_tmp.lock();
+        bnh.fnc_mod_add_tmp.set_size(tmp_size); 
+        bnh.fnc_mod_add_tmp.zero();
+        bnh.fnc_mod_add_tmp.copy(this);
+        bnh.fnc_mod_add_tmp.add(other);
+        bnh.fnc_mod_add_tmp.mod(modulo);
+        bnh.fnc_mod_add_tmp.shrink();
+        this.clone(bnh.fnc_mod_add_tmp);
+        bnh.fnc_mod_add_tmp.unlock();
     }
 
     /**
@@ -1189,25 +1188,25 @@ public class Bignat {
             this.subtract(other);
             this.mod(modulo);
         } else { //other>this (mod-other+this)
-            ecc.bnh.fnc_mod_sub_tmpOther.lock();
-            ecc.bnh.fnc_mod_sub_tmpOther.clone(other);
-            ecc.bnh.fnc_mod_sub_tmpOther.mod(modulo);
+            bnh.fnc_mod_sub_tmpOther.lock();
+            bnh.fnc_mod_sub_tmpOther.clone(other);
+            bnh.fnc_mod_sub_tmpOther.mod(modulo);
 
             //fnc_mod_sub_tmpThis = new Bignat(this.length());
-            ecc.bnh.fnc_mod_sub_tmpThis.lock();
-            ecc.bnh.fnc_mod_sub_tmpThis.clone(this);
-            ecc.bnh.fnc_mod_sub_tmpThis.mod(modulo);
+            bnh.fnc_mod_sub_tmpThis.lock();
+            bnh.fnc_mod_sub_tmpThis.clone(this);
+            bnh.fnc_mod_sub_tmpThis.mod(modulo);
 
-            ecc.bnh.fnc_mod_sub_tmp.lock();
-            ecc.bnh.fnc_mod_sub_tmp.clone(modulo);
-            ecc.bnh.fnc_mod_sub_tmp.subtract(ecc.bnh.fnc_mod_sub_tmpOther);
-            ecc.bnh.fnc_mod_sub_tmpOther.unlock();
-            ecc.bnh.fnc_mod_sub_tmp.add(ecc.bnh.fnc_mod_sub_tmpThis); //this will never overflow as "other" is larger than "this"
-            ecc.bnh.fnc_mod_sub_tmpThis.unlock();
-            ecc.bnh.fnc_mod_sub_tmp.mod(modulo);
-            ecc.bnh.fnc_mod_sub_tmp.shrink();
-            this.clone(ecc.bnh.fnc_mod_sub_tmp);
-            ecc.bnh.fnc_mod_sub_tmp.unlock();
+            bnh.fnc_mod_sub_tmp.lock();
+            bnh.fnc_mod_sub_tmp.clone(modulo);
+            bnh.fnc_mod_sub_tmp.subtract(bnh.fnc_mod_sub_tmpOther);
+            bnh.fnc_mod_sub_tmpOther.unlock();
+            bnh.fnc_mod_sub_tmp.add(bnh.fnc_mod_sub_tmpThis); //this will never overflow as "other" is larger than "this"
+            bnh.fnc_mod_sub_tmpThis.unlock();
+            bnh.fnc_mod_sub_tmp.mod(modulo);
+            bnh.fnc_mod_sub_tmp.shrink();
+            this.clone(bnh.fnc_mod_sub_tmp);
+            bnh.fnc_mod_sub_tmp.unlock();
         }
     }
 	
@@ -1275,11 +1274,11 @@ public class Bignat {
      * @param other value of divisor
      */
     public void divide(Bignat other) {
-        ecc.bnh.fnc_divide_tmpThis.lock();
-        ecc.bnh.fnc_divide_tmpThis.clone(this);
-        ecc.bnh.fnc_divide_tmpThis.remainder_divide(other, this);
-        this.clone(ecc.bnh.fnc_divide_tmpThis); 
-        ecc.bnh.fnc_divide_tmpThis.unlock();
+        bnh.fnc_divide_tmpThis.lock();
+        bnh.fnc_divide_tmpThis.clone(this);
+        bnh.fnc_divide_tmpThis.remainder_divide(other, this);
+        this.clone(bnh.fnc_divide_tmpThis); 
+        bnh.fnc_divide_tmpThis.unlock();
     }
 
     /**
@@ -1289,17 +1288,17 @@ public class Bignat {
      */
     public void exponentiation(Bignat base, Bignat exp) {
         this.one();
-        ecc.bnh.fnc_exponentiation_i.lock();
-        ecc.bnh.fnc_exponentiation_i.set_size(exp.length());
-        ecc.bnh.fnc_exponentiation_i.zero();
-        ecc.bnh.fnc_exponentiation_tmp.lock();
-        ecc.bnh.fnc_exponentiation_tmp.set_size((short) (2 * this.length()));
-        for (; ecc.bnh.fnc_exponentiation_i.lesser(exp); ecc.bnh.fnc_exponentiation_i.increment_one()) { 
-            ecc.bnh.fnc_exponentiation_tmp.mult(this, base);
-            this.copy(ecc.bnh.fnc_exponentiation_tmp);
+        bnh.fnc_exponentiation_i.lock();
+        bnh.fnc_exponentiation_i.set_size(exp.length());
+        bnh.fnc_exponentiation_i.zero();
+        bnh.fnc_exponentiation_tmp.lock();
+        bnh.fnc_exponentiation_tmp.set_size((short) (2 * this.length()));
+        for (; bnh.fnc_exponentiation_i.lesser(exp); bnh.fnc_exponentiation_i.increment_one()) { 
+            bnh.fnc_exponentiation_tmp.mult(this, base);
+            this.copy(bnh.fnc_exponentiation_tmp);
         }
-        ecc.bnh.fnc_exponentiation_i.unlock();
-        ecc.bnh.fnc_exponentiation_tmp.unlock();
+        bnh.fnc_exponentiation_i.unlock();
+        bnh.fnc_exponentiation_tmp.unlock();
     }
     
     /**
@@ -1314,7 +1313,8 @@ public class Bignat {
     *            second factor
     */
     public void mult(Bignat x, Bignat y) {      
-        if (!ecc.FLAG_FAST_MULT_VIA_RSA || x.length() < ecc.FAST_MULT_VIA_RSA_TRESHOLD_LENGTH) {
+        if (!bnh.FLAG_FAST_MULT_VIA_RSA || x.length() < Bignat_Helper.FAST_MULT_VIA_RSA_TRESHOLD_LENGTH) {
+        //if (!bnh.FLAG_FAST_MULT_VIA_RSA) {
             // If not supported, use slow multiplication
             // Use slow multiplication also when numbers are small => faster to do in software 
             mult_schoolbook(x, y);
@@ -1368,77 +1368,77 @@ public class Bignat {
         short xOffset;
         short yOffset;
 
-        ecc.locker.lock(ecc.bnh.fnc_mult_resultArray1);
+        bnh.lock(bnh.fnc_mult_resultArray1);
 
         // x+y
-        Util.arrayFillNonAtomic(ecc.bnh.fnc_mult_resultArray1, (short) 0, (short) ecc.bnh.fnc_mult_resultArray1.length, (byte) 0);
+        Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray1, (short) 0, (short) bnh.fnc_mult_resultArray1.length, (byte) 0);
         // We must copy bigger number first
         if (x.size > y.size) {
             // Copy x to the end of mult_resultArray
-            xOffset = (short) (ecc.bnh.fnc_mult_resultArray1.length - x.length());
-            Util.arrayCopyNonAtomic(x.value, (short) 0, ecc.bnh.fnc_mult_resultArray1, xOffset, x.length());
-            if (add(ecc.bnh.fnc_mult_resultArray1, xOffset, x.size, y.value, (short) 0, y.size)) {
+            xOffset = (short) (bnh.fnc_mult_resultArray1.length - x.length());
+            Util.arrayCopyNonAtomic(x.value, (short) 0, bnh.fnc_mult_resultArray1, xOffset, x.length());
+            if (add(bnh.fnc_mult_resultArray1, xOffset, x.size, y.value, (short) 0, y.size)) {
                 xOffset--;
-                ecc.bnh.fnc_mult_resultArray1[xOffset] = 0x01;
+                bnh.fnc_mult_resultArray1[xOffset] = 0x01;
             }
         } else {
             // Copy x to the end of mult_resultArray
-            yOffset = (short) (ecc.bnh.fnc_mult_resultArray1.length - y.length());
-            Util.arrayCopyNonAtomic(y.value, (short) 0, ecc.bnh.fnc_mult_resultArray1, yOffset, y.length());
-            if (add(ecc.bnh.fnc_mult_resultArray1, yOffset, y.size, x.value, (short) 0, x.size)) {
+            yOffset = (short) (bnh.fnc_mult_resultArray1.length - y.length());
+            Util.arrayCopyNonAtomic(y.value, (short) 0, bnh.fnc_mult_resultArray1, yOffset, y.length());
+            if (add(bnh.fnc_mult_resultArray1, yOffset, y.size, x.value, (short) 0, x.size)) {
                 yOffset--;
-                ecc.bnh.fnc_mult_resultArray1[yOffset] = 0x01; // add carry if occured
+                bnh.fnc_mult_resultArray1[yOffset] = 0x01; // add carry if occured
             }
         }
 
         // ((x+y)^2)
-        ecc.bnh.fnc_mult_cipher.doFinal(ecc.bnh.fnc_mult_resultArray1, (byte) 0, (short) ecc.bnh.fnc_mult_resultArray1.length, ecc.bnh.fnc_mult_resultArray1, (short) 0);
+        bnh.fnc_mult_cipher.doFinal(bnh.fnc_mult_resultArray1, (byte) 0, (short) bnh.fnc_mult_resultArray1.length, bnh.fnc_mult_resultArray1, (short) 0);
 
         // x^2
-        ecc.locker.lock(ecc.bnh.fnc_mult_resultArray2);
+        bnh.lock(bnh.fnc_mult_resultArray2);
         if (x_pow_2 == null) {
             // x^2 is not precomputed
-            Util.arrayFillNonAtomic(ecc.bnh.fnc_mult_resultArray2, (short) 0, (short) ecc.bnh.fnc_mult_resultArray2.length, (byte) 0);
-            xOffset = (short) (ecc.bnh.fnc_mult_resultArray2.length - x.length());
-            Util.arrayCopyNonAtomic(x.value, (short) 0, ecc.bnh.fnc_mult_resultArray2, xOffset, x.length());
-            ecc.bnh.fnc_mult_cipher.doFinal(ecc.bnh.fnc_mult_resultArray2, (byte) 0, (short) ecc.bnh.fnc_mult_resultArray2.length, ecc.bnh.fnc_mult_resultArray2, (short) 0);
+            Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length, (byte) 0);
+            xOffset = (short) (bnh.fnc_mult_resultArray2.length - x.length());
+            Util.arrayCopyNonAtomic(x.value, (short) 0, bnh.fnc_mult_resultArray2, xOffset, x.length());
+            bnh.fnc_mult_cipher.doFinal(bnh.fnc_mult_resultArray2, (byte) 0, (short) bnh.fnc_mult_resultArray2.length, bnh.fnc_mult_resultArray2, (short) 0);
         } else {
             // x^2 is precomputed
-            if ((short) x_pow_2.length != (short) ecc.bnh.fnc_mult_resultArray2.length) {
-                Util.arrayFillNonAtomic(ecc.bnh.fnc_mult_resultArray2, (short) 0, (short) ecc.bnh.fnc_mult_resultArray2.length, (byte) 0);
-                xOffset = (short) ((short) ecc.bnh.fnc_mult_resultArray2.length - (short) x_pow_2.length);
+            if ((short) x_pow_2.length != (short) bnh.fnc_mult_resultArray2.length) {
+                Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length, (byte) 0);
+                xOffset = (short) ((short) bnh.fnc_mult_resultArray2.length - (short) x_pow_2.length);
             } else {
                 xOffset = 0;
             }
-            Util.arrayCopyNonAtomic(x_pow_2, (short) 0, ecc.bnh.fnc_mult_resultArray2, xOffset, (short) x_pow_2.length);
+            Util.arrayCopyNonAtomic(x_pow_2, (short) 0, bnh.fnc_mult_resultArray2, xOffset, (short) x_pow_2.length);
         }
         // ((x+y)^2) - x^2
-        subtract(ecc.bnh.fnc_mult_resultArray1, (short) 0, (short) ecc.bnh.fnc_mult_resultArray1.length, ecc.bnh.fnc_mult_resultArray2, (short) 0, (short) ecc.bnh.fnc_mult_resultArray2.length);
+        subtract(bnh.fnc_mult_resultArray1, (short) 0, (short) bnh.fnc_mult_resultArray1.length, bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length);
 
         // y^2
-        if (x_pow_2 == null) {
+        if (y_pow_2 == null) {
             // y^2 is not precomputed
-            Util.arrayFillNonAtomic(ecc.bnh.fnc_mult_resultArray2, (short) 0, (short) ecc.bnh.fnc_mult_resultArray2.length, (byte) 0);
-            yOffset = (short) (ecc.bnh.fnc_mult_resultArray2.length - y.length());
-            Util.arrayCopyNonAtomic(y.value, (short) 0, ecc.bnh.fnc_mult_resultArray2, yOffset, y.length());
-            ecc.bnh.fnc_mult_cipher.doFinal(ecc.bnh.fnc_mult_resultArray2, (byte) 0, (short) ecc.bnh.fnc_mult_resultArray2.length, ecc.bnh.fnc_mult_resultArray2, (short) 0);
+            Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length, (byte) 0);
+            yOffset = (short) (bnh.fnc_mult_resultArray2.length - y.length());
+            Util.arrayCopyNonAtomic(y.value, (short) 0, bnh.fnc_mult_resultArray2, yOffset, y.length());
+            bnh.fnc_mult_cipher.doFinal(bnh.fnc_mult_resultArray2, (byte) 0, (short) bnh.fnc_mult_resultArray2.length, bnh.fnc_mult_resultArray2, (short) 0);
         } else {
             // y^2 is precomputed
-            if ((short) y_pow_2.length != (short) ecc.bnh.fnc_mult_resultArray2.length) {
-                Util.arrayFillNonAtomic(ecc.bnh.fnc_mult_resultArray2, (short) 0, (short) ecc.bnh.fnc_mult_resultArray2.length, (byte) 0);
-                yOffset = (short) ((short) ecc.bnh.fnc_mult_resultArray2.length - (short) y_pow_2.length);
+            if ((short) y_pow_2.length != (short) bnh.fnc_mult_resultArray2.length) {
+                Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length, (byte) 0);
+                yOffset = (short) ((short) bnh.fnc_mult_resultArray2.length - (short) y_pow_2.length);
             } else {
                 yOffset = 0;
             }
-            Util.arrayCopyNonAtomic(y_pow_2, (short) 0, ecc.bnh.fnc_mult_resultArray2, yOffset, (short) y_pow_2.length);
+            Util.arrayCopyNonAtomic(y_pow_2, (short) 0, bnh.fnc_mult_resultArray2, yOffset, (short) y_pow_2.length);
         }
         
 
         // {(x+y)^2) - x^2} - y^2
-        subtract(ecc.bnh.fnc_mult_resultArray1, (short) 0, (short) ecc.bnh.fnc_mult_resultArray1.length, ecc.bnh.fnc_mult_resultArray2, (short) 0, (short) ecc.bnh.fnc_mult_resultArray2.length);
+        subtract(bnh.fnc_mult_resultArray1, (short) 0, (short) bnh.fnc_mult_resultArray1.length, bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length);
 
         // we now have 2xy in mult_resultArray, divide it by 2 => shift by one bit and fill back into this
-        short multOffset = (short) ((short) ecc.bnh.fnc_mult_resultArray1.length - 1);
+        short multOffset = (short) ((short) bnh.fnc_mult_resultArray1.length - 1);
         short res = 0;
         short res2 = 0;
         // this.length() must be different from multOffset, set proper ending condition
@@ -1452,15 +1452,15 @@ public class Bignat {
             Util.arrayFillNonAtomic(this.value, (short) 0, stopOffset, (byte) 0);
         }
         for (short i = (short) (this.length() - 1); i >= stopOffset; i--) {
-            res = (short) (ecc.bnh.fnc_mult_resultArray1[multOffset] & 0xff);
+            res = (short) (bnh.fnc_mult_resultArray1[multOffset] & 0xff);
             res = (short) (res >> 1);
-            res2 = (short) (ecc.bnh.fnc_mult_resultArray1[(short) (multOffset - 1)] & 0xff);
+            res2 = (short) (bnh.fnc_mult_resultArray1[(short) (multOffset - 1)] & 0xff);
             res2 = (short) (res2 << 7);
             this.value[i] = (byte) (short) (res | res2);
             multOffset--;
         }
-        ecc.locker.unlock(ecc.bnh.fnc_mult_resultArray1);
-        ecc.locker.unlock(ecc.bnh.fnc_mult_resultArray2);
+        bnh.unlock(bnh.fnc_mult_resultArray1);
+        bnh.unlock(bnh.fnc_mult_resultArray2);
     }    
 
     /**
@@ -1471,15 +1471,15 @@ public class Bignat {
      * @param modulo value of modulo
      */
     public void mod_mult(Bignat x, Bignat y, Bignat modulo) {            	
-        ecc.bnh.fnc_mod_mult_tmpThis.lock();
-        ecc.bnh.fnc_mod_mult_tmpThis.resize_to_max(false);
+        bnh.fnc_mod_mult_tmpThis.lock();
+        bnh.fnc_mod_mult_tmpThis.resize_to_max(false);
         // Perform fast multiplication using RSA trick
-        ecc.bnh.fnc_mod_mult_tmpThis.mult(x, y);        
+        bnh.fnc_mod_mult_tmpThis.mult(x, y);        
         // Compute modulo 
-        ecc.bnh.fnc_mod_mult_tmpThis.mod(modulo);
-        ecc.bnh.fnc_mod_mult_tmpThis.shrink();
-        this.clone(ecc.bnh.fnc_mod_mult_tmpThis);
-        ecc.bnh.fnc_mod_mult_tmpThis.unlock();
+        bnh.fnc_mod_mult_tmpThis.mod(modulo);
+        bnh.fnc_mod_mult_tmpThis.shrink();
+        this.clone(bnh.fnc_mod_mult_tmpThis);
+        bnh.fnc_mod_mult_tmpThis.unlock();
     }
     // Potential speedup for  modular multiplication
     // Binomial theorem: (op1 + op2)^2 - (op1 - op2)^2 = 4 * op1 * op2 mod (mod)
@@ -1547,28 +1547,28 @@ public class Bignat {
         }
 
         short magicAdd = 2;
-        ecc.bnh.fnc_mult_mod_tmp_x.lock();
-        ecc.bnh.fnc_mult_mod_tmp_x.set_size((short) (len + magicAdd));
-        ecc.bnh.fnc_mult_mod_tmp_x.copy(x);
+        bnh.fnc_mult_mod_tmp_x.lock();
+        bnh.fnc_mult_mod_tmp_x.set_size((short) (len + magicAdd));
+        bnh.fnc_mult_mod_tmp_x.copy(x);
 
-        ecc.bnh.fnc_mult_mod_tmp_mod.lock();
-        ecc.bnh.fnc_mult_mod_tmp_mod.set_size((short) (len + magicAdd));
-        ecc.bnh.fnc_mult_mod_tmp_mod.copy(mod);
+        bnh.fnc_mult_mod_tmp_mod.lock();
+        bnh.fnc_mult_mod_tmp_mod.set_size((short) (len + magicAdd));
+        bnh.fnc_mult_mod_tmp_mod.copy(mod);
 
-        ecc.bnh.fnc_mult_mod_tmpThis.lock();
-        ecc.bnh.fnc_mult_mod_tmpThis.set_size((short) (this.length() + magicAdd));
-        ecc.bnh.fnc_mult_mod_tmpThis.zero();
+        bnh.fnc_mult_mod_tmpThis.lock();
+        bnh.fnc_mult_mod_tmpThis.set_size((short) (this.length() + magicAdd));
+        bnh.fnc_mult_mod_tmpThis.zero();
         for (short i = 0; i < y.size; i++) {
-            ecc.bnh.fnc_mult_mod_tmpThis.shift_left();
-            ecc.bnh.fnc_mult_mod_tmpThis.times_add(ecc.bnh.fnc_mult_mod_tmp_x, (short) (y.value[i] & digit_mask));
-            ecc.bnh.fnc_mult_mod_tmpThis.remainder_divide(ecc.bnh.fnc_mult_mod_tmp_mod, null);
+            bnh.fnc_mult_mod_tmpThis.shift_left();
+            bnh.fnc_mult_mod_tmpThis.times_add(bnh.fnc_mult_mod_tmp_x, (short) (y.value[i] & digit_mask));
+            bnh.fnc_mult_mod_tmpThis.remainder_divide(bnh.fnc_mult_mod_tmp_mod, null);
         }
-        ecc.bnh.fnc_mult_mod_tmp_x.unlock();
-        ecc.bnh.fnc_mult_mod_tmp_mod.unlock();
+        bnh.fnc_mult_mod_tmp_x.unlock();
+        bnh.fnc_mult_mod_tmp_mod.unlock();
 
-        ecc.bnh.fnc_mult_mod_tmpThis.shrink();
-        this.clone(ecc.bnh.fnc_mult_mod_tmpThis);
-        ecc.bnh.fnc_mult_mod_tmpThis.unlock();
+        bnh.fnc_mult_mod_tmpThis.shrink();
+        this.clone(bnh.fnc_mult_mod_tmpThis);
+        bnh.fnc_mult_mod_tmpThis.unlock();
     }
 	
 
@@ -1581,73 +1581,73 @@ public class Bignat {
     public void sqrt_FP(Bignat p) {
         PM.check(PM.TRAP_BIGNAT_SQRT_1);
         //1. By factoring out powers of 2, find Q and S such that p-1=Q2^S p-1=Q*2^S and Q is odd
-        ecc.bnh.fnc_sqrt_p_1.lock();
-        ecc.bnh.fnc_sqrt_p_1.clone(p);
+        bnh.fnc_sqrt_p_1.lock();
+        bnh.fnc_sqrt_p_1.clone(p);
         PM.check(PM.TRAP_BIGNAT_SQRT_2);
-        ecc.bnh.fnc_sqrt_p_1.decrement_one();
+        bnh.fnc_sqrt_p_1.decrement_one();
         PM.check(PM.TRAP_BIGNAT_SQRT_3);
 
         //Compute Q
-        ecc.bnh.fnc_sqrt_Q.lock();
-        ecc.bnh.fnc_sqrt_Q.clone(ecc.bnh.fnc_sqrt_p_1);
-        ecc.bnh.fnc_sqrt_Q.divide_by_2(); //Q /= 2
+        bnh.fnc_sqrt_Q.lock();
+        bnh.fnc_sqrt_Q.clone(bnh.fnc_sqrt_p_1);
+        bnh.fnc_sqrt_Q.divide_by_2(); //Q /= 2
         PM.check(PM.TRAP_BIGNAT_SQRT_4);
 
         //Compute S
-        ecc.bnh.fnc_sqrt_S.lock();
-        ecc.bnh.fnc_sqrt_S.set_size(p.length());
-        ecc.bnh.fnc_sqrt_S.zero();
-        ecc.bnh.fnc_sqrt_tmp.lock();
-        ecc.bnh.fnc_sqrt_tmp.set_size(p.length());
-        ecc.bnh.fnc_sqrt_tmp.zero();
+        bnh.fnc_sqrt_S.lock();
+        bnh.fnc_sqrt_S.set_size(p.length());
+        bnh.fnc_sqrt_S.zero();
+        bnh.fnc_sqrt_tmp.lock();
+        bnh.fnc_sqrt_tmp.set_size(p.length());
+        bnh.fnc_sqrt_tmp.zero();
 
         PM.check(PM.TRAP_BIGNAT_SQRT_5);
-        while (ecc.bnh.fnc_sqrt_tmp.same_value(ecc.bnh.fnc_sqrt_Q)==false){
-            ecc.bnh.fnc_sqrt_S.increment_one();
-            ecc.bnh.fnc_sqrt_tmp.mod_mult(ecc.bnh.fnc_sqrt_S, ecc.bnh.fnc_sqrt_Q, p);
+        while (bnh.fnc_sqrt_tmp.same_value(bnh.fnc_sqrt_Q)==false){
+            bnh.fnc_sqrt_S.increment_one();
+            bnh.fnc_sqrt_tmp.mod_mult(bnh.fnc_sqrt_S, bnh.fnc_sqrt_Q, p);
         }
-        ecc.bnh.fnc_sqrt_tmp.unlock();
+        bnh.fnc_sqrt_tmp.unlock();
         PM.check(PM.TRAP_BIGNAT_SQRT_6);
-        ecc.bnh.fnc_sqrt_S.unlock();
+        bnh.fnc_sqrt_S.unlock();
 
         //2. Find the first quadratic non-residue z by brute-force search
-        ecc.bnh.fnc_sqrt_exp.lock();
-        ecc.bnh.fnc_sqrt_exp.clone(ecc.bnh.fnc_sqrt_p_1);
+        bnh.fnc_sqrt_exp.lock();
+        bnh.fnc_sqrt_exp.clone(bnh.fnc_sqrt_p_1);
         PM.check(PM.TRAP_BIGNAT_SQRT_7);
-        ecc.bnh.fnc_sqrt_exp.divide_by_2();
+        bnh.fnc_sqrt_exp.divide_by_2();
         
         PM.check(PM.TRAP_BIGNAT_SQRT_8);
 
-        ecc.bnh.fnc_sqrt_z.lock();
-        ecc.bnh.fnc_sqrt_z.set_size(p.length());
-        ecc.bnh.fnc_sqrt_z.one();
-        ecc.bnh.fnc_sqrt_tmp.lock();
-        ecc.bnh.fnc_sqrt_tmp.zero();
-        ecc.bnh.fnc_sqrt_tmp.copy(ecc.bnh.ONE);
+        bnh.fnc_sqrt_z.lock();
+        bnh.fnc_sqrt_z.set_size(p.length());
+        bnh.fnc_sqrt_z.one();
+        bnh.fnc_sqrt_tmp.lock();
+        bnh.fnc_sqrt_tmp.zero();
+        bnh.fnc_sqrt_tmp.copy(Bignat_Helper.ONE);
 
         PM.check(PM.TRAP_BIGNAT_SQRT_9);
-        while (ecc.bnh.fnc_sqrt_tmp.same_value(ecc.bnh.fnc_sqrt_p_1)==false) {
-            ecc.bnh.fnc_sqrt_z.increment_one();
-            ecc.bnh.fnc_sqrt_tmp.copy(ecc.bnh.fnc_sqrt_z);
-            ecc.bnh.fnc_sqrt_tmp.mod_exp(ecc.bnh.fnc_sqrt_exp, p);		
+        while (bnh.fnc_sqrt_tmp.same_value(bnh.fnc_sqrt_p_1)==false) {
+            bnh.fnc_sqrt_z.increment_one();
+            bnh.fnc_sqrt_tmp.copy(bnh.fnc_sqrt_z);
+            bnh.fnc_sqrt_tmp.mod_exp(bnh.fnc_sqrt_exp, p);		
         }
         PM.check(PM.TRAP_BIGNAT_SQRT_10);
-        ecc.bnh.fnc_sqrt_p_1.unlock();
-        ecc.bnh.fnc_sqrt_tmp.unlock();
-        ecc.bnh.fnc_sqrt_z.unlock();
-        ecc.bnh.fnc_sqrt_exp.copy(ecc.bnh.fnc_sqrt_Q);
-        ecc.bnh.fnc_sqrt_Q.unlock();
+        bnh.fnc_sqrt_p_1.unlock();
+        bnh.fnc_sqrt_tmp.unlock();
+        bnh.fnc_sqrt_z.unlock();
+        bnh.fnc_sqrt_exp.copy(bnh.fnc_sqrt_Q);
+        bnh.fnc_sqrt_Q.unlock();
         PM.check(PM.TRAP_BIGNAT_SQRT_11);
-        ecc.bnh.fnc_sqrt_exp.increment_one();
+        bnh.fnc_sqrt_exp.increment_one();
         PM.check(PM.TRAP_BIGNAT_SQRT_12);
-        ecc.bnh.fnc_sqrt_exp.divide_by_2();
+        bnh.fnc_sqrt_exp.divide_by_2();
         PM.check(PM.TRAP_BIGNAT_SQRT_13);
 
         this.mod(p);
         PM.check(PM.TRAP_BIGNAT_SQRT_14);
-        this.mod_exp(ecc.bnh.fnc_sqrt_exp, p);
+        this.mod_exp(bnh.fnc_sqrt_exp, p);
         PM.check(PM.TRAP_BIGNAT_SQRT_15);
-        ecc.bnh.fnc_sqrt_exp.unlock();
+        bnh.fnc_sqrt_exp.unlock();
     } // end void sqrt(Bignat p)	
 	
     
@@ -1668,13 +1668,13 @@ public class Bignat {
      * @param modulo value of modulo
      */
     public void mod_inv(Bignat modulo) {
-        ecc.bnh.fnc_mod_minus_2.lock();
-        ecc.bnh.fnc_mod_minus_2.clone(modulo);
-        ecc.bnh.fnc_mod_minus_2.decrement_one();
-        ecc.bnh.fnc_mod_minus_2.decrement_one();
+        bnh.fnc_mod_minus_2.lock();
+        bnh.fnc_mod_minus_2.clone(modulo);
+        bnh.fnc_mod_minus_2.decrement_one();
+        bnh.fnc_mod_minus_2.decrement_one();
         
-        mod_exp(ecc.bnh.fnc_mod_minus_2, modulo);
-        ecc.bnh.fnc_mod_minus_2.unlock();
+        mod_exp(bnh.fnc_mod_minus_2, modulo);
+        bnh.fnc_mod_minus_2.unlock();
     }
     
     /**
@@ -1684,20 +1684,20 @@ public class Bignat {
      * @param modulo value of modulo
      */
     public void mod_exp(Bignat exponent, Bignat modulo) {
-        short tmp_size = (short)(ecc.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
-        ecc.bnh.fnc_mod_exp_modBN.lock();
-        ecc.bnh.fnc_mod_exp_modBN.set_size(tmp_size);
+        short tmp_size = (short)(bnh.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
+        bnh.fnc_mod_exp_modBN.lock();
+        bnh.fnc_mod_exp_modBN.set_size(tmp_size);
 
-        short len = n_mod_exp(tmp_size, this, exponent.as_byte_array(), exponent.length(), modulo, ecc.bnh.fnc_mod_exp_modBN.value, (short) 0);
-        if (ecc.bnh.bIsSimulator) {
+        short len = n_mod_exp(tmp_size, this, exponent.as_byte_array(), exponent.length(), modulo, bnh.fnc_mod_exp_modBN.value, (short) 0);
+        if (bnh.bIsSimulator) {
             // Decrypted length can be either tmp_size or less because of leading zeroes consumed by simulator engine implementation
             // Move obtained value into proper position with zeroes prepended
             if (len != tmp_size) {
-                ecc.locker.lock(ecc.bnh.fnc_deep_resize_tmp);
-                Util.arrayFillNonAtomic(ecc.bnh.fnc_deep_resize_tmp, (short) 0, (short) ecc.bnh.fnc_deep_resize_tmp.length, (byte) 0);
-                Util.arrayCopyNonAtomic(ecc.bnh.fnc_mod_exp_modBN.value, (short) 0, ecc.bnh.fnc_deep_resize_tmp, (short) (tmp_size - len), len);
-                Util.arrayCopyNonAtomic(ecc.bnh.fnc_deep_resize_tmp, (short) 0, ecc.bnh.fnc_mod_exp_modBN.value, (short) 0, tmp_size);
-                ecc.locker.unlock(ecc.bnh.fnc_deep_resize_tmp);
+                bnh.lock(bnh.fnc_deep_resize_tmp);
+                Util.arrayFillNonAtomic(bnh.fnc_deep_resize_tmp, (short) 0, (short) bnh.fnc_deep_resize_tmp.length, (byte) 0);
+                Util.arrayCopyNonAtomic(bnh.fnc_mod_exp_modBN.value, (short) 0, bnh.fnc_deep_resize_tmp, (short) (tmp_size - len), len);
+                Util.arrayCopyNonAtomic(bnh.fnc_deep_resize_tmp, (short) 0, bnh.fnc_mod_exp_modBN.value, (short) 0, tmp_size);
+                bnh.unlock(bnh.fnc_deep_resize_tmp);
             }
         }
         else {
@@ -1706,15 +1706,15 @@ public class Bignat {
                 ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
             }
         }
-        ecc.bnh.fnc_mod_exp_modBN.mod(modulo);
-    	ecc.bnh.fnc_mod_exp_modBN.shrink();
-    	this.clone(ecc.bnh.fnc_mod_exp_modBN);
-        ecc.bnh.fnc_mod_exp_modBN.unlock();
+        bnh.fnc_mod_exp_modBN.mod(modulo);
+    	bnh.fnc_mod_exp_modBN.shrink();
+    	this.clone(bnh.fnc_mod_exp_modBN);
+        bnh.fnc_mod_exp_modBN.unlock();
     }
     
  
     public void mod_exp2(Bignat modulo) {
-        mod_exp(ecc.bnh.TWO, modulo);
+        mod_exp(Bignat_Helper.TWO, modulo);
         //this.pow2Mod_RSATrick(modulo);
 /*        
         short tmp_size = (short) (occ.bnHelper.MOD_RSA_LENGTH / 8);
@@ -1769,26 +1769,26 @@ public class Bignat {
      */
     private short n_mod_exp(short baseLen, Bignat base, byte[] exponent, short exponentLen, Bignat modulo, byte[] resultArray, short resultOffset) {
         // Verify if pre-allocated engine match the required values
-        if (ecc.bnh.fnc_NmodE_pubKey.getSize() < (short) (modulo.length() * 8)) {
+        if (bnh.fnc_NmodE_pubKey.getSize() < (short) (modulo.length() * 8)) {
             // attempt to perform modulu with higher or smaller than supported length - try change constant MODULO_ENGINE_MAX_LENGTH
             ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
         }
-        if (ecc.bnh.fnc_NmodE_pubKey.getSize() < (short) (base.length() * 8)) {
+        if (bnh.fnc_NmodE_pubKey.getSize() < (short) (base.length() * 8)) {
             ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
         }
         // Potential problem: we are changing key value for publicKey already used before with occ.bnHelper.modCipher. 
         // Simulator and potentially some cards fail to initialize this new value properly (probably assuming that same key object will always have same value)
         // Fix (if problem occure): generate new key object: RSAPublicKey publicKey = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, (short) (baseLen * 8), false);
 
-        ecc.bnh.fnc_NmodE_pubKey.setExponent(exponent, (short) 0, exponentLen);
-        ecc.locker.lock(ecc.bnh.fnc_deep_resize_tmp);
-        modulo.append_zeros(baseLen, ecc.bnh.fnc_deep_resize_tmp, (short) 0);
-        ecc.bnh.fnc_NmodE_pubKey.setModulus(ecc.bnh.fnc_deep_resize_tmp, (short) 0, baseLen);
-        ecc.bnh.fnc_NmodE_cipher.init(ecc.bnh.fnc_NmodE_pubKey, Cipher.MODE_DECRYPT);        
-        base.prepend_zeros(baseLen, ecc.bnh.fnc_deep_resize_tmp, (short) 0);
+        bnh.fnc_NmodE_pubKey.setExponent(exponent, (short) 0, exponentLen);
+        bnh.lock(bnh.fnc_deep_resize_tmp);
+        modulo.append_zeros(baseLen, bnh.fnc_deep_resize_tmp, (short) 0);
+        bnh.fnc_NmodE_pubKey.setModulus(bnh.fnc_deep_resize_tmp, (short) 0, baseLen);
+        bnh.fnc_NmodE_cipher.init(bnh.fnc_NmodE_pubKey, Cipher.MODE_DECRYPT);        
+        base.prepend_zeros(baseLen, bnh.fnc_deep_resize_tmp, (short) 0);
         // BUGBUG: Check if input is not all zeroes (causes out-of-bound exception on some cards)
-        short len = ecc.bnh.fnc_NmodE_cipher.doFinal(ecc.bnh.fnc_deep_resize_tmp, (short) 0, baseLen, resultArray, resultOffset); 
-        ecc.locker.unlock(ecc.bnh.fnc_deep_resize_tmp);
+        short len = bnh.fnc_NmodE_cipher.doFinal(bnh.fnc_deep_resize_tmp, (short) 0, baseLen, resultArray, resultOffset); 
+        bnh.unlock(bnh.fnc_deep_resize_tmp);
         return len;
     }
 
@@ -1798,21 +1798,33 @@ public class Bignat {
      * @param mod value of modulus
      */
     public void mod_negate(Bignat mod) {
-        ecc.bnh.fnc_negate_tmp.lock();
-        ecc.bnh.fnc_negate_tmp.set_size(mod.length());
-        ecc.bnh.fnc_negate_tmp.copy(mod); //-y=mod-y
+        bnh.fnc_negate_tmp.lock();
+        bnh.fnc_negate_tmp.set_size(mod.length());
+        bnh.fnc_negate_tmp.copy(mod); //-y=mod-y
 
         if (this.lesser(mod)) { // y<mod
-            ecc.bnh.fnc_negate_tmp.subtract(this);//-y=mod-y
-            this.copy(ecc.bnh.fnc_negate_tmp);
+            bnh.fnc_negate_tmp.subtract(this);//-y=mod-y
+            this.copy(bnh.fnc_negate_tmp);
         } else {// y>=mod
             this.mod(mod);//-y=y-mod
-            ecc.bnh.fnc_negate_tmp.subtract(this);
-            this.copy(ecc.bnh.fnc_negate_tmp);
+            bnh.fnc_negate_tmp.subtract(this);
+            this.copy(bnh.fnc_negate_tmp);
         }
-        ecc.bnh.fnc_negate_tmp.unlock();
+        bnh.fnc_negate_tmp.unlock();
     }
 
+    /**
+     * Shifts stored value to right by specified number of bytes. This operation equals to multiplication by value numBytes * 256.
+     * @param numBytes number of bytes to shift
+     */
+    public void shift_bytes_right(short numBytes) {
+        // Move whole content by numBytes offset
+        bnh.lock(bnh.fnc_shift_bytes_right_tmp);
+        Util.arrayCopyNonAtomic(this.value, (short) 0, bnh.fnc_shift_bytes_right_tmp, (short) 0, (short) (this.value.length));
+        Util.arrayCopyNonAtomic(bnh.fnc_shift_bytes_right_tmp, (short) 0, this.value, numBytes, (short) ((short) (this.value.length) - numBytes));
+        Util.arrayFillNonAtomic(this.value, (short) 0, numBytes, (byte) 0);
+        bnh.unlock(bnh.fnc_shift_bytes_right_tmp);
+    }
     
     /**
      * Allocates required underlying storage array with given maximum size and
@@ -1829,7 +1841,7 @@ public class Bignat {
         this.size = maxSize;
         this.max_size = maxSize;
         this.allocatorType = allocatorType;
-        this.value = ecc.memAlloc.allocateByteArray(this.max_size, allocatorType);
+        this.value = bnh.allocateByteArray(this.max_size, allocatorType);
     }
     
     /**

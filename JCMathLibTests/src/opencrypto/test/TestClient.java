@@ -54,6 +54,7 @@ public class TestClient {
 
     public static byte[] OPENCRYPTO_UNITTEST_APPLET_AID = {0x55, 0x6e, 0x69, 0x74, 0x54, 0x65, 0x73, 0x74, 0x73};
     public static byte[] APDU_CLEANUP = {OCUnitTests.CLA_OC_UT, OCUnitTests.INS_CLEANUP, (byte) 0x00, (byte) 0x00};
+    public static byte[] APDU_GET_PROFILE_LOCKS = {OCUnitTests.CLA_OC_UT, OCUnitTests.INS_GET_PROFILE_LOCKS, (byte) 0x00, (byte) 0x00};
 
 
     public static void main(String[] args) throws Exception {
@@ -554,6 +555,9 @@ public class TestClient {
 
             System.out.println("\n--------------Unit Tests--------------\n\n");
 
+            cardMngr.transmit(new CommandAPDU(APDU_GET_PROFILE_LOCKS));
+            
+            
             System.out.print("Disconnecting from card...");
             cardMngr.Disconnect(true);
             System.out.println(" Done.");

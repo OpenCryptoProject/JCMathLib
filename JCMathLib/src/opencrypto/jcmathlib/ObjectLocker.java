@@ -23,6 +23,12 @@ public class ObjectLocker {
     private boolean ERASE_ON_UNLOCK = false;    
     
     /**
+     * Configuration flag controlling clearing of shared objects on lock as
+     * prevention of unwanted leak of sensitive information to next operation.
+     * If true, object is erased once unlocked from use
+     */
+    private boolean PROFILE_LOCKED_OBJECTS = true;
+    /**
      * Array of pointers to objects which will be guarded by locks. 
      * Every even value contains pointer to registered object. Subsequent index 
      * contains null if not locked, !null if locked, 
@@ -36,6 +42,13 @@ public class ObjectLocker {
     private Object[] lockedObjectsPersistent;
     
     /**
+     * Array to hold state of lock for all other objects implemented as N x N array [0...N-1][N...2N-1]...[] 
+     * where [0...N-1] contains the states of lock for all other objects than first object (lockedObjects[0]). 
+     * If no other object is locked after series of operations, [0...N-1] will contain 0 on all indexes. 
+     * All objects (lockedObjects[i]) which happened to be locked together with have 1 at [0...i...N-1]. 
+     */
+    public byte[] profileLockedObjects;
+    /**
      * If true, locking is performed, otherwise relevant method just return without any operation performed
      */
     private boolean bLockingActive = true;
@@ -46,11 +59,20 @@ public class ObjectLocker {
     public ObjectLocker(short numArrays, boolean bEraseOnLock, boolean bEraseOnUnlock) {
         initialize(numArrays, bEraseOnLock, bEraseOnUnlock);
     }
-    private final void initialize(short numArrays, boolean bEraseOnLock, boolean bEraseOnUnlock) {
-        lockedObjects = JCSystem.makeTransientObjectArray((short) (2 * numArrays), JCSystem.CLEAR_ON_RESET);
-        lockedObjectsPersistent = new Object[(short) (2 * numArrays)];
+    private final void initialize(short numObjects, boolean bEraseOnLock, boolean bEraseOnUnlock) {
+        lockedObjects = JCSystem.makeTransientObjectArray((short) (2 * numObjects), JCSystem.CLEAR_ON_RESET);
+        lockedObjectsPersistent = new Object[(short) (2 * numObjects)];
         ERASE_ON_LOCK = bEraseOnLock;
         ERASE_ON_UNLOCK = bEraseOnUnlock;
+        profileLockedObjects = new byte[(short) (numObjects * numObjects)]; 
+        resetProfileLocks();
+    }
+    
+    /**
+     * Reset profile array with profile locks statistics.
+     */
+    public void resetProfileLocks() {
+        Util.arrayFillNonAtomic(profileLockedObjects, (short) 0, (short) profileLockedObjects.length, (byte) 0);
     }
 
     /**
@@ -73,7 +95,6 @@ public class ObjectLocker {
         ISOException.throwIt(ReturnCodes.SW_LOCK_NOFREESLOT);
         return -1;
     }
-    
     /**
      * Locking array (placed in RAM) must be refreshed after card reset. Call this method during select()
      */
@@ -137,6 +158,7 @@ public class ObjectLocker {
      * @throws SW_NOTLOCKED_BIGNAT if was not locked before (inconsistence in
      * lock/unlock sequence)
      */
+    
     public void unlock(Object objToUnlock) {
         if (!bLockingActive) {
             return;
@@ -154,6 +176,7 @@ public class ObjectLocker {
             ISOException.throwIt(ReturnCodes.SW_LOCK_OBJECT_NOT_FOUND);
         }
     }    
+
     public void unlock(byte[] objToUnlock) {
         if (!bLockingActive) {
             return;
@@ -181,6 +204,7 @@ public class ObjectLocker {
      * @param objToUnlock object to be checked
      * @return true of array is logically locked, false otherwise 
      */
+    
     public boolean isLocked(Object objToUnlock) {
         if (!bLockingActive) {
             return false;
@@ -200,7 +224,6 @@ public class ObjectLocker {
     }
     
     
-    
     private void lock(Object objToLock, short lockIndex) {
         if (lockedObjects[lockIndex] != null && !lockedObjects[lockIndex].equals(objToLock)) {
             ISOException.throwIt(ReturnCodes.SW_LOCK_OBJECT_MISMATCH);
@@ -212,7 +235,19 @@ public class ObjectLocker {
             // this array is already locked, raise exception (incorrect sequence of locking and unlocking)
             ISOException.throwIt(ReturnCodes.SW_LOCK_ALREADYLOCKED);
         }
+        if (PROFILE_LOCKED_OBJECTS) {
+            // If enabled, check status of all other objects and mark these that are currently locked
+            short profileLockOffset = (short) (lockIndex * (short) ((short) lockedObjects.length / 2)); // Obtain section of profileLockedObjects array relevant for current object
+            
+            for (short i = 0; i < (short) lockedObjects.length; i += 2) {
+                if (lockedObjects[(short) (i + 1)] != null) {
+                    // Object at index i is locked, mark it to corresponding position in profileLockedObjects by setting value to 1
+                    profileLockedObjects[(short) (profileLockOffset + (short) (i / 2))] = 1;
+                }
+            }
+        }
     }
+    
     private void unlock(Object objToUnlock, short lockIndex) {
         if (lockedObjects[lockIndex] != null && !lockedObjects[lockIndex].equals(objToUnlock)) {
             ISOException.throwIt(ReturnCodes.SW_LOCK_OBJECT_MISMATCH);
