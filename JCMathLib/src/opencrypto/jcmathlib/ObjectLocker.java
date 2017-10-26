@@ -237,7 +237,7 @@ public class ObjectLocker {
         }
         if (PROFILE_LOCKED_OBJECTS) {
             // If enabled, check status of all other objects and mark these that are currently locked
-            short profileLockOffset = (short) (lockIndex * (short) ((short) lockedObjects.length) / 2); // Obtain section of profileLockedObjects array relevant for current object
+            short profileLockOffset = (short) (lockIndex * (short) ((short) lockedObjects.length / 2)); // Obtain section of profileLockedObjects array relevant for current object
             
             for (short i = 0; i < (short) lockedObjects.length; i += 2) {
                 if (lockedObjects[(short) (i + 1)] != null) {
