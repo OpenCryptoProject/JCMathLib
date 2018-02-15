@@ -2,7 +2,7 @@
 
 The JCMathLib is an open-source library for Java Card platform which provides objects and operations otherwise missing from standard Java Card API. Namely, we focus on adding support for low-level operations like addition or multiplication of points on elliptic curves in resource efficient way. As a bonus, we provide tooling for [shared memory management](https://github.com/OpenCryptoProject/JCMathLib/wiki/Main-components) and [performance optimization](https://github.com/OpenCryptoProject/JCProfiler).
 
-The project comes with three parts:
+The project comes in three parts:
 * **JCMathLib** - the javacard library itself (on-card code)
 * **JCMathLibExamples** - the simple testing Java client (PC-side client code with simple examples)
 * **JCMathLibTests** - the client to thoroughly test all operations and measure performance (PC-side client)
@@ -36,10 +36,10 @@ package opencrypto.jcmathlib;
 **A:** Definitely not on each one. Take a look at [jcalgtest.org](https://jcalgtest.org) - out of 65 cards listed, only about 1/3 have some support. 
 
 **Q:** I will just download some 3rd party implementation like Bouncy Castle and run it on a card. So why are you developing this library?<br>
-**A:** Not that easy. The most Java Cards don't support *BigInteger* and usually not even *int* datatype. Even if you will change the code and finally compile, it will be impractically slow due to card's 40MHz CPU and 3KB RAM. That's why smart card manufacturers add dedicated coprocessor to speedup operations like modular multiplication (RSA) or elliptic curve point manipulation (ECC).
+**A:** Not that easy. The most Java Cards don't support *BigInteger* and usually not even *int* datatype. Even if you will change the code and finally compile, it will be impractically slow due to card's 40MHz CPU and 3KB RAM. That's why smart card manufacturers add dedicated coprocessor to speed up operations like modular multiplication (RSA) or elliptic curve point manipulation (ECC).
 
 **Q:** So if there is cryptographic coprocessor, I can do decrypt, sign or run key establishment directly on the card, right?<br>
-**A:** Yes, usually in the order of hundreds of milliseconds for asymmetric crypto. But if you like to build something fancier like multi-party secure communication protocols, blind signatures or attribute-based crypto which requires low-level operations, you are  out of luck with standard Java Card API.
+**A:** Yes, usually in the order of hundreds of milliseconds for asymmetric crypto. But if you like to build something fancier like multi-party secure communication protocols, blind signatures or attribute-based crypto which requires low-level operations, you are out of luck with standard Java Card API.
 
 **Q:** ECPoint is not included in standard Java Card API? <br>
 **A:** No, it is not supported. You can still get ECPoint operations you want via additional manufacturer proprietary API which usually means also signing NDA and get bound to a particular manufacturer.   
@@ -131,7 +131,7 @@ SCardEndTransaction()
 SCardDisconnect("Generic EMV Smartcard Reader 0", false)
 ```
 
-The code below shows very simple applet demonstarting use of ECPoint class and basic operations. Notice that memory allocation is happening only in applet's constructor. This is common (and good) practice within Java Card development.
+The code below shows very simple applet demonstrating the use of ECPoint class and basic operations. Notice that memory allocation is happening only in applet's constructor. This is common (and good) practice within Java Card development.
 
 ```java
 package opencrypto.jcmathlib;
