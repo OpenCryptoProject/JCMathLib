@@ -33,7 +33,7 @@ package opencrypto.jcmathlib;
 
 ## FAQ
 **Q:** Hold on, I thought elliptic curves are already supported on smart cards, right? <br>
-**A:** Definitely not on each one. Take a look at [jcalgtest.org](https://jcalgtest.org) - out of 65 cards listed, only about 1/3 have some support. 
+**A:** Definitely not on each one. Take a look at [jcalgtest.org](http://jcalgtest.org) - out of 65 cards listed, only about 1/3 have some support. 
 
 **Q:** I will just download some 3rd party implementation like Bouncy Castle and run it on a card. So why are you developing this library?<br>
 **A:** Not that easy. The most Java Cards don't support *BigInteger* and usually not even *int* datatype. Even if you will change the code and finally compile, it will be impractically slow due to card's 40MHz CPU and 3KB RAM. That's why smart card manufacturers add dedicated coprocessor to speed up operations like modular multiplication (RSA) or elliptic curve point manipulation (ECC).
