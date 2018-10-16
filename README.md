@@ -8,6 +8,24 @@ The project comes in three parts:
 * **JCMathLibTests** - the client to thoroughly test all operations and measure performance (PC-side client)
 
 
+## Academic Paper
+
+If you want get into the math and the technical details explaining why things in JCMathLib work the way they do, you can our paper here:
+https://arxiv.org/abs/1810.01662
+
+If you want to cite this library:
+
+
+```
+@article{mavroudis2018towards,
+  title={Towards Low-level Cryptographic Primitives for JavaCards},
+  author={Mavroudis, Vasilios and Svenda, Petr},
+  journal={arXiv preprint arXiv:1810.01662},
+  year={2018}
+}
+```
+
+
 ## Quick taste
 ```java
 package opencrypto.jcmathlib; 
