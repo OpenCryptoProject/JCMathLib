@@ -10,12 +10,9 @@ The project comes in three parts:
 
 ## Academic Paper
 
-If you want get into the math and the technical details explaining why things in JCMathLib work the way they do, you can our paper here:
-https://arxiv.org/abs/1810.01662
+If you want get into the math and the technical details explaining why things in JCMathLib work the way they do, you can find our paper here: https://arxiv.org/abs/1810.01662
 
 If you want to cite this library:
-
-
 ```
 @article{mavroudis2018towards,
   title={Towards Low-level Cryptographic Primitives for JavaCards},
