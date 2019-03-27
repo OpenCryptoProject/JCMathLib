@@ -152,7 +152,7 @@ The code below shows very simple applet demonstrating the use of ECPoint class a
 package opencrypto.jcmathlib;
 
 public class ECExample extends javacard.framework.Applet {
-    OCConfig        occ = null;
+    ECConfig        ecconf = null;
     ECCurve         curve = null;
     ECPoint         point1 = null;
     ECPoint         point2 = null;
@@ -164,11 +164,11 @@ public class ECExample extends javacard.framework.Applet {
 
     public ECExample() {
         // Pre-allocate all helper structures
-        occ = new OCConfig((short) 256); 
+        ecconf = new ECConfig((short) 256); 
         // Pre-allocate standard SecP256r1 curve and two EC points on this curve
-        curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, occ);
-        point1 = new ECPoint(curve, occ);
-        point2 = new ECPoint(curve, occ);
+        curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, ecconf);
+        point1 = new ECPoint(curve, ecconf);
+        point2 = new ECPoint(curve, ecconf);
     }
     // Installation of our applet
     public static void install(byte[] bArray, short bOffset, byte bLength) {
@@ -176,7 +176,7 @@ public class ECExample extends javacard.framework.Applet {
     }
     public boolean select() {
         // Restore values which were cleared after card reset 
-        occ.refreshAfterReset(); 
+        ecconf.refreshAfterReset(); 
         return true;
     }
     
