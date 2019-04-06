@@ -9,9 +9,6 @@ The project comes in three parts:
 * **JCMathLibExamples** - the simple testing Java client (PC-side client code with simple examples)
 * **JCMathLibTests** - the client to thoroughly test all operations and measure performance (PC-side client)
 
-
-## Academic Paper
-
 If you want get into the math and the technical details explaining why things in JCMathLib work the way they do, you can find our paper here: https://arxiv.org/abs/1810.01662
 
 If you want to cite this library:
@@ -24,8 +21,7 @@ If you want to cite this library:
 }
 ```
 
-
-## Quick taste
+## Example Code
 ```java
 package opencrypto.jcmathlib; 
 
@@ -48,48 +44,15 @@ package opencrypto.jcmathlib;
  point1.multiplication(SCALAR_TEST_VALUE, (short) 0, (short) SCALAR_TEST_VALUE.length); 
 ```
 
-## FAQ
-**Q:** Hold on, I thought elliptic curves are already supported on smart cards, right? <br>
-**A:** Definitely not on each one. Take a look at [jcalgtest.org](http://jcalgtest.org) - out of 65 cards listed, only about 1/3 have some support. 
 
-**Q:** I will just download some 3rd party implementation like Bouncy Castle and run it on a card. So why are you developing this library?<br>
-**A:** Not that easy. The most Java Cards don't support *BigInteger* and usually not even *int* datatype. Even if you will change the code and finally compile, it will be impractically slow due to card's 40MHz CPU and 3KB RAM. That's why smart card manufacturers add dedicated coprocessor to speed up operations like modular multiplication (RSA) or elliptic curve point manipulation (ECC).
+## Quickstart (Example Applet Compilation, Upload and Use)
+1. Install [Apache Ant](https://ant.apache.org/).
+2. Download the whole repo and open command line in project's root directory.
 
-**Q:** So if there is cryptographic coprocessor, I can do decrypt, sign or run key establishment directly on the card, right?<br>
-**A:** Yes, usually in the order of hundreds of milliseconds for asymmetric crypto. But if you like to build something fancier like multi-party secure communication protocols, blind signatures or attribute-based crypto which requires low-level operations, you are out of luck with standard Java Card API.
+3. To compile the repo run:
 
-**Q:** ECPoint is not included in standard Java Card API? <br>
-**A:** No, it is not supported. You can still get ECPoint operations you want via additional manufacturer proprietary API which usually means also signing NDA and get bound to a particular manufacturer.   
-
-**Q:** How your library can provide ECPoint if the port from Bouncy Castle is not a viable option?<br>
-**A:** We use card's fast co-processors in unintended ways (raw RSA for fast multiplication, ECDH KeyAgreement for point multiplication...)  and combine with software-only snippets to construct the required operations running as fast possible.   
-
-**Q:** So you provide these missing operations in an efficient way. Are there any disadvantages with respect to a manufacturer's native implementation? <br>
-**A:** We are slower if an operation requires computing lot of additional steps in a software-only manner. Also, native implementation is more resistant against side-channel and fault induction attacks.       
-
-**Q:** Do you support ECPoint operations on cards which are complete without the EC support?  <br>
-**A:** No, we need at least ECDH key agreement operation and new EC key pair generation supported on a target card. However, you can use fast operations with big numbers (Bignat, BigInteger - part of JCMathLib) even on cards without EC support. 
-
-**Q:** Sounds good, how can I start to fiddle with the JCMathLibrary library?<br>
-**A:** Buy [suitable](https://www.fi.muni.cz/~xsvenda/jcalgtest/) JavaCard for $10-20 with EC support ([buyers'guide](https://github.com/martinpaljak/GlobalPlatformPro/tree/master/docs/JavaCardBuyersGuide#javacard-buyers-guide-of-2015)), download this library source code, compile example project with [ant-javacard](https://github.com/martinpaljak/ant-javacard) and start playing. Don't forget to read [wiki](https://github.com/mavroudisv/JCMathLib/wiki) for examples and tutorials. 
-
-## Advantages and potential drawbacks
-**Advantages:**
-  * Availability of low-level ECPoint operations (not included in standard javacard API) without a need to use a proprietary API (which usually requires signing a non-disclosure agreement).
-  * Code portability between smart cards from different manufacturers. 
-  * Possibility to use open-source simulator [JCardSim](https://jcardsim.org/) instead of vendor-specific one.
-  
-**Potential drawbacks (in comparison to vendor-specific API):**
-  * Slower speed for some EC operations like addition or scalar multiplication (see [wiki](https://github.com/OpenCryptoProject/JCMathLib/wiki#performance-and-memory-overhead) for times measured on real cards
-  * RAM memory overhead (about 1kB for fastest performance). Is configurable with an option to place all temporary objects in EEPROM (slower performance). 
-  * Lower resilience against various side-channel and fault-induction attacks.
-
-## Example applet, compilation, upload, and use
-
-- Download ECExample project, open command line in project's root directory 
-- Compile and convert example into ecexample.cap binary suitable for card ([ant-javacard](https://github.com/martinpaljak/ant-javacard) is used):
 ```
-ant -f jcbuild.xml ecexample
+ant -f JCMathLib/jcbuild.xml ecexample
 ```
 (which results in output similar to this)
 ```
@@ -108,7 +71,10 @@ BUILD SUCCESSFUL
 Total time: 3 seconds
 ```
 
-- Upload ecexample.cap to your card using [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) (if already installed, uninstall applet first using *-uninstall* switch)
+If you are using windows and you get the error message ```No usable JavaCard SDK referenced```, edit jcbuild.xml to use one of the windows SDKs.
+
+
+4. Upload ecexample.cap to your card using [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) (if already installed, uninstall applet first using *-uninstall* switch)
 ```
 gp -install ecexample.cap -v
 ```
@@ -197,6 +163,42 @@ public class ECExample extends javacard.framework.Applet {
     }
 }
 ```
+
+## FAQ
+**Q:** Hold on, I thought elliptic curves are already supported on smart cards, right? <br>
+**A:** Definitely not on each one. Take a look at [jcalgtest.org](http://jcalgtest.org) - out of 65 cards listed, only about 1/3 have some support. 
+
+**Q:** I will just download some 3rd party implementation like Bouncy Castle and run it on a card. So why are you developing this library?<br>
+**A:** Not that easy. The most Java Cards don't support *BigInteger* and usually not even *int* datatype. Even if you will change the code and finally compile, it will be impractically slow due to card's 40MHz CPU and 3KB RAM. That's why smart card manufacturers add dedicated coprocessor to speed up operations like modular multiplication (RSA) or elliptic curve point manipulation (ECC).
+
+**Q:** So if there is cryptographic coprocessor, I can do decrypt, sign or run key establishment directly on the card, right?<br>
+**A:** Yes, usually in the order of hundreds of milliseconds for asymmetric crypto. But if you like to build something fancier like multi-party secure communication protocols, blind signatures or attribute-based crypto which requires low-level operations, you are out of luck with standard Java Card API.
+
+**Q:** ECPoint is not included in standard Java Card API? <br>
+**A:** No, it is not supported. You can still get ECPoint operations you want via additional manufacturer proprietary API which usually means also signing NDA and get bound to a particular manufacturer.   
+
+**Q:** How your library can provide ECPoint if the port from Bouncy Castle is not a viable option?<br>
+**A:** We use card's fast co-processors in unintended ways (raw RSA for fast multiplication, ECDH KeyAgreement for point multiplication...)  and combine with software-only snippets to construct the required operations running as fast possible.   
+
+**Q:** So you provide these missing operations in an efficient way. Are there any disadvantages with respect to a manufacturer's native implementation? <br>
+**A:** We are slower if an operation requires computing lot of additional steps in a software-only manner. Also, native implementation is more resistant against side-channel and fault induction attacks.       
+
+**Q:** Do you support ECPoint operations on cards which are complete without the EC support?  <br>
+**A:** No, we need at least ECDH key agreement operation and new EC key pair generation supported on a target card. However, you can use fast operations with big numbers (Bignat, BigInteger - part of JCMathLib) even on cards without EC support. 
+
+**Q:** Sounds good, how can I start to fiddle with the JCMathLibrary library?<br>
+**A:** Buy [suitable](https://www.fi.muni.cz/~xsvenda/jcalgtest/) JavaCard for $10-20 with EC support ([buyers'guide](https://github.com/martinpaljak/GlobalPlatformPro/tree/master/docs/JavaCardBuyersGuide#javacard-buyers-guide-of-2015)), download this library source code, compile example project with [ant-javacard](https://github.com/martinpaljak/ant-javacard) and start playing. Don't forget to read [wiki](https://github.com/mavroudisv/JCMathLib/wiki) for examples and tutorials. 
+
+## Advantages and potential drawbacks
+**Advantages:**
+  * Availability of low-level ECPoint operations (not included in standard javacard API) without a need to use a proprietary API (which usually requires signing a non-disclosure agreement).
+  * Code portability between smart cards from different manufacturers. 
+  * Possibility to use open-source simulator [JCardSim](https://jcardsim.org/) instead of vendor-specific one.
+  
+**Potential drawbacks (in comparison to vendor-specific API):**
+  * Slower speed for some EC operations like addition or scalar multiplication (see [wiki](https://github.com/OpenCryptoProject/JCMathLib/wiki#performance-and-memory-overhead) for times measured on real cards
+  * RAM memory overhead (about 1kB for fastest performance). Is configurable with an option to place all temporary objects in EEPROM (slower performance). 
+  * Lower resilience against various side-channel and fault-induction attacks.
 
 
 ## Future work
