@@ -46,10 +46,12 @@ package opencrypto.jcmathlib;
 
 
 ## Quickstart (Example Applet Compilation, Upload and Use)
-1. Install [Apache Ant](https://ant.apache.org/).
-2. Download the whole repo and open command line in project's root directory.
 
-3. To compile the repo run:
+**Install [Apache Ant](https://ant.apache.org/).**
+**Download the whole repo and open command line in project's root directory.*
+
+
+**To compile the repo run:**
 
 ```
 ant -f JCMathLib/jcbuild.xml ecexample
@@ -74,7 +76,8 @@ Total time: 3 seconds
 If you are using windows and you get the error message ```No usable JavaCard SDK referenced```, edit jcbuild.xml to use one of the windows SDKs.
 
 
-4. Upload ecexample.cap to your card using [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) (if already installed, uninstall applet first using *-uninstall* switch)
+**Upload and Install Applet to Card**
+From the '!uploader' directory,  use [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) to upload ecexample.cap.
 ```
 gp -install ecexample.cap -v
 ```
@@ -93,8 +96,9 @@ Import: A0000000620102 v1.3
 Import: A0000000620201 v1.3
 Installing applet from package opencrypto.jcmathlib
 ```
+If applet is already installed, you can uninstall it first using the *-uninstall* switch.
 
-- Trigger EC operations in process() method: 'gp -apdu '
+**Trigger EC operations in process() method: 'gp -apdu '**
 ```
 gp --apdu 00a4040009556e69745465737473 --apdu 0b000000 -d
 ```
