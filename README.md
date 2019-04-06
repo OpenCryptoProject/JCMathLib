@@ -48,7 +48,8 @@ package opencrypto.jcmathlib;
 ## Quickstart (Example Applet Compilation, Upload and Use)
 
 **Install [Apache Ant](https://ant.apache.org/).**
-**Download the whole repo and open command line in project's root directory.*
+
+**Download the whole repo and open command line in project's root directory.**
 
 
 **To compile the repo run:**
@@ -77,6 +78,7 @@ If you are using windows and you get the error message ```No usable JavaCard SDK
 
 
 **Upload and Install Applet to Card**
+
 From the '!uploader' directory,  use [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) to upload ecexample.cap.
 ```
 gp -install ecexample.cap -v
@@ -118,7 +120,7 @@ SCardEndTransaction()
 SCardDisconnect("Generic EMV Smartcard Reader 0", false)
 ```
 
-The code below shows very simple applet demonstrating the use of ECPoint class and basic operations. Notice that memory allocation is happening only in applet's constructor. This is common (and good) practice within Java Card development.
+The code below shows a very simple applet demonstrating the use of the ECPoint class and other basic operations. Notice that memory allocation is happening only in the applet's constructor. This is common (and good) Java Card development practice.
 
 ```java
 package opencrypto.jcmathlib;
