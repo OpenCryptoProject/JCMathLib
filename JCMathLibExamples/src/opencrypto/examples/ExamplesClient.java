@@ -37,9 +37,9 @@ public class ExamplesClient {
             
             // Run on simulator -> only change CARD_TYPE.JCARDSIMLOCAL and set class of simulated applet
             // Test by placing breakpoint directly into opencrypto.jcmathlib.OCUnitTests.process() or any other method of interest
-            //runCfg.testCardType = CardConfig.CARD_TYPE.JCARDSIMLOCAL;
-            //runCfg.appletToSimulate = OCUnitTests.class;
-            //runExamples(runCfg);
+			runCfg.testCardType = CardConfig.CARD_TYPE.JCARDSIMLOCAL;
+			runCfg.appletToSimulate = OCUnitTests.class;
+            runExamples(runCfg);
 
             // Run on real card -> only change CARD_TYPE.PHYSICAL
             // Applet must be uploaded before (gppro -install opcrypto.cap)
@@ -60,7 +60,8 @@ public class ExamplesClient {
      */
     boolean runExamples(CardConfig cardCfg) {
         try {
-            CardManager cardMngr = new CardManager(true, APPLET_AID);
+
+			CardManager cardMngr = new CardManager(true, APPLET_AID);
 
             // Connnect to card - simulator or real card is used based on cardCfg
             System.out.print("Connecting to card...");

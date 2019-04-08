@@ -20,7 +20,7 @@
 			includes="*.java"
 			includeantruntime="true"
 			destdir="./bin"
-			classpath="ext/bcprov-jdk15on-161.jar;${JC303WIN};${JCSIM304}"
+			classpath="ext/bcprov-jdk15on-161.jar;${JC303};${JCSIM305}"
 			sourcepath="../JCMathLib/src/"
 			>
 		</javac>
@@ -28,10 +28,12 @@
 
 	<target name="run">
 		<java
-			classpath="bin;ext/bcprov-jdk15on-161.jar;${JC303WIN};${JCSIM305}"
+			classpath="bin;ext/bcprov-jdk15on-161.jar;${JC303};${JCSIM305}"
 			classname="opencrypto.examples.ExamplesClient"
 			fork="true">
+			<jvmarg value="-noverify"/>
 		</java>
+		
 	</target>
 
 </project>

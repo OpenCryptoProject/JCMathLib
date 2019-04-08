@@ -2,6 +2,7 @@ package opencrypto.examples;
 
 import com.licel.jcardsim.io.CAD;
 import com.licel.jcardsim.io.JavaxSmartCardInterface;
+//import com.licel.jcardsim.smartcardio.CardSimulator;
 import java.util.ArrayList;
 import java.util.List;
 import javacard.framework.AID;
@@ -13,6 +14,8 @@ import javax.smartcardio.CardTerminal;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 import javax.smartcardio.TerminalFactory;
+import java.util.Properties;
+
 
 /**
  * Utility class to manage smartcard connection (both simulator and real card). 
@@ -79,15 +82,15 @@ public class CardManager {
     }
 
     private CardChannel ConnectJCardSimLocalSimulator(Class appletClass) throws Exception {
-        System.setProperty("com.licel.jcardsim.terminal.type", "2");
+		//CardSimulator simulator = new CardSimulator();
+		System.setProperty("com.licel.jcardsim.terminal.type", "2");
         CAD cad = new CAD(System.getProperties());
-        JavaxSmartCardInterface simulator = (JavaxSmartCardInterface) cad.getCardInterface();
-        byte[] installData = new byte[0];
-        AID appletAID = new AID(m_APPLET_AID, (short) 0, (byte) m_APPLET_AID.length);
-
-        AID appletAIDRes = simulator.installApplet(appletAID, appletClass, installData, (short) 0, (byte) installData.length);
-        simulator.selectApplet(appletAID);
-
+        JavaxSmartCardInterface simulator = (JavaxSmartCardInterface) cad.getCardInterface();	
+		byte[] installData = new byte[0];
+		AID appletAID = new AID(m_APPLET_AID, (short) 0, (byte) m_APPLET_AID.length);
+		AID appletAIDRes = simulator.installApplet(appletAID, appletClass, installData, (short) 0, (byte) installData.length);
+		simulator.selectApplet(appletAID);		
+       
         return new SimulatedCardChannelLocal(simulator);
     }
 
