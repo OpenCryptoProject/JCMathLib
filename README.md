@@ -35,7 +35,8 @@ If you want to cite this library:
 ```
 ant -f JCMathLib/jcbuild.xml ecexample
 ```
-(which results in output similar to this)
+This will generate an output similar to this:
+
 ```
 >ant -f jcbuild.xml ecexample
 Buildfile: c:\OpenCrypto\ECExample\jcbuild.xml
@@ -152,11 +153,11 @@ Browse into the JCMathLibExamples directory and run:
 
 ```ant -f build.xml compile```
 
-This will compile the Java testing client. If the compilation succeeds, then run:
+This will compile the Java testing client. In the case of errors during the compilation, edit build.xml for your setup (e.g., use the Windows versions of the dependencies). If the compilation succeeds, then run:
 
 ```ant -f build.xml run```
 
-By default the run profile looks for a physical card. If you instead prefer to use a simulator, uncomment line 40-42 in ExamplesClient.java. If the compilation fails, then edit build.xml for your setup (e.g., use the Windows versions of the dependencies).
+The run task uses the "noverify" flag for the JVM. If this generates an error in your setup, you can edit the relevant section in build.xml.
 
 ## Example Code
 ```java
