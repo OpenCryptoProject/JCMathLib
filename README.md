@@ -21,31 +21,9 @@ If you want to cite this library:
 }
 ```
 
-## Example Code
-```java
-package opencrypto.jcmathlib; 
+## Quickstart 
 
- // ... in applet's constructor
- // Pre-allocate all helper structures
- ECConfig ecc = new ECConfig((short) 256); 
- // Pre-allocate standard SecP256r1 curve and two EC points on this curve
- ECCurve curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, ecc);
- ECPoint point1 = new ECPoint(curve, ecc);
- ECPoint point2 = new ECPoint(curve, ecc);
-    
- // ... in standard Java Card applet code
- // Generate first point at random
- point1.randomize(); 
- // Set second point to predefined value
- point2.setW(ECPOINT_TEST_VALUE, (short) 0, (short) ECPOINT_TEST_VALUE.length); 
- // Add two points together 
- point1.add(point2); 
- // Multiply point by large scalar
- point1.multiplication(SCALAR_TEST_VALUE, (short) 0, (short) SCALAR_TEST_VALUE.length); 
-```
-
-
-## Quickstart (Example Applet Compilation, Upload and Use)
+### Example Applet Compilation, Upload and Use
 
 **Install [Apache Ant](https://ant.apache.org/).**
 
@@ -168,6 +146,39 @@ public class ECExample extends javacard.framework.Applet {
         point1.multiplication(SCALAR_TEST_VALUE, (short) 0, (short) SCALAR_TEST_VALUE.length); 
     }
 }
+```
+### Run Example Client
+Browse into the JCMathLibExamples directory and run:
+
+```ant -f build.xml compile```
+
+This will compile the Java testing client. If the compilation succeeds, then run:
+
+```ant -f build.xml run```
+
+By default the run profile looks for a physical card. If you instead prefer to use a simulator, uncomment line 40-42 in ExamplesClient.java. If the compilation fails, then edit build.xml for your setup (e.g., use the Windows versions of the dependencies).
+
+## Example Code
+```java
+package opencrypto.jcmathlib; 
+
+ // ... in applet's constructor
+ // Pre-allocate all helper structures
+ ECConfig ecc = new ECConfig((short) 256); 
+ // Pre-allocate standard SecP256r1 curve and two EC points on this curve
+ ECCurve curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, ecc);
+ ECPoint point1 = new ECPoint(curve, ecc);
+ ECPoint point2 = new ECPoint(curve, ecc);
+    
+ // ... in standard Java Card applet code
+ // Generate first point at random
+ point1.randomize(); 
+ // Set second point to predefined value
+ point2.setW(ECPOINT_TEST_VALUE, (short) 0, (short) ECPOINT_TEST_VALUE.length); 
+ // Add two points together 
+ point1.add(point2); 
+ // Multiply point by large scalar
+ point1.multiplication(SCALAR_TEST_VALUE, (short) 0, (short) SCALAR_TEST_VALUE.length); 
 ```
 
 ## FAQ
