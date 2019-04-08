@@ -62,7 +62,7 @@ From the '!uploader' directory,  use [GlobalPlatformPro](https://github.com/mart
 ```
 gp -install ecexample.cap -v
 ```
-(which results in output similar to this)
+This will generate an output similar to this:
 ```
 >gp -install ecexample.cap -v
 Reader: Generic EMV Smartcard Reader 0
