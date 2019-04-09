@@ -47,7 +47,7 @@ ecexample:
       [cap] Building CAP with 1 applet(s) from package opencrypto.jcmathlib
       [cap] opencrypto.jcmathlib.ECExample 556E69745465737473
   [compile] Compiling 15 source files to C:\Temp\classes71248306622090223590454623483186
-      [cap] CAP saved to c:\OpenCrypto\ECExample\ecexample.cap
+      [cap] CAP saved to c:\OpenCrypto\ECExample\jcmathlib_example.cap
 
 BUILD SUCCESSFUL
 Total time: 3 seconds
@@ -60,11 +60,11 @@ If you are using windows and you get the error message ```No usable JavaCard SDK
 
 From the '!uploader' directory,  use [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) to upload ecexample.cap.
 ```
-gp -install ecexample.cap -v
+gp -install jcmathlib_example.cap -v
 ```
 This will generate an output similar to this:
 ```
->gp -install ecexample.cap -v
+>gp -install jcmathlib_example.cap -v
 Reader: Generic EMV Smartcard Reader 0
 ...
 CAP file (v2.1) generated on Tue Jul 25 14:34:17 CEST 2017
