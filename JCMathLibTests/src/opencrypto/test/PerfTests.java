@@ -74,8 +74,8 @@ public class PerfTests {
         try {
             CardManager cardMngr = new CardManager(true, TestClient.OPENCRYPTO_UNITTEST_APPLET_AID);
             System.out.print("Connecting to card...");
-            //runCfg.testCardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
-            runCfg.testCardType = RunConfig.CARD_TYPE.PHYSICAL;
+            runCfg.testCardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
+            //runCfg.testCardType = RunConfig.CARD_TYPE.PHYSICAL;
             cardMngr.Connect(runCfg);
             System.out.println(" Done.");
 

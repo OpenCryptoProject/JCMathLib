@@ -61,7 +61,7 @@ public class ECPoint_Helper extends Base_Helper {
     }
     
     void initialize() {
-        // Important: assignment of helper BNs is made according to two criterions:
+        // Important: assignment of helper BNs is made according to two criteria:
         // 1. Correctness: same BN must not be assigned to overlapping operations (guarded by lock/unlock) 
         // 2. Memory tradeoff: we like to put as few BNs into RAM as possible. So most frequently used BNs for write should be in RAM
         //                      and at the same time we like to have as few BNs in RAM as possible. 

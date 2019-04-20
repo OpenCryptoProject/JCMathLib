@@ -39,9 +39,9 @@ public class TestClient {
     // MAX_BIGNAT_SIZE constant must be at least 2*(ECC_BASE_TEST_LENGTH / 8) + 1.
     public final static int BIGNAT_BASE_TEST_LENGTH = 256; 
     
-    public static boolean _TEST_BN = true;
+    public static boolean _TEST_BN = false;
     public static boolean _TEST_INT = true;
-    public static boolean _TEST_EC = true;
+    public static boolean _TEST_EC = false;
     
     public static boolean _MEASURE_PERF = false;
     public static boolean _MEASURE_PERF_ONLY_TARGET = false;
@@ -80,18 +80,18 @@ public class TestClient {
             else {
                 RunConfig runCfg = RunConfig.getConfig(_TEST_BN, _TEST_INT, _TEST_EC, NUM_OP_REPEATS, RunConfig.CARD_TYPE.JCARDSIMLOCAL);
                 runCfg.targetReaderIndex = targetReader;
-/*                
+                
                 // First run debug operations on simulator and real card (if any)
-                OpenCryptoFunctionalTests_debug(runCfg);
+/*              OpenCryptoFunctionalTests_debug(runCfg);
                 runCfg.failedTestsList.clear();
                 runCfg.testCardType = RunConfig.CARD_TYPE.PHYSICAL;
                 OpenCryptoFunctionalTests_debug(runCfg);
                 runCfg.failedTestsList.clear();
 */                
                 // Run standard tests on simulator then real card (if any)
-                runCfg.testCardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
-                OpenCryptoFunctionalTests(runCfg);
-                runCfg.failedTestsList.clear();
+                //runCfg.testCardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
+                //OpenCryptoFunctionalTests(runCfg);
+                //runCfg.failedTestsList.clear();
                 runCfg.testCardType = RunConfig.CARD_TYPE.PHYSICAL;
                 OpenCryptoFunctionalTests(runCfg);
                 runCfg.failedTestsList.clear();
@@ -127,9 +127,11 @@ public class TestClient {
 
             // Obtain allocated bytes in RAM and EEPROM
             cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_GET_ALLOCATOR_STATS, 0, 0, 0);            
-            response = cardMngr.transmit(cmd);
+			response = cardMngr.transmit(cmd);
             byte[] data = response.getData();
+			System.out.println("2a");			
             System.out.println(String.format("Data allocator: RAM = %d, EEPROM = %d", Util.getShort(data, (short) 0), Util.getShort(data, (short) 2)));
+			System.out.println("2b");
             // Print memory snapshots from allocation
             for (int offset = 4; offset < data.length; offset += 6) {
                 System.out.println(String.format("Tag '%d': RAM = %d, EEPROM = %d", Util.getShort(data, offset), Util.getShort(data, (short) (offset + 2)), Util.getShort(data, (short) (offset + 4))));

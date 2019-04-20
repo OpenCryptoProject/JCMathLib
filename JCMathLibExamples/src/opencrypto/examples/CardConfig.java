@@ -1,6 +1,6 @@
 package opencrypto.examples;
 
-import opencrypto.jcmathlib.ECExample;
+import opencrypto.jcmathlib.OCUnitTests;
 
 /**
  *
@@ -8,7 +8,7 @@ import opencrypto.jcmathlib.ECExample;
  */
 public class CardConfig {
     int targetReaderIndex = 0;
-    public Class appletToSimulate = ECExample.class;
+    public Class appletToSimulate = OCUnitTests.class;
     
     public enum CARD_TYPE {
         PHYSICAL, JCOPSIM, JCARDSIMLOCAL, JCARDSIMREMOTE
@@ -19,7 +19,7 @@ public class CardConfig {
         CardConfig runCfg = new CardConfig();
         runCfg.targetReaderIndex = 0;
         runCfg.testCardType = CARD_TYPE.PHYSICAL;
-        runCfg.appletToSimulate = ECExample.class;
+        runCfg.appletToSimulate = OCUnitTests.class;
         
         return runCfg;
     }

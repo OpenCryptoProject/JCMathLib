@@ -82,6 +82,7 @@ public class CardManager {
     }
 
     private CardChannel ConnectJCardSimLocalSimulator(Class appletClass) throws Exception {
+		System.out.print("Setting up Javacard simulator...");
 		//CardSimulator simulator = new CardSimulator();
 		System.setProperty("com.licel.jcardsim.terminal.type", "2");
         CAD cad = new CAD(System.getProperties());
@@ -90,7 +91,6 @@ public class CardManager {
 		AID appletAID = new AID(m_APPLET_AID, (short) 0, (byte) m_APPLET_AID.length);
 		AID appletAIDRes = simulator.installApplet(appletAID, appletClass, installData, (short) 0, (byte) installData.length);
 		simulator.selectApplet(appletAID);		
-       
         return new SimulatedCardChannelLocal(simulator);
     }
 

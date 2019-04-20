@@ -1,24 +1,23 @@
 package opencrypto.examples;
 
-
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-
+import java.security.Security;
 import javax.smartcardio.CommandAPDU;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.jce.spec.ECParameterSpec;
-
-import java.security.Security;
-import opencrypto.jcmathlib.OCUnitTests;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
+
+import opencrypto.jcmathlib.OCUnitTests;
+
 
 /**
  * Simple example client to trigger selected Bignat and ECPoint on-card operations. For detailed testing please use JCMathLibTests client.
- * Requires bouncycastle (e.g., bcprov-jdk15on-157.jar) and jcardsim (e.g., jcardsim-3.0.5-SNAPSHOT.jar) dependencies
+ * Requires bouncycastle (e.g., bcprov-jdk15on-157.jar) and jcardsim (e.g., jcardsim-3.0.5.jar) dependencies
  * @author Petr Svenda
  */
 public class ExamplesClient {
@@ -33,10 +32,10 @@ public class ExamplesClient {
 
     public void run() {
         try {
-            CardConfig runCfg = CardConfig.getDefaultConfig();
             
             // Run on simulator -> only change CARD_TYPE.JCARDSIMLOCAL and set class of simulated applet
             // Test by placing breakpoint directly into opencrypto.jcmathlib.OCUnitTests.process() or any other method of interest
+            CardConfig runCfg = CardConfig.getDefaultConfig();
 			runCfg.testCardType = CardConfig.CARD_TYPE.JCARDSIMLOCAL;
 			runCfg.appletToSimulate = OCUnitTests.class;
             runExamples(runCfg);
@@ -44,7 +43,7 @@ public class ExamplesClient {
             // Run on real card -> only change CARD_TYPE.PHYSICAL
             // Applet must be uploaded before (gppro -install opcrypto.cap)
             // Breakpoints will not be triggered (we are on real card :))
-            runCfg.testCardType = CardConfig.CARD_TYPE.PHYSICAL;
+			runCfg.testCardType = CardConfig.CARD_TYPE.PHYSICAL;
             runExamples(runCfg);
         }
         catch (Exception e) {
@@ -71,8 +70,9 @@ public class ExamplesClient {
             }
             System.out.println(" done.");
 
-            System.out.println("\n-------------- EC Examples --------------");
-            System.out.println("--> denotes data send to a card (hexadecimal)");
+			System.out.println("\n-------------- JCMathLib Operation Examples --------------");
+			System.out.println("Info:");
+			System.out.println("--> denotes data send to a card (hexadecimal)");
             System.out.println("<-- denotes data received from a card (hexadecimal) in the following format: response_data(xB) status(2B) (response_data_length) [operation_time_in_milliseconds]\n");
             
             

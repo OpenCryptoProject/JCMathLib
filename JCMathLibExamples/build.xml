@@ -11,6 +11,9 @@
   <property name="JCSIM222" value="ext/jcardsim-2.2.2.jar"/>
   <property name="JCSIM304" value="ext/jcardsim-3.0.4.jar"/>
   <property name="JCSIM305" value="ext/jcardsim-3.0.5.jar"/>
+  <property name="BC157" value="ext/bcprov-jdk15on-157.jar"/>
+  <property name="BC161" value="ext/bcprov-jdk15on-161.jar"/>
+  
 
 
   
@@ -20,7 +23,7 @@
 			includes="*.java"
 			includeantruntime="true"
 			destdir="./bin"
-			classpath="ext/bcprov-jdk15on-161.jar;${JC303};${JCSIM305}"
+			classpath="${BC161};${JC303};${JCSIM305}"
 			sourcepath="../JCMathLib/src/"
 			>
 		</javac>
@@ -28,7 +31,7 @@
 
 	<target name="run">
 		<java
-			classpath="bin;ext/bcprov-jdk15on-161.jar;${JC303};${JCSIM305}"
+			classpath="bin;${BC161};${JC303};${JCSIM305}"
 			classname="opencrypto.examples.ExamplesClient"
 			fork="true">
 			<jvmarg value="-noverify"/>

@@ -25,15 +25,15 @@ If you want to cite this library:
 
 ### Example Applet Compilation, Upload and Use
 
-**Install [Apache Ant](https://ant.apache.org/).**
+Install [Apache Ant](https://ant.apache.org/).
 
-**Download the whole repo and open command line in project's root directory.**
+Download the whole repo and open command line in project's root directory.
 
 
-**To compile the repo run:**
+To compile the repo, navigate in the JCMathLib directory and run:
 
 ```
-ant -f JCMathLib/jcbuild.xml ecexample
+ant -f jcbuild.xml ecexample
 ```
 This will generate an output similar to this:
 
@@ -58,7 +58,7 @@ If you are using windows and you get the error message ```No usable JavaCard SDK
 
 **Upload and Install Applet to Card**
 
-From the '!uploader' directory,  use [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) to upload ecexample.cap.
+From the '!uploader' directory,  use [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) to upload jcmathlib_example.cap.
 ```
 gp -install jcmathlib_example.cap -v
 ```

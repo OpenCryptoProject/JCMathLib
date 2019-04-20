@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir="." default="run" name="ExamplesClientJava" >
+
+  <property name="JC222" value="../JCMathLibext/java_card_kit-2_2_2"/>
+  <property name="JC222WIN" value="../JCMathLib/ext/java_card_kit-2_2_2-win/lib/api.jar"/> 
+  <property name="JC221" value="../JCMathLib/ext/java_card_kit-2_2_1"/>
+  <property name="JC303" value="../JCMathLib/ext/java_card_kit-3_0_3"/>
+  <property name="JC303WIN" value="../JCMathLib/ext/java_card_kit-3_0_3-win"/>
+  <property name="OP20" value="../JCMathLib/visa_openplatform-2_0"/>
+  <property name="GP211" value="../JCMathLib/globalplatform-2_1_1"/>
+  <property name="JCSIM222" value="ext/jcardsim-2.2.2.jar"/>
+  <property name="JCSIM304" value="ext/jcardsim-3.0.4.jar"/>
+  <property name="JCSIM305" value="ext/jcardsim-3.0.5.jar"/>
+
+
+  
+	<target name="compile" description="Compiles the examples.">
+		<javac 
+			srcdir="./src/opencrypto/test/"
+			includes="*.java"
+			includeantruntime="true"
+			destdir="./bin"
+			classpath="ext/bcprov-jdk15on-161.jar;${JC303WIN};${JCSIM304}"
+			sourcepath="../JCMathLib/src/"
+			>
+		</javac>
+	</target>
+
+	<target name="run-perf">
+		<java
+			classpath="./bin;;ext/bcprov-jdk15on-161.jar;${JC303WIN};${JCSIM304}"
+			classname="opencrypto.test.PerfTests"
+			fork="true">
+			<jvmarg value="-noverify"/>
+		</java>
+		
+	</target>
+	
+	<target name="run-corr">
+		<java
+			classpath="./bin;ext/bcprov-jdk15on-161.jar;${JC303WIN};${JCSIM304}"
+			classname="opencrypto.test.TestClient"
+			fork="true">
+			<jvmarg value="-noverify"/>
+		</java>
+		
+	</target>
+	
+
+</project>

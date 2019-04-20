@@ -550,7 +550,7 @@ public class OCUnitTests extends Applet {
         mul1.from_byte_array(p1, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
         mul2.from_byte_array((short)(dataLen-p1), (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
         PM.check(PM.TRAP_BN_MUL_5);
-        if (bFastEngine) {
+        if (bFastEngine && !bIsSimulator) {
             product.mult_rsa_trick(mul1, mul2, null, null);
         }
         else {
