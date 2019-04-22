@@ -15,14 +15,14 @@
   <taskdef name="javacard" classname="pro.javacard.ant.JavaCard" classpath="ext/ant-javacard.jar"/>
 
   <target name="unittests" description="Builds the CAP file with applet used for unit tests.">
-    <javacard jckit="${JC303WIN}">
+    <javacard jckit="${JC303}">
       <cap output="!uploader/jcmathlib_unittests.cap" sources="src/opencrypto/jcmathlib/" aid="556e697454657374" >
         <applet class="opencrypto.jcmathlib.OCUnitTests" aid="556e69745465737473"/>
       </cap>
     </javacard>
   </target>
   <target name="ecexample" description="Builds the CAP file with very simple EC example.">
-    <javacard jckit="${JC303WIN}">
+    <javacard jckit="${JC303}">
       <cap output="!uploader/jcmathlib_example.cap" sources="src/opencrypto/jcmathlib/" aid="556e697454657374" >
         <applet class="opencrypto.jcmathlib.ECExample" aid="556e69745465737473"/>
       </cap>
