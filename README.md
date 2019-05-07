@@ -33,27 +33,32 @@ Download the whole repo and open command line in project's root directory.
 To compile the repo, navigate in the JCMathLib directory and run:
 
 ```
-ant -f jcbuild.xml ecexample
+ant -f jcbuild.xml unittests
 ```
 This will generate an output similar to this:
 
 ```
 >ant -f jcbuild.xml unittests
-Buildfile: c:\OpenCrypto\ECExample\jcbuild.xml
+Buildfile: C:\Users\pc\Desktop\JCMathLib\JCMathLib\jcbuild.xml
 
-ecexample:
- [javacard] JavaCard 2.x SDK detected in ext/java_card_kit-2_2_2
-      [cap] Setting package name to opencrypto.jcmathlib
-      [cap] Building CAP with 1 applet(s) from package opencrypto.jcmathlib
-      [cap] opencrypto.jcmathlib.ECExample 556E69745465737473
-  [compile] Compiling 15 source files to C:\Temp\classes71248306622090223590454623483186
-      [cap] CAP saved to c:\OpenCrypto\ECExample\jcmathlib_example.cap
-
-BUILD SUCCESSFUL
-Total time: 3 seconds
+unittests:
+      [cap] INFO: using JavaCard 3.0.1 SDK in ext\java_card_kit-3_0_3-win
+      [cap] INFO: Setting package name to opencrypto.jcmathlib
+      [cap] Building CAP with 1 applet from package opencrypto.jcmathlib (AID: 556E697454657374)
+      [cap] opencrypto.jcmathlib.OCUnitTests 556E69745465737473
+  [compile] Compiling files from C:\Users\pc\Desktop\JCMathLib\JCMathLib\src\opencrypto\jcmathlib
+  [compile] Compiling 17 source files to C:\Users\pc\AppData\Local\Temp\jccpro2108652080958352651
+  [convert] [ INFO: ] Converter [v3.0.3]
+  [convert] [ INFO: ]     Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+  [convert]
+  [convert]
+  [convert] [ INFO: ] conversion completed with 0 errors and 0 warnings.
+ [javacard] NB! Please use JavaCard SDK 3.0.5u3 or later for verifying!
+   [verify] Verification passed
+      [cap] CAP saved to C:\Users\pc\Desktop\JCMathLib\JCMathLib\!uploader\jcmathlib_unittests.cap
 ```
 
-If you are using windows and you get the error message ```No usable JavaCard SDK referenced```, edit jcbuild.xml to use one of the windows SDKs.
+If you are using windows and you get the error message ```No usable JavaCard SDK referenced```, edit jcbuild.xml to use one of the Windows SDKs. To download a compatible SDK please use 1.8.0-152 (8u152, https://www.oracle.com/technetwork/java/javase/downloads/java-archive-javase8-2177648.html) and set your Java path to it.
 
 
 **Upload and Install Applet to Card**
