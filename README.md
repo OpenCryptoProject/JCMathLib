@@ -38,7 +38,7 @@ ant -f jcbuild.xml ecexample
 This will generate an output similar to this:
 
 ```
->ant -f jcbuild.xml ecexample
+>ant -f jcbuild.xml unittests
 Buildfile: c:\OpenCrypto\ECExample\jcbuild.xml
 
 ecexample:
