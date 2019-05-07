@@ -65,17 +65,17 @@ If you are using windows and you get the error message ```No usable JavaCard SDK
 
 From the '!uploader' directory,  use [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) to upload jcmathlib_example.cap.
 ```
-gp -install jcmathlib_example.cap -v
+gp -install jcmathlib_unittests.cap -v
 ```
 This will generate an output similar to this:
 ```
->gp -install jcmathlib_example.cap -v
+>gp -install jcmathlib_unittests.cap -v
 Reader: Generic EMV Smartcard Reader 0
 ...
 CAP file (v2.1) generated on Tue Jul 25 14:34:17 CEST 2017
 By Sun Microsystems Inc. converter 1.3 with JDK 1.8.0_65 (Oracle Corporation)
 Package: opencrypto.jcmathlib v0.0
-Applet: ECExample with AID 556E69745465737473
+Applet: UnitTests with AID 556E69745465737473
 Import: A0000000620001 v1.0
 Import: A0000000620101 v1.3
 Import: A0000000620102 v1.3
