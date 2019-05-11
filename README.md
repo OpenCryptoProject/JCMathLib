@@ -58,7 +58,7 @@ unittests:
       [cap] CAP saved to C:\Users\pc\Desktop\JCMathLib\JCMathLib\!uploader\jcmathlib_unittests.cap
 ```
 
-If you are using windows and you get the error message ```No usable JavaCard SDK referenced```, edit jcbuild.xml to use one of the Windows SDKs. To download a compatible SDK please use 1.8.0-152 (8u152, https://www.oracle.com/technetwork/java/javase/downloads/java-archive-javase8-2177648.html) and set your Java path to it.
+If you are using windows and you get the error message ```No usable JavaCard SDK referenced```, edit jcbuild.xml to use one of the Windows SDKs. To download a compatible JDK please use 1.8.0-152 (8u152, https://www.oracle.com/technetwork/java/javase/downloads/java-archive-javase8-2177648.html) and set your Java path to it.
 
 
 **Upload and Install Applet to Card**
