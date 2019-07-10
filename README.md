@@ -24,7 +24,7 @@ If you want to cite this library:
 
 <p align="center"></br>
 JCMathLib is kindly supported by: </br>
-<a href="https://www.javacardos.com/javacardforum/?ws=opencryptojc"> <img src="https://www.javacardos.com/store/images/javacardos-store.png" width="300"></a>
+<a href="https://www.javacardos.com/javacardforum/?ws=opencryptojc"> <img src="README-rsrc/javacardos.png" width="300"></a>
 </p>
 
 
