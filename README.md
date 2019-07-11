@@ -23,8 +23,8 @@ If you want to cite this library:
 
 
 ### Project supporters
+JCMathLib is kindly supported by: 
 <p align="center"></br>
-JCMathLib is kindly supported by: </br>
 <a href="https://www.javacardos.com/javacardforum/?ws=opencryptojc"> <img src="README-rsrc/javacardos.png" width="300"></a>
 </p>
 
