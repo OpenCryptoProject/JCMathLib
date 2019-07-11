@@ -22,6 +22,7 @@ If you want to cite this library:
 ```
 
 
+### Project supporters
 <p align="center"></br>
 JCMathLib is kindly supported by: </br>
 <a href="https://www.javacardos.com/javacardforum/?ws=opencryptojc"> <img src="README-rsrc/javacardos.png" width="300"></a>
@@ -235,3 +236,7 @@ package opencrypto.jcmathlib;
 * Additional optimizations and methods (remainder_divide is particular target)
 * Support for other curves like Ed25519
 * Long-term vision: support for easy transfer of the Bouncy Castle-enabled crypto code to Java Card environment
+
+### Happy users so far
+(If you can't find yourself here, please let us know via [Issues](https://github.com/OpenCryptoProject/JCMathLib/issues))
+  * [Myst](https://github.com/OpenCryptoProject/Myst): Secure Multiparty Key Generation, Signature and Decryption JavaCard applet and host application 
