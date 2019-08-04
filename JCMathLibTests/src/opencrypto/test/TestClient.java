@@ -5,7 +5,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import javafx.util.Pair;
+import java.util.Map.Entry;
 
 import javax.smartcardio.CardException;
 import javax.smartcardio.CommandAPDU;
@@ -48,7 +48,7 @@ public class TestClient {
     
 
 
-    static ArrayList<Pair<String, Long>> m_perfResults = new ArrayList<>();
+    static ArrayList<Entry<String, Long>> m_perfResults = new ArrayList<>();
 
     public static String format = "%-40s:%s%n\n-------------------------------------------------------------------------------\n";
 

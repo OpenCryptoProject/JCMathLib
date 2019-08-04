@@ -13,7 +13,8 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import javacard.framework.ISO7816;
-import javafx.util.Pair;
+import java.util.Map.Entry;
+import java.util.AbstractMap.SimpleEntry;
 import javax.smartcardio.CardException;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
@@ -43,9 +44,9 @@ public class PerfTests {
     class PerfConfig {
         public String cardName = "noCardName";
         public FileOutputStream perfFile = null;
-        public ArrayList<Pair<String, Long>> perfResultsSingleOp = new ArrayList<>();
+        public ArrayList<Entry<String, Long>> perfResultsSingleOp = new ArrayList<>();
         public ArrayList<String> perfResultsSubparts = new ArrayList<>();
-        public HashMap<Short, Pair<Short, Long>> perfResultsSubpartsRaw = new HashMap<>(); // hashmap with key being perf trap id, folowed by pair <prevTrapID, elapsedTimeFromPrev>
+        public HashMap<Short, Entry<Short, Long>> perfResultsSubpartsRaw = new HashMap<>(); // hashmap with key being perf trap id, folowed by pair <prevTrapID, elapsedTimeFromPrev>
         public boolean bMeasurePerf = true;
         public short[] perfStops = null;
         public short perfStopComplete = -1;
@@ -459,7 +460,7 @@ public class PerfTests {
         }
     }    
     
-    static void SavePerformanceResults(HashMap<Short, Pair<Short, Long>> perfResultsSubpartsRaw, String fileName) throws FileNotFoundException, IOException {
+    static void SavePerformanceResults(HashMap<Short, Entry<Short, Long>> perfResultsSubpartsRaw, String fileName) throws FileNotFoundException, IOException {
         // Save performance traps into single file
         FileOutputStream perfLog = new FileOutputStream(fileName);
         String output = "perfID, previous perfID, time difference between perfID and previous perfID (ms)\n";
@@ -471,7 +472,7 @@ public class PerfTests {
         perfLog.close();
     }
     
-    static void LoadPerformanceResults(String fileName, HashMap<Short, Pair<Short, Long>> perfResultsSubpartsRaw) throws FileNotFoundException, IOException {
+    static void LoadPerformanceResults(String fileName, HashMap<Short, Entry<Short, Long>> perfResultsSubpartsRaw) throws FileNotFoundException, IOException {
         BufferedReader br = new BufferedReader(new FileReader(fileName));
         String strLine;
         while ((strLine = br.readLine()) != null) {
@@ -484,7 +485,7 @@ public class PerfTests {
                 Short prevPerfID = Short.parseShort(cols[1].trim());
                 Long elapsed = Long.parseLong(cols[2].trim());
                 
-                perfResultsSubpartsRaw.put(perfID, new Pair(prevPerfID, elapsed));
+                perfResultsSubpartsRaw.put(perfID, new SimpleEntry(prevPerfID, elapsed));
             }
         }
         br.close();
@@ -492,14 +493,14 @@ public class PerfTests {
     
     static void testInsertPerfIntoFiles() throws IOException {
         String dirPath = "..\\!PerfSRC\\Lib\\";
-        HashMap<Short, Pair<Short, Long>> results = new HashMap<>(); 
-        results.put(PM.TRAP_EC_ADD_2, new Pair(PM.TRAP_EC_ADD_1, 37));
-        results.put(PM.TRAP_EC_GEN_3, new Pair(PM.TRAP_EC_GEN_2, 123));
-        results.put(PM.TRAP_EC_DBL_2, new Pair(PM.TRAP_EC_DBL_1, 567));
+        HashMap<Short, Entry<Short, Long>> results = new HashMap<>(); 
+        results.put(PM.TRAP_EC_ADD_2, new SimpleEntry(PM.TRAP_EC_ADD_1, 37));
+        results.put(PM.TRAP_EC_GEN_3, new SimpleEntry(PM.TRAP_EC_GEN_2, 123));
+        results.put(PM.TRAP_EC_DBL_2, new SimpleEntry(PM.TRAP_EC_DBL_1, 567));
 
         String perfFileName = String.format("TRAP_RAW_123456.csv");
         SavePerformanceResults(results, perfFileName);
-        HashMap<Short, Pair<Short, Long>> perfResultsSubpartsRaw = new HashMap<>();
+        HashMap<Short, Entry<Short, Long>> perfResultsSubpartsRaw = new HashMap<>();
         LoadPerformanceResults(perfFileName, perfResultsSubpartsRaw);
         assert (perfResultsSubpartsRaw.size() == results.size());
         
@@ -532,7 +533,7 @@ public class PerfTests {
                 }
                 else {
                     cfg.perfResultsSubparts.add(String.format("[%s-%s], \t%d ms", getPerfStopName(prevPerfStop), getPerfStopName(perfStop), fromPrevTime));
-                    cfg.perfResultsSubpartsRaw.put(perfStop, new Pair(prevPerfStop, fromPrevTime)); 
+                    cfg.perfResultsSubpartsRaw.put(perfStop, new SimpleEntry(prevPerfStop, fromPrevTime)); 
                     lastFromPrevTime = fromPrevTime;
                 }
 
@@ -558,14 +559,14 @@ public class PerfTests {
     }    
     
     
-    static void writePerfLog(String operationName, boolean bResult, Long time, ArrayList<Pair<String, Long>> perfResults, FileOutputStream perfFile) throws IOException {
-        perfResults.add(new Pair(operationName, time));
+    static void writePerfLog(String operationName, boolean bResult, Long time, ArrayList<Entry<String, Long>> perfResults, FileOutputStream perfFile) throws IOException {
+        perfResults.add(new SimpleEntry(operationName, time));
         perfFile.write(String.format("%s,%d,%s\n", operationName, time, bResult).getBytes());
         perfFile.flush();
     }
     
     
-    static void InsertPerfInfoIntoFiles(String basePath, String cardName, String experimentID, HashMap<Short, Pair<Short, Long>> perfResultsSubpartsRaw) throws FileNotFoundException, IOException {
+    static void InsertPerfInfoIntoFiles(String basePath, String cardName, String experimentID, HashMap<Short, Entry<Short, Long>> perfResultsSubpartsRaw) throws FileNotFoundException, IOException {
         File dir = new File(basePath);
         String[] filesArray = dir.list();
         if ((filesArray != null) && (dir.isDirectory() == true)) {
@@ -582,7 +583,7 @@ public class PerfTests {
         }
     }
     
-    static void InsertPerfInfoIntoFile(String filePath, String cardName, String experimentID, String outputDir, HashMap<Short, Pair<Short, Long>> perfResultsSubpartsRaw) throws FileNotFoundException, IOException {
+    static void InsertPerfInfoIntoFile(String filePath, String cardName, String experimentID, String outputDir, HashMap<Short, Entry<Short, Long>> perfResultsSubpartsRaw) throws FileNotFoundException, IOException {
         try {
             BufferedReader br = new BufferedReader(new FileReader(filePath));
             String basePath = filePath.substring(0, filePath.lastIndexOf("\\"));
