@@ -83,6 +83,7 @@ public class PerfTests {
             cardMngr.transmit(new CommandAPDU(PERF_COMMAND_NONE)); // erase any previous performance stop 
             cardMngr.transmit(new CommandAPDU(APDU_RESET));
 
+            byte[] bogusArray = new byte[1]; // Bogus array with single zero byte - NXP J3H145G P60 fails when no data are provided
 
             if (runCfg.bTestBN) {
                 short[] PERFSTOPS_BigNatural_Addition = {PM.TRAP_BN_ADD_1, PM.TRAP_BN_ADD_2, PM.TRAP_BN_ADD_3, PM.TRAP_BN_ADD_4, PM.TRAP_BN_ADD_5, PM.TRAP_BN_ADD_6, PM.TRAP_BN_ADD_7, PM.TRAP_BN_ADD_COMPLETE};
@@ -358,7 +359,7 @@ public class PerfTests {
                  cfg.perfStops = PERFSTOPS_ECCurve_newKeyPair;
                  cfg.perfStopComplete = PerfMeasure.TRAP_ECCURVE_NEWKEYPAIR_COMPLETE;
                  for (int repeat = 0; repeat < runCfg.numRepeats; repeat++) {
-                 CommandAPDU cmd = new CommandAPDU(Configuration.CLA_MPC, Configuration.INS_EC_GEN, 0, 0);
+                 CommandAPDU cmd = new CommandAPDU(Configuration.CLA_MPC, Configuration.INS_EC_GEN, 0, 0, bogusArray);
                  PerfAnalyzeCommand("ECCurve_newKeyPair: ", cmd, cardMngr, cfg);
                  }
                  */
@@ -390,7 +391,7 @@ public class PerfTests {
                 cfg.perfStops = PERFSTOPS_ECPOINT_GEN;
                 cfg.perfStopComplete = PM.TRAP_EC_GEN_COMPLETE;
                 for (int repeat = 0; repeat < runCfg.numRepeats; repeat++) {
-                    PerfAnalyzeCommand("EC Point Generation: ", new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_GEN, 0, 0), cardMngr, cfg);
+                    PerfAnalyzeCommand("EC Point Generation: ", new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_GEN, 0, 0, bogusArray), cardMngr, cfg);
                 }
 
                 short[] PERFSTOPS_ECPOINT_ADD = {PM.TRAP_EC_ADD_1, PM.TRAP_EC_ADD_2, PM.TRAP_EC_ADD_3, PM.TRAP_EC_ADD_4, PM.TRAP_EC_ADD_5, PM.TRAP_EC_ADD_COMPLETE};

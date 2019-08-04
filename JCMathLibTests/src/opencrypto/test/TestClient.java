@@ -53,8 +53,8 @@ public class TestClient {
     public static String format = "%-40s:%s%n\n-------------------------------------------------------------------------------\n";
 
     public static byte[] OPENCRYPTO_UNITTEST_APPLET_AID = {0x55, 0x6e, 0x69, 0x74, 0x54, 0x65, 0x73, 0x74, 0x73};
-    public static byte[] APDU_CLEANUP = {OCUnitTests.CLA_OC_UT, OCUnitTests.INS_CLEANUP, (byte) 0x00, (byte) 0x00};
-    public static byte[] APDU_GET_PROFILE_LOCKS = {OCUnitTests.CLA_OC_UT, OCUnitTests.INS_GET_PROFILE_LOCKS, (byte) 0x00, (byte) 0x00};
+    public static byte[] APDU_CLEANUP = {OCUnitTests.CLA_OC_UT, OCUnitTests.INS_CLEANUP, (byte) 0x00, (byte) 0x00, (byte) 0x00};
+    public static byte[] APDU_GET_PROFILE_LOCKS = {OCUnitTests.CLA_OC_UT, OCUnitTests.INS_GET_PROFILE_LOCKS, (byte) 0x00, (byte) 0x00, (byte) 0x00};
 
 
     public static void main(String[] args) throws Exception {
@@ -126,12 +126,11 @@ public class TestClient {
             cardMngr.transmit(new CommandAPDU(APDU_CLEANUP)); 
 
             // Obtain allocated bytes in RAM and EEPROM
-            cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_GET_ALLOCATOR_STATS, 0, 0, 0);            
-			response = cardMngr.transmit(cmd);
+            byte[] bogusArray = new byte[1]; // Bogus array with single zero byte - NXP J3H145G P60 fails when no data are provided
+            cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_GET_ALLOCATOR_STATS, 0, 0, bogusArray);            
+            response = cardMngr.transmit(cmd);
             byte[] data = response.getData();
-			System.out.println("2a");			
             System.out.println(String.format("Data allocator: RAM = %d, EEPROM = %d", Util.getShort(data, (short) 0), Util.getShort(data, (short) 2)));
-			System.out.println("2b");
             // Print memory snapshots from allocation
             for (int offset = 4; offset < data.length; offset += 6) {
                 System.out.println(String.format("Tag '%d': RAM = %d, EEPROM = %d", Util.getShort(data, offset), Util.getShort(data, (short) (offset + 2)), Util.getShort(data, (short) (offset + 4))));
@@ -415,7 +414,7 @@ public class TestClient {
                 operationName = "EC Point Generation: ";
                 for (int repeat = 0; repeat < runCfg.numRepeats; repeat++) {
                     System.out.println(String.format("%s (%d)", operationName, repeat));
-                    cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_GEN, 0, 0);
+                    cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_GEN, 0, 0, bogusArray);
                     response = cardMngr.transmit(cmd);
                     PerfTests.writePerfLog(operationName, response.getSW() == (ISO7816.SW_NO_ERROR & 0xffff), cardMngr.m_lastTransmitTime, m_perfResults, perfFile);
                     cardMngr.transmit(new CommandAPDU(APDU_CLEANUP)); 
