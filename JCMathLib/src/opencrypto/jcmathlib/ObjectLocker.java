@@ -27,7 +27,7 @@ public class ObjectLocker {
      * prevention of unwanted leak of sensitive information to next operation.
      * If true, object is erased once unlocked from use
      */
-    private boolean PROFILE_LOCKED_OBJECTS = true;
+    private boolean PROFILE_LOCKED_OBJECTS = false;
     /**
      * Array of pointers to objects which will be guarded by locks. 
      * Every even value contains pointer to registered object. Subsequent index 
