@@ -147,7 +147,7 @@ public class ECExample extends javacard.framework.Applet {
     }
     
     // NOTE: very simple EC usage example - no cla/ins, no communication with host...    
-    public void process(APDU apdu) {
+    public void process(javacard.framework.APDU apdu) {
         if (selectingApplet()) { return; } // Someone is going to use our applet!
         
         // Generate first point at random
