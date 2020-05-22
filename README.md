@@ -132,9 +132,9 @@ public class ECExample extends javacard.framework.Applet {
         // Pre-allocate all helper structures
         ecc = new ECConfig((short) 256); 
         // Pre-allocate standard SecP256r1 curve and two EC points on this curve
-        curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, ecc);
-        point1 = new ECPoint(curve, ecc);
-        point2 = new ECPoint(curve, ecc);
+        curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r);
+        point1 = new ECPoint(curve, ecc.ech);
+        point2 = new ECPoint(curve, ecc.ech);
     }
     // Installation of our applet
     public static void install(byte[] bArray, short bOffset, byte bLength) {
@@ -147,7 +147,7 @@ public class ECExample extends javacard.framework.Applet {
     }
     
     // NOTE: very simple EC usage example - no cla/ins, no communication with host...    
-    public void process(APDU apdu) {
+    public void process(javacard.framework.APDU apdu) {
         if (selectingApplet()) { return; } // Someone is going to use our applet!
         
         // Generate first point at random
@@ -180,9 +180,9 @@ package opencrypto.jcmathlib;
  // Pre-allocate all helper structures
  ECConfig ecc = new ECConfig((short) 256); 
  // Pre-allocate standard SecP256r1 curve and two EC points on this curve
- ECCurve curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, ecc);
- ECPoint point1 = new ECPoint(curve, ecc);
- ECPoint point2 = new ECPoint(curve, ecc);
+ ECCurve curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r);
+ ECPoint point1 = new ECPoint(curve, ecc.ech);
+ ECPoint point2 = new ECPoint(curve, ecc.ech);
     
  // ... in standard Java Card applet code
  // Generate first point at random
