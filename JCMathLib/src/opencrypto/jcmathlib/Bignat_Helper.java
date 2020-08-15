@@ -64,6 +64,11 @@ public class Bignat_Helper extends Base_Helper {
 
     Bignat fnc_divide_tmpThis;
 
+    Bignat fnc_gcd_tmp;
+    Bignat fnc_gcd_tmpOther;
+
+    Bignat fnc_is_coprime_tmp;
+
     Bignat fnc_exponentiation_i;
     Bignat fnc_exponentiation_tmp;
 
@@ -132,6 +137,11 @@ public class Bignat_Helper extends Base_Helper {
         fnc_exponentiation_i = rm.helper_BN_B;
 
         fnc_mod_minus_2 = rm.helper_BN_B;
+
+        fnc_gcd_tmp = rm.helper_BN_A;
+        fnc_gcd_tmpOther = rm.helper_BN_B;
+
+        fnc_is_coprime_tmp = rm.helper_BN_C; // is_coprime calls gcd internally
 
         fnc_negate_tmp = rm.helper_BN_B;
 
