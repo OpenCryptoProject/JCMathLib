@@ -13,11 +13,13 @@ If you want get into the math and the technical details explaining why things in
 
 If you want to cite this library:
 ```
-@article{mavroudis2018towards,
-  title={Towards Low-level Cryptographic Primitives for JavaCards},
-  author={Mavroudis, Vasilios and Svenda, Petr},
-  journal={arXiv preprint arXiv:1810.01662},
-  year={2018}
+@article{2020-jcmathlib-cybercert,
+    Title = {JCMathLib: Wrapper Cryptographic Library for Transparent and Certifiable JavaCard Applets},
+    Author = {Vasilios Mavroudis and Petr Svenda},
+    Conference = {2020 IEEE European Symposium on Security and Privacy Workshops},
+    Year = {2020},
+    Pages = {89--96},
+    Publisher = {IEEE},
 }
 ```
 
