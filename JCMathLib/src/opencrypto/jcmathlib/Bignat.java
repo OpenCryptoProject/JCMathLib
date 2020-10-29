@@ -1282,6 +1282,45 @@ public class Bignat {
     }
 
     /**
+     * Greatest common divisor of this bignat with other bignat. Result is
+     * stored into this.
+     *
+     * @param other value of other bignat
+     */
+    public void gcd(Bignat other) {
+        bnh.fnc_gcd_tmp.lock();
+        bnh.fnc_gcd_tmpOther.lock();
+
+        bnh.fnc_gcd_tmpOther.clone(other);
+
+        // TODO: optimise?
+        while (!other.is_zero()) {
+            bnh.fnc_gcd_tmp.clone(bnh.fnc_gcd_tmpOther);
+            this.mod(bnh.fnc_gcd_tmpOther);
+            bnh.fnc_gcd_tmpOther.clone(this);
+            this.clone(bnh.fnc_gcd_tmp);
+        }
+
+        bnh.fnc_gcd_tmp.unlock();
+        bnh.fnc_gcd_tmpOther.unlock();
+    }
+
+    /**
+     * Decides whether the arguments are coprime or not.
+     *
+     * @param a Bignat value
+     * @param b Bignat value
+     * @return true if coprime, false otherwise
+     */
+    public boolean is_coprime(Bignat a, Bignat b) {
+        bnh.fnc_is_coprime_tmp.lock();
+        bnh.fnc_is_coprime_tmp.clone(a);
+
+        bnh.fnc_is_coprime_tmp.gcd(b);
+        return bnh.fnc_is_coprime_tmp.same_value(Bignat_Helper.ONE);
+    }
+
+    /**
      * Computes base^exp and stores result into this bignat
      * @param base value of base
      * @param exp value of exponent
