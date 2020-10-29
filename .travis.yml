@@ -1,0 +1,16 @@
+language: java
+
+jdk:
+  - openjdk10
+
+dist: 
+  - xenial
+
+script: 
+  - ant -buildfile JCMathLibExamples/build.xml compile run
+  - ant -f JCMathLib/jcbuild.xml ecexample unittests
+
+addons:
+  apt:
+    packages:
+      - ant
