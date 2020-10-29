@@ -348,7 +348,7 @@ public class PerfTests {
                 for (int repeat = 0; repeat < runCfg.numRepeats; repeat++) {
                     ECPoint pnt_1 = Util.randECPoint();
                     ECPoint pnt_2 = Util.randECPoint();
-                    CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_ADD, 0, 0, Util.concat(pnt_1.getEncoded(), pnt_2.getEncoded()));
+                    CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_ADD, 0, 0, Util.concat(pnt_1.getEncoded(false), pnt_2.getEncoded(false)));
                     //CommandAPDU cmd = new CommandAPDU(hexStringToByteArray("B041000041041D1D96E2B171DFCC457587259E28E597258BF86EA0CFCB97BB6FCE62E7539E2879F3FDE52075AACAD1BA7637F816B6145C01E646831C259409FB89309AB03FD9"));
                     PerfAnalyzeCommand("ECPoint_add: ", cmd, cardMngr, cfg);
                 }
@@ -400,7 +400,7 @@ public class PerfTests {
                 for (int repeat = 0; repeat < runCfg.numRepeats; repeat++) {
                     ECPoint pnt_1 = Util.randECPoint();
                     ECPoint pnt_2 = Util.randECPoint();
-                    PerfAnalyzeCommand("EC Point Add: ", new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_ADD, 0, 0, Util.concat(pnt_1.getEncoded(), pnt_2.getEncoded())), cardMngr, cfg);
+                    PerfAnalyzeCommand("EC Point Add: ", new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_ADD, 0, 0, Util.concat(pnt_1.getEncoded(false), pnt_2.getEncoded(false))), cardMngr, cfg);
                 }
 
                 short[] PERFSTOPS_EC_scalar_point_multiplication = {PM.TRAP_EC_MUL_1, PM.TRAP_EC_MUL_2, PM.TRAP_EC_MUL_3, PM.TRAP_EC_MUL_4, PM.TRAP_EC_MUL_5, PM.TRAP_EC_MUL_COMPLETE};
@@ -424,7 +424,7 @@ public class PerfTests {
                     // Set modified parameter G of the curve (our random point)    
                     cardMngr.transmit(new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_SETCURVE_G, 0, 0, pnt.getEncoded(false)));
 
-                    PerfAnalyzeCommand("EC Point Double: ", new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_DBL, 0, 0, pnt.getEncoded()), cardMngr, cfg);
+                    PerfAnalyzeCommand("EC Point Double: ", new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_DBL, 0, 0, pnt.getEncoded(false)), cardMngr, cfg);
                 }
             }
 
@@ -513,10 +513,13 @@ public class PerfTests {
         short prevPerfStop = PM.PERF_START;
         long prevTransmitTime = 0;
         long lastFromPrevTime = 0;
+        short currentPerfStop = 0;
         try {
             for (short perfStop : cfg.perfStops) {
+                currentPerfStop = perfStop;
                 System.arraycopy(Util.shortToByteArray(perfStop), 0, PERF_COMMAND, ISO7816.OFFSET_CDATA, 2); // set required stop condition
                 String operationNamePerf = String.format("%s_%s", operationName, getPerfStopName(perfStop));
+                System.out.println(operationNamePerf);
                 cardMngr.transmit(new CommandAPDU(PERF_COMMAND)); // set performance trap
                 ResponseAPDU response = cardMngr.transmit(cmd); // execute target operation
                 boolean bFailedToReachTrap = false;
@@ -549,6 +552,7 @@ public class PerfTests {
             for (String res : cfg.perfResultsSubparts) {
                 System.out.println(res);
             }
+            cfg.failedPerfTraps.add(getPerfStopName(currentPerfStop));
             throw e;
         }
         // Print measured performance info

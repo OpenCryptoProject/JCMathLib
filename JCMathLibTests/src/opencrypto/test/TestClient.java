@@ -31,7 +31,7 @@ import opencrypto.jcmathlib.SecP256r1;
  */
 public class TestClient {
     public static boolean _FAIL_ON_ASSERT = false;
-    public static int NUM_OP_REPEATS = 10;
+    public static int NUM_OP_REPEATS = 1;
     
     // Base length of test inputs (in bits) which corresponds to same length of ECC 
     // E.g., if you like to test 256b ECC, operations with 256b Bignat numbers are performed 
@@ -39,12 +39,12 @@ public class TestClient {
     // MAX_BIGNAT_SIZE constant must be at least 2*(ECC_BASE_TEST_LENGTH / 8) + 1.
     public final static int BIGNAT_BASE_TEST_LENGTH = 256; 
     
-    public static boolean _TEST_BN = false;
-    public static boolean _TEST_INT = true;
-    public static boolean _TEST_EC = false;
+    public static boolean _TEST_BN = true;
+    public static boolean _TEST_INT = false;
+    public static boolean _TEST_EC = true;
     
     public static boolean _MEASURE_PERF = false;
-    public static boolean _MEASURE_PERF_ONLY_TARGET = false;
+    public static boolean _MEASURE_PERF_ONLY_TARGET = true;
     
 
 
@@ -710,7 +710,7 @@ public class TestClient {
         public boolean compare(ResponseAPDU response) {
             boolean bResult = false;
             if (response.getSW() == (ISO7816.SW_NO_ERROR & 0xffff)) {
-                bResult = Arrays.equals(m_expected.getEncoded(), response.getData());
+                bResult = Arrays.equals(m_expected.getEncoded(false), response.getData());
             } else {
                 bResult = false;
                 System.out.println(String.format("fail (0x%x)", response.getSW()));
