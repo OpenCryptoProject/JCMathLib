@@ -46,5 +46,8 @@
 		
 	</target>
 	
+    <!-- Import build actions required for Netbeans build -->
+    <import file="nbproject/build-impl.xml"/>
+
 
 </project>
