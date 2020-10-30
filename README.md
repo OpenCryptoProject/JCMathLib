@@ -1,3 +1,5 @@
+[![MIT licensed](https://img.shields.io/github/license/OpenCryptoProject/JCMathLib)](https://github.com/OpenCryptoProject/JCMathLib/blob/master/LICENSE) 
+
 <p align="center">
     <img src="README-rsrc/logo.png">
 </p>
