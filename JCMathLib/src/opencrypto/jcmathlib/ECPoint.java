@@ -175,6 +175,8 @@ public class ECPoint {
     public void add(ECPoint other) {
         PM.check(PM.TRAP_ECPOINT_ADD_1);
 
+        boolean samePoint = this == other || isEqual(other);
+
         ech.lock(ech.uncompressed_point_arr1);
         this.thePoint.getW(ech.uncompressed_point_arr1, (short) 0);
         ech.fnc_add_x_p.lock();
@@ -194,7 +196,7 @@ public class ECPoint {
         // P+Q=R
         ech.fnc_add_nominator.lock();
         ech.fnc_add_denominator.lock();
-        if (this == other) {
+        if (samePoint) {
             //lambda = (3(x_p^2)+a)/(2y_p)
             //(3(x_p^2)+a)
             ech.fnc_add_nominator.clone(ech.fnc_add_x_p);
@@ -245,7 +247,7 @@ public class ECPoint {
 
         //x_r=lambda^2-x_p-x_q
         ech.fnc_add_x_r.lock();
-        if (this == other) {
+        if (samePoint) {
             short len = this.multiplication_x(Bignat_Helper.TWO, ech.fnc_add_x_r.as_byte_array(), (short) 0);
             ech.fnc_add_x_r.set_size(len); 
         } else {        
