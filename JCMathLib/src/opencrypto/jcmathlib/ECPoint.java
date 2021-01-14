@@ -424,7 +424,50 @@ public class ECPoint {
         ech.unlock(ech.uncompressed_point_arr1);
         PM.check(PM.TRAP_ECPOINT_NEGATE_5);
     }
-    
+
+    /**
+     * Restore point from X coordinate. Stores one of the two results into this point.
+     *
+     * @param xCoord byte array containing the X coordinate
+     * @param xOffset offset in the byte array
+     * @param xLen length of the X coordinate
+     */
+    public void from_x(byte[] xCoord, short xOffset, short xLen) {
+        ech.fnc_from_x_x.lock();
+        ech.fnc_from_x_x.set_size(xLen);
+        ech.fnc_from_x_x.from_byte_array(xLen, (short) 0, xCoord, xOffset);
+        from_x(ech.fnc_from_x_x);
+        ech.fnc_from_x_x.unlock();
+    }
+
+    /**
+     * Restore point from X coordinate. Stores one of the two results into this point.
+     *
+     * @param x the x coordinate
+     */
+    private void from_x(Bignat x) {
+        //Y^2 = X^3 + XA + B = x(x^2+A)+B
+        ech.fnc_from_x_y_sq.lock();
+        ech.fnc_from_x_y_sq.clone(x);
+        ech.fnc_from_x_y_sq.mod_exp(Bignat_Helper.TWO, this.theCurve.pBN);
+        ech.fnc_from_x_y_sq.mod_add(this.theCurve.aBN, this.theCurve.pBN);
+        ech.fnc_from_x_y_sq.mod_mult(ech.fnc_from_x_y_sq, x, this.theCurve.pBN);
+        ech.fnc_from_x_y_sq.mod_add(this.theCurve.bBN, this.theCurve.pBN);
+        ech.fnc_from_x_y.lock();
+        ech.fnc_from_x_y.clone(ech.fnc_from_x_y_sq);
+        ech.fnc_from_x_y_sq.unlock();
+        ech.fnc_from_x_y.sqrt_FP(this.theCurve.pBN);
+
+        // Construct public key with <x, y_1>
+        ech.lock(ech.uncompressed_point_arr1);
+        ech.uncompressed_point_arr1[0] = 0x04;
+        x.prepend_zeros(this.theCurve.COORD_SIZE, ech.uncompressed_point_arr1, (short) 1);
+        ech.fnc_from_x_y.prepend_zeros(this.theCurve.COORD_SIZE, ech.uncompressed_point_arr1, (short) (1 + theCurve.COORD_SIZE));
+        ech.fnc_from_x_y.unlock();
+        this.setW(ech.uncompressed_point_arr1, (short) 0, theCurve.POINT_SIZE);
+        ech.unlock(ech.uncompressed_point_arr1);
+    }
+
     /**
      * Compares this and provided point for equality. The comparison is made using hash of both values to prevent leak of position of mismatching byte.
      * @param other second point for comparison
