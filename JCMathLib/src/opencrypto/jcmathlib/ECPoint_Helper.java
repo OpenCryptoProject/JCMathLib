@@ -15,7 +15,7 @@ public class ECPoint_Helper extends Base_Helper {
     public static final byte Signature_ALG_ECDSA_SHA_256 = (byte) 33;
 
     /**
-     * I true, fast multiplication of ECPoints via KeyAgreement can be used Is
+     * If true, fast multiplication of ECPoints via KeyAgreement can be used. Is
      * set automatically after successful allocation of required engines
      */
     public boolean FLAG_FAST_EC_MULT_VIA_KA = false;
@@ -44,6 +44,8 @@ public class ECPoint_Helper extends Base_Helper {
     Bignat fnc_from_x_x;
     Bignat fnc_from_x_y_sq;
     Bignat fnc_from_x_y;
+
+    Bignat fnc_is_y;
 
     KeyAgreement fnc_multiplication_x_keyAgreement;
     Signature    fnc_SignVerifyECDSA_signEngine; 
@@ -91,6 +93,8 @@ public class ECPoint_Helper extends Base_Helper {
         Bignat fnc_from_x_x;
         Bignat fnc_from_x_y_sq;
         Bignat fnc_from_x_y;
+
+        fnc_is_y = rm.helperEC_BN_C;
 
         fnc_isEqual_hashArray = rm.helper_hashArray;
         fnc_isEqual_hashEngine = rm.hashEngine;

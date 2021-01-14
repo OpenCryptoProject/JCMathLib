@@ -469,6 +469,21 @@ public class ECPoint {
     }
 
     /**
+     * Returns true if Y coordinate is even; false otherwise.
+     *
+     * @return true if Y coordinate is even; false otherwise
+     */
+    public boolean is_y_even() {
+        ech.fnc_is_y.lock();
+        ech.lock(ech.uncompressed_point_arr1);
+        thePoint.getW(ech.uncompressed_point_arr1, (short) 0);
+        boolean result = ech.uncompressed_point_arr1[(short)(theCurve.POINT_SIZE - 1)] % 2 == 0;
+        ech.unlock(ech.uncompressed_point_arr1);
+        ech.fnc_is_y.unlock();
+        return result;
+    }
+
+    /**
      * Compares this and provided point for equality. The comparison is made using hash of both values to prevent leak of position of mismatching byte.
      * @param other second point for comparison
      * @return true if both point are exactly equal (same length, same value), false otherwise
