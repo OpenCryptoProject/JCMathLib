@@ -175,6 +175,8 @@ public class ECPoint {
     public void add(ECPoint other) {
         PM.check(PM.TRAP_ECPOINT_ADD_1);
 
+        boolean samePoint = this == other || isEqual(other);
+
         ech.lock(ech.uncompressed_point_arr1);
         this.thePoint.getW(ech.uncompressed_point_arr1, (short) 0);
         ech.fnc_add_x_p.lock();
@@ -194,7 +196,7 @@ public class ECPoint {
         // P+Q=R
         ech.fnc_add_nominator.lock();
         ech.fnc_add_denominator.lock();
-        if (this == other) {
+        if (samePoint) {
             //lambda = (3(x_p^2)+a)/(2y_p)
             //(3(x_p^2)+a)
             ech.fnc_add_nominator.clone(ech.fnc_add_x_p);
@@ -245,7 +247,7 @@ public class ECPoint {
 
         //x_r=lambda^2-x_p-x_q
         ech.fnc_add_x_r.lock();
-        if (this == other) {
+        if (samePoint) {
             short len = this.multiplication_x(Bignat_Helper.TWO, ech.fnc_add_x_r.as_byte_array(), (short) 0);
             ech.fnc_add_x_r.set_size(len); 
         } else {        
@@ -422,7 +424,65 @@ public class ECPoint {
         ech.unlock(ech.uncompressed_point_arr1);
         PM.check(PM.TRAP_ECPOINT_NEGATE_5);
     }
-    
+
+    /**
+     * Restore point from X coordinate. Stores one of the two results into this point.
+     *
+     * @param xCoord byte array containing the X coordinate
+     * @param xOffset offset in the byte array
+     * @param xLen length of the X coordinate
+     */
+    public void from_x(byte[] xCoord, short xOffset, short xLen) {
+        ech.fnc_from_x_x.lock();
+        ech.fnc_from_x_x.set_size(xLen);
+        ech.fnc_from_x_x.from_byte_array(xLen, (short) 0, xCoord, xOffset);
+        from_x(ech.fnc_from_x_x);
+        ech.fnc_from_x_x.unlock();
+    }
+
+    /**
+     * Restore point from X coordinate. Stores one of the two results into this point.
+     *
+     * @param x the x coordinate
+     */
+    private void from_x(Bignat x) {
+        //Y^2 = X^3 + XA + B = x(x^2+A)+B
+        ech.fnc_from_x_y_sq.lock();
+        ech.fnc_from_x_y_sq.clone(x);
+        ech.fnc_from_x_y_sq.mod_exp(Bignat_Helper.TWO, this.theCurve.pBN);
+        ech.fnc_from_x_y_sq.mod_add(this.theCurve.aBN, this.theCurve.pBN);
+        ech.fnc_from_x_y_sq.mod_mult(ech.fnc_from_x_y_sq, x, this.theCurve.pBN);
+        ech.fnc_from_x_y_sq.mod_add(this.theCurve.bBN, this.theCurve.pBN);
+        ech.fnc_from_x_y.lock();
+        ech.fnc_from_x_y.clone(ech.fnc_from_x_y_sq);
+        ech.fnc_from_x_y_sq.unlock();
+        ech.fnc_from_x_y.sqrt_FP(this.theCurve.pBN);
+
+        // Construct public key with <x, y_1>
+        ech.lock(ech.uncompressed_point_arr1);
+        ech.uncompressed_point_arr1[0] = 0x04;
+        x.prepend_zeros(this.theCurve.COORD_SIZE, ech.uncompressed_point_arr1, (short) 1);
+        ech.fnc_from_x_y.prepend_zeros(this.theCurve.COORD_SIZE, ech.uncompressed_point_arr1, (short) (1 + theCurve.COORD_SIZE));
+        ech.fnc_from_x_y.unlock();
+        this.setW(ech.uncompressed_point_arr1, (short) 0, theCurve.POINT_SIZE);
+        ech.unlock(ech.uncompressed_point_arr1);
+    }
+
+    /**
+     * Returns true if Y coordinate is even; false otherwise.
+     *
+     * @return true if Y coordinate is even; false otherwise
+     */
+    public boolean is_y_even() {
+        ech.fnc_is_y.lock();
+        ech.lock(ech.uncompressed_point_arr1);
+        thePoint.getW(ech.uncompressed_point_arr1, (short) 0);
+        boolean result = ech.uncompressed_point_arr1[(short)(theCurve.POINT_SIZE - 1)] % 2 == 0;
+        ech.unlock(ech.uncompressed_point_arr1);
+        ech.fnc_is_y.unlock();
+        return result;
+    }
+
     /**
      * Compares this and provided point for equality. The comparison is made using hash of both values to prevent leak of position of mismatching byte.
      * @param other second point for comparison
