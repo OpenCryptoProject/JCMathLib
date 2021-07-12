@@ -1352,10 +1352,9 @@ public class Bignat {
     *            second factor
     */
     public void mult(Bignat x, Bignat y) {      
-        if (!bnh.FLAG_FAST_MULT_VIA_RSA || x.length() < Bignat_Helper.FAST_MULT_VIA_RSA_TRESHOLD_LENGTH) {
-        //if (!bnh.FLAG_FAST_MULT_VIA_RSA) {
-            // If not supported, use slow multiplication
-            // Use slow multiplication also when numbers are small => faster to do in software 
+        if (bnh.bIsSimulator || !bnh.FLAG_FAST_MULT_VIA_RSA || x.length() < Bignat_Helper.FAST_MULT_VIA_RSA_TRESHOLD_LENGTH) {
+            // If simulator or not supported, use slow multiplication
+            // Use slow multiplication also when numbers are small => faster to do in software
             mult_schoolbook(x, y);
         }
         else { 
@@ -1819,6 +1818,9 @@ public class Bignat {
         // Simulator and potentially some cards fail to initialize this new value properly (probably assuming that same key object will always have same value)
         // Fix (if problem occure): generate new key object: RSAPublicKey publicKey = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, (short) (baseLen * 8), false);
 
+        if(bnh.bIsSimulator) {
+            bnh.fnc_NmodE_pubKey = (RSAPublicKey) KeyBuilder.buildKey(javacard.security.KeyBuilder.TYPE_RSA_PUBLIC, (short) (baseLen * 8), false);
+        }
         bnh.fnc_NmodE_pubKey.setExponent(exponent, (short) 0, exponentLen);
         bnh.lock(bnh.fnc_deep_resize_tmp);
         modulo.append_zeros(baseLen, bnh.fnc_deep_resize_tmp, (short) 0);
