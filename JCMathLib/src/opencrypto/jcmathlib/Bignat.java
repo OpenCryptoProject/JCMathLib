@@ -7,6 +7,8 @@ import javacard.framework.ISOException;
 import javacard.framework.JCSystem;
 import javacard.framework.Util;
 import javacardx.crypto.Cipher;
+import javacard.security.KeyBuilder;
+import javacard.security.RSAPublicKey;
 
 /**
  * 
