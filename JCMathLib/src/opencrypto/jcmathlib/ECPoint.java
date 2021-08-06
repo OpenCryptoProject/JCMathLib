@@ -154,8 +154,52 @@ public class ECPoint {
     public void getY(Bignat yCopy) {
         yCopy.set_size(this.getY(yCopy.as_byte_array(), (short) 0));
     }    
-	
-	
+
+    /**
+     * Double this point. Pure implementation without KeyAgreement.
+     */
+    public void swDouble() {
+        ech.lock(ech.uncompressed_point_arr1);
+        getW(ech.uncompressed_point_arr1, (short) 0);
+
+        Bignat pX = ech.rm.helperEC_BN_B;
+        pX.lock();
+        pX.from_byte_array(theCurve.COORD_SIZE, (short) 0, ech.uncompressed_point_arr1, (short) 1);
+
+        Bignat pY = ech.rm.helperEC_BN_C;
+        pY.lock();
+        pY.from_byte_array(theCurve.COORD_SIZE, (short) 0, ech.uncompressed_point_arr1, (short) (1 + theCurve.COORD_SIZE));
+
+        Bignat lambda = ech.rm.helperEC_BN_D;
+        lambda.lock();
+        lambda.mod_mult(pX, pX, theCurve.pBN);
+        lambda.mod_mult(lambda, Bignat_Helper.THREE, theCurve.pBN);
+        lambda.mod_add(theCurve.aBN, theCurve.pBN);
+
+        Bignat tmp = ech.rm.helperEC_BN_E;
+        tmp.lock();
+        tmp.clone(pY);
+        tmp.mod_add(tmp, theCurve.pBN);
+        tmp.mod_inv(theCurve.pBN);
+        lambda.mod_mult(lambda, tmp, theCurve.pBN);
+        tmp.mod_mult(lambda, lambda, theCurve.pBN);
+        tmp.mod_sub(pX, theCurve.pBN);
+        tmp.mod_sub(pX, theCurve.pBN);
+        tmp.prepend_zeros(theCurve.COORD_SIZE, ech.uncompressed_point_arr1, (short) 1);
+
+        tmp.mod_sub(pX, theCurve.pBN);
+        pX.unlock();
+        tmp.mod_mult(tmp, lambda, theCurve.pBN);
+        lambda.unlock();
+        tmp.mod_add(pY, theCurve.pBN);
+        tmp.mod_negate(theCurve.pBN);
+        pY.unlock();
+        tmp.prepend_zeros(theCurve.COORD_SIZE, ech.uncompressed_point_arr1, (short) (1 + theCurve.COORD_SIZE));
+        tmp.unlock();
+
+        this.setW(ech.uncompressed_point_arr1, (short) 0, (short) theCurve.POINT_SIZE);
+        ech.unlock(ech.uncompressed_point_arr1);
+    }
 
      
     /**
@@ -174,7 +218,6 @@ public class ECPoint {
      */
     public void add(ECPoint other) {
         PM.check(PM.TRAP_ECPOINT_ADD_1);
-
         boolean samePoint = this == other || isEqual(other);
 
         ech.lock(ech.uncompressed_point_arr1);
@@ -303,6 +346,11 @@ public class ECPoint {
      * @param scalar value of scalar for multiplication
      */
     public void multiplication(Bignat scalar) {
+        if(ech.bIsSimulator && scalar.same_value(Bignat_Helper.TWO)) {
+            swDouble();
+            return;
+        }
+
         PM.check(PM.TRAP_ECPOINT_MULT_1);
         
         ech.fnc_multiplication_x.lock();
