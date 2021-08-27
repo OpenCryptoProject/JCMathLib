@@ -372,6 +372,7 @@ public class OCUnitTests extends Applet {
             m_ecc.unlockAll();
         }
         if (m_ecc.bnh != null) {m_ecc.bnh.bIsSimulator = bIsSimulator; }
+        if (m_ecc.ech != null) {m_ecc.ech.bIsSimulator = bIsSimulator; }
     }
     void test_EC_SETCURVE_G(APDU apdu, short dataLen) {
         byte[] apdubuf = apdu.getBuffer();
