@@ -346,7 +346,7 @@ public class ECPoint {
      * @param scalar value of scalar for multiplication
      */
     public void multiplication(Bignat scalar) {
-        if(ech.bIsSimulator && scalar.same_value(Bignat_Helper.TWO)) {
+        if(OperationSupport.getInstance().EC_SW_DOUBLE && scalar.same_value(Bignat_Helper.TWO)) {
             swDouble();
             return;
         }

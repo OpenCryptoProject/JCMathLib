@@ -94,6 +94,8 @@ public class OCUnitTests extends Applet {
     Integer         m_testINT2;
 
     public OCUnitTests() {
+        OperationSupport.getInstance().setCard(OperationSupport.SIMULATOR);
+
         m_memoryInfo = new short[(short) (7 * 3)]; // Contains RAM and EEPROM memory required for basic library objects 
         m_memoryInfoOffset = snapshotAvailableMemory((short) 1, m_memoryInfo, m_memoryInfoOffset);
         if (bTEST_256b_CURVE) {
@@ -371,8 +373,6 @@ public class OCUnitTests extends Applet {
             m_ecc.refreshAfterReset(); 
             m_ecc.unlockAll();
         }
-        if (m_ecc.bnh != null) {m_ecc.bnh.bIsSimulator = bIsSimulator; }
-        if (m_ecc.ech != null) {m_ecc.ech.bIsSimulator = bIsSimulator; }
     }
     void test_EC_SETCURVE_G(APDU apdu, short dataLen) {
         byte[] apdubuf = apdu.getBuffer();

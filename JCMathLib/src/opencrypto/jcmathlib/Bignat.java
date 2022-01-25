@@ -1354,7 +1354,7 @@ public class Bignat {
     *            second factor
     */
     public void mult(Bignat x, Bignat y) {      
-        if (bnh.bIsSimulator || !bnh.FLAG_FAST_MULT_VIA_RSA || x.length() < Bignat_Helper.FAST_MULT_VIA_RSA_TRESHOLD_LENGTH) {
+        if (!OperationSupport.getInstance().RSA_MULT_TRICK || !bnh.FLAG_FAST_MULT_VIA_RSA || x.length() < Bignat_Helper.FAST_MULT_VIA_RSA_TRESHOLD_LENGTH) {
             // If simulator or not supported, use slow multiplication
             // Use slow multiplication also when numbers are small => faster to do in software
             mult_schoolbook(x, y);
@@ -1724,12 +1724,15 @@ public class Bignat {
      * @param modulo value of modulo
      */
     public void mod_exp(Bignat exponent, Bignat modulo) {
+        if (!OperationSupport.getInstance().RSA_MOD_EXP)
+            ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
+
         short tmp_size = (short)(bnh.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
         bnh.fnc_mod_exp_modBN.lock();
         bnh.fnc_mod_exp_modBN.set_size(tmp_size);
 
         short len = n_mod_exp(tmp_size, this, exponent.as_byte_array(), exponent.length(), modulo, bnh.fnc_mod_exp_modBN.value, (short) 0);
-        if (bnh.bIsSimulator) {
+        if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
             // Decrypted length can be either tmp_size or less because of leading zeroes consumed by simulator engine implementation
             // Move obtained value into proper position with zeroes prepended
             if (len != tmp_size) {
@@ -1820,7 +1823,7 @@ public class Bignat {
         // Simulator and potentially some cards fail to initialize this new value properly (probably assuming that same key object will always have same value)
         // Fix (if problem occure): generate new key object: RSAPublicKey publicKey = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, (short) (baseLen * 8), false);
 
-        if(bnh.bIsSimulator) {
+        if(OperationSupport.getInstance().RSA_KEY_REFRESH) {
             bnh.fnc_NmodE_pubKey = (RSAPublicKey) KeyBuilder.buildKey(javacard.security.KeyBuilder.TYPE_RSA_PUBLIC, (short) (baseLen * 8), false);
         }
         bnh.fnc_NmodE_pubKey.setExponent(exponent, (short) 0, exponentLen);

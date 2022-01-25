@@ -14,12 +14,6 @@ public class ECPoint_Helper extends Base_Helper {
     public static final byte KeyAgreement_ALG_EC_SVDP_DH_PLAIN_XY = (byte) 6;
     public static final byte Signature_ALG_ECDSA_SHA_256 = (byte) 33;
 
-    /**
-     * If true, fast multiplication of ECPoints via KeyAgreement can be used. Is
-     * set automatically after successful allocation of required engines
-     */
-    public boolean FLAG_FAST_EC_MULT_VIA_KA = false;
-
     byte[] uncompressed_point_arr1;
     byte[] fnc_isEqual_hashArray;
     byte[] fnc_multiplication_resultArray;
@@ -54,16 +48,10 @@ public class ECPoint_Helper extends Base_Helper {
     public ECPoint_Helper(ResourceManager rm) {
         super(rm);
 
-        FLAG_FAST_EC_MULT_VIA_KA = false; // set true only if succesfully allocated and tested below
-        try {
-            //fnc_multiplication_x_keyAgreement = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DHC, false);
-            //fnc_SignVerifyECDSA_signEngine = Signature.getInstance(Signature.ALG_ECDSA_SHA, false);
-            //fnc_multiplication_x_keyAgreement = KeyAgreement.getInstance(Consts.KeyAgreement_ALG_EC_SVDP_DH_PLAIN_XY, false);
+        if(OperationSupport.getInstance().ECDH_X_ONLY) {
             fnc_multiplication_x_keyAgreement = KeyAgreement.getInstance(KeyAgreement_ALG_EC_SVDP_DH_PLAIN, false);
-            fnc_SignVerifyECDSA_signEngine = Signature.getInstance(Signature_ALG_ECDSA_SHA_256, false);
-            FLAG_FAST_EC_MULT_VIA_KA = true;
-        } catch (Exception ignored) {
-        } // Discard any exception
+        }
+        fnc_SignVerifyECDSA_signEngine = Signature.getInstance(Signature_ALG_ECDSA_SHA_256, false);
     }
 
     void initialize() {
