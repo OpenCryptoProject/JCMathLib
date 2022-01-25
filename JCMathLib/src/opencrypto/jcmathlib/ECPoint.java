@@ -351,6 +351,10 @@ public class ECPoint {
      * @param scalar value of scalar for multiplication
      */
     public void multiplication(Bignat scalar) {
+        if(OperationSupport.getInstance().EC_SW_DOUBLE && scalar.same_value(Bignat_Helper.TWO)) {
+            swDouble();
+            return;
+        }
         if (ech.multKA.getAlgorithm() == ECPoint_Helper.ALG_EC_SVDP_DH_PLAIN_XY) {
             this.multiplication_xy(scalar);
         } else if (ech.multKA.getAlgorithm() == ECPoint_Helper.ALG_EC_SVDP_DH_PLAIN) {
@@ -397,11 +401,6 @@ public class ECPoint {
      * @param scalar value of scalar for multiplication
     */
     private void multiplication_x(Bignat scalar) {
-        if(OperationSupport.getInstance().EC_SW_DOUBLE && scalar.same_value(Bignat_Helper.TWO)) {
-            swDouble();
-            return;
-        }
-
         PM.check(PM.TRAP_ECPOINT_MULT_1);
         
         ech.fnc_multiplication_x.lock();
