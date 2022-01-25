@@ -14,7 +14,7 @@ public class OperationSupport {
     public static final short J3R180 = 0x0003;
 
     public boolean RSA_MULT_TRICK = false;
-    public boolean RSA_MOD_EXP = true;
+    public boolean RSA_MOD_EXP = false;
     public boolean RSA_PREPEND_ZEROS = false;
     public boolean RSA_KEY_REFRESH = false;
     public boolean ECDH_XY = false;
@@ -33,6 +33,7 @@ public class OperationSupport {
         switch (card_identifier) {
             case SIMULATOR:
                 RSA_MULT_TRICK = false;
+                RSA_MOD_EXP = true;
                 RSA_PREPEND_ZEROS = true;
                 RSA_KEY_REFRESH = true;
                 // ECDH_XY = true;
@@ -40,6 +41,7 @@ public class OperationSupport {
                 break;
             case J2E145G:
                 RSA_MULT_TRICK = true;
+                RSA_MOD_EXP = true;
                 break;
             case J3H145:
                 RSA_MULT_TRICK = true;

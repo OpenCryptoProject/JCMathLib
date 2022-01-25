@@ -94,7 +94,7 @@ public class OCUnitTests extends Applet {
     Integer         m_testINT2;
 
     public OCUnitTests() {
-        OperationSupport.getInstance().setCard(OperationSupport.SIMULATOR);
+        OperationSupport.getInstance().setCard(OperationSupport.SIMULATOR); // TODO set your card
 
         m_memoryInfo = new short[(short) (7 * 3)]; // Contains RAM and EEPROM memory required for basic library objects 
         m_memoryInfoOffset = snapshotAvailableMemory((short) 1, m_memoryInfo, m_memoryInfoOffset);

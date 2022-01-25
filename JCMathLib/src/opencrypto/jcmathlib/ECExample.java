@@ -17,7 +17,7 @@ public class ECExample extends Applet {
     final static byte[] SCALAR_TEST_VALUE = {(byte) 0xE8, (byte) 0x05, (byte) 0xE8, (byte) 0x02, (byte) 0xBF, (byte) 0xEC, (byte) 0xEE, (byte) 0x91, (byte) 0x9B, (byte) 0x3D, (byte) 0x3B, (byte) 0xD8, (byte) 0x3C, (byte) 0x7B, (byte) 0x52, (byte) 0xA5, (byte) 0xD5, (byte) 0x35, (byte) 0x4C, (byte) 0x4C, (byte) 0x06, (byte) 0x89, (byte) 0x80, (byte) 0x54, (byte) 0xB9, (byte) 0x76, (byte) 0xFA, (byte) 0xB1, (byte) 0xD3, (byte) 0x5A, (byte) 0x10, (byte) 0x91};
 
     public ECExample() {
-        OperationSupport.getInstance().setCard(OperationSupport.SIMULATOR);
+        OperationSupport.getInstance().setCard(OperationSupport.SIMULATOR); // TODO set your card
         // Pre-allocate all helper structures
         ecc = new ECConfig((short) 256); 
         // Pre-allocate standard SecP256r1 curve and two EC points on this curve
