@@ -10,11 +10,12 @@ import javacard.security.Signature;
  */
 public class ECPoint_Helper extends Base_Helper {
     // Selected constants missing from older JC API specs 
-    public static final byte KeyAgreement_ALG_EC_SVDP_DH_PLAIN = (byte) 3;
-    public static final byte KeyAgreement_ALG_EC_SVDP_DH_PLAIN_XY = (byte) 6;
-    public static final byte Signature_ALG_ECDSA_SHA_256 = (byte) 33;
+    public static final byte ALG_EC_SVDP_DH_PLAIN = (byte) 3;
+    public static final byte ALG_EC_SVDP_DH_PLAIN_XY = (byte) 6;
+    public static final byte ALG_ECDSA_SHA_256 = (byte) 33;
 
     byte[] uncompressed_point_arr1;
+    byte[] uncompressed_point_arr2;
     byte[] fnc_isEqual_hashArray;
     byte[] fnc_multiplication_resultArray;
 
@@ -41,17 +42,20 @@ public class ECPoint_Helper extends Base_Helper {
 
     Bignat fnc_is_y;
 
-    KeyAgreement fnc_multiplication_x_keyAgreement;
+    KeyAgreement multKA;
     Signature    fnc_SignVerifyECDSA_signEngine; 
     MessageDigest fnc_isEqual_hashEngine;
 
     public ECPoint_Helper(ResourceManager rm) {
         super(rm);
 
-        if(OperationSupport.getInstance().ECDH_X_ONLY) {
-            fnc_multiplication_x_keyAgreement = KeyAgreement.getInstance(KeyAgreement_ALG_EC_SVDP_DH_PLAIN, false);
+        if(OperationSupport.getInstance().ECDH_XY) {
+            multKA = KeyAgreement.getInstance(ALG_EC_SVDP_DH_PLAIN_XY, false);
         }
-        fnc_SignVerifyECDSA_signEngine = Signature.getInstance(Signature_ALG_ECDSA_SHA_256, false);
+        else if(OperationSupport.getInstance().ECDH_X_ONLY) {
+            multKA = KeyAgreement.getInstance(ALG_EC_SVDP_DH_PLAIN, false);
+        }
+        fnc_SignVerifyECDSA_signEngine = Signature.getInstance(ALG_ECDSA_SHA_256, false);
     }
 
     void initialize() {
@@ -88,5 +92,6 @@ public class ECPoint_Helper extends Base_Helper {
         fnc_isEqual_hashEngine = rm.hashEngine;
 
         uncompressed_point_arr1 = rm.helper_uncompressed_point_arr1;
+        uncompressed_point_arr2 = rm.helper_uncompressed_point_arr2;
     }
 }

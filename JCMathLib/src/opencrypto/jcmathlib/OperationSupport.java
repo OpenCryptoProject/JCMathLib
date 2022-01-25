@@ -17,6 +17,7 @@ public class OperationSupport {
     public boolean RSA_MOD_EXP = true;
     public boolean RSA_PREPEND_ZEROS = false;
     public boolean RSA_KEY_REFRESH = false;
+    public boolean ECDH_XY = false;
     public boolean ECDH_X_ONLY = true;
     public boolean EC_SW_DOUBLE = false;
 
@@ -34,6 +35,7 @@ public class OperationSupport {
                 RSA_MULT_TRICK = false;
                 RSA_PREPEND_ZEROS = true;
                 RSA_KEY_REFRESH = true;
+                // ECDH_XY = true;
                 EC_SW_DOUBLE = true;
                 break;
             case J2E145G:
