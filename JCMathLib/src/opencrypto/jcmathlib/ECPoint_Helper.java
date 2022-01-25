@@ -82,10 +82,6 @@ public class ECPoint_Helper extends Base_Helper {
 
         fnc_negate_yBN = rm.helperEC_BN_C;
 
-        Bignat fnc_from_x_x;
-        Bignat fnc_from_x_y_sq;
-        Bignat fnc_from_x_y;
-
         fnc_is_y = rm.helperEC_BN_C;
 
         fnc_isEqual_hashArray = rm.helper_hashArray;

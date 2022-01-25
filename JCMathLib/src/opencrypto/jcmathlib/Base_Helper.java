@@ -7,13 +7,6 @@ package opencrypto.jcmathlib;
 public class Base_Helper {
     final ResourceManager rm;
 
-    /**
-     * Helper flag which signalizes that code is executed inside simulator
-     * (during tests). Is used to address simulator specific behaviour
-     * workaround if required.
-     */
-    public boolean bIsSimulator = false;
-
     public Base_Helper(ResourceManager resman) {
         rm = resman;
     }
