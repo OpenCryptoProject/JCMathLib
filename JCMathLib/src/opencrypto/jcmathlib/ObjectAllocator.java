@@ -33,7 +33,8 @@ public class ObjectAllocator {
     public static final byte ECPH_helperEC_BN_E      = 12;
     public static final byte ECPH_helperEC_BN_F      = 13;
     public static final byte ECPH_uncompressed_point_arr1 = 14;
-    public static final byte ECPH_hashArray          = 15;
+    public static final byte ECPH_uncompressed_point_arr2 = 15;
+    public static final byte ECPH_hashArray          = 16;
     
     public static final short ALLOCATOR_TYPE_ARRAY_LENGTH = (short) (ECPH_hashArray + 1);
     
@@ -77,6 +78,7 @@ public class ObjectAllocator {
         ALLOCATOR_TYPE_ARRAY[ECPH_helperEC_BN_B] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[ECPH_helperEC_BN_C] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[ECPH_uncompressed_point_arr1] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
+        ALLOCATOR_TYPE_ARRAY[ECPH_uncompressed_point_arr2] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
     }   
 
     /**

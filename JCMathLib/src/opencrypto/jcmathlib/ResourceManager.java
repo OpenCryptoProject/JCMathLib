@@ -25,6 +25,7 @@ public class ResourceManager {
     byte[] helper_BN_array1 = null;
     byte[] helper_BN_array2 = null;
     byte[] helper_uncompressed_point_arr1 = null;
+    byte[] helper_uncompressed_point_arr2 = null;
     byte[] helper_hashArray = null;
     /**
      * Number of pre-allocated helper arrays
@@ -68,6 +69,8 @@ public class ResourceManager {
         locker.registerLock(helper_BN_array2);
         helper_uncompressed_point_arr1 = memAlloc.allocateByteArray((short) (MAX_POINT_SIZE + 1), memAlloc.getAllocatorType(ObjectAllocator.ECPH_uncompressed_point_arr1));
         locker.registerLock(helper_uncompressed_point_arr1);
+        helper_uncompressed_point_arr2 = memAlloc.allocateByteArray((short) (MAX_POINT_SIZE + 1), memAlloc.getAllocatorType(ObjectAllocator.ECPH_uncompressed_point_arr2));
+        locker.registerLock(helper_uncompressed_point_arr2);
         hashEngine = MessageDigest.getInstance(MessageDigest.ALG_SHA_256, false);
         helper_hashArray = memAlloc.allocateByteArray(hashEngine.getLength(), memAlloc.getAllocatorType(ObjectAllocator.ECPH_hashArray));
         locker.registerLock(helper_hashArray);

@@ -44,7 +44,7 @@ public class TestClient {
     public static boolean _TEST_EC = true;
     
     public static boolean _MEASURE_PERF = false;
-    public static boolean _MEASURE_PERF_ONLY_TARGET = true;
+    public static boolean _MEASURE_PERF_ONLY_TARGET = false;
     
 
 
@@ -92,7 +92,7 @@ public class TestClient {
                 //runCfg.testCardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
                 //OpenCryptoFunctionalTests(runCfg);
                 //runCfg.failedTestsList.clear();
-                runCfg.testCardType = RunConfig.CARD_TYPE.PHYSICAL;
+                //runCfg.testCardType = RunConfig.CARD_TYPE.PHYSICAL;
                 OpenCryptoFunctionalTests(runCfg);
                 runCfg.failedTestsList.clear();
             }

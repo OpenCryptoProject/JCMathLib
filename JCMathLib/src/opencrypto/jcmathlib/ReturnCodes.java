@@ -19,7 +19,8 @@ public class ReturnCodes {
     public static final short SW_ECPOINT_INVALIDLENGTH          = (short) 0x700a;
     public static final short SW_ECPOINT_UNEXPECTED_KA_LEN      = (short) 0x700b;
     public static final short SW_ALLOCATOR_INVALIDOBJID         = (short) 0x700c;
-    
+    public static final short SW_OPERATION_NOT_SUPPORTED        = (short) 0x700d;
+
     
     // Specific codes to propagate exceptions cought 
     // lower byte of exception is value as defined in JCSDK/api_classic/constant-values.htm

@@ -82,7 +82,6 @@ public class ECConfig {
     
     void reset() {
         bnh.FLAG_FAST_MULT_VIA_RSA = false;     
-        ech.FLAG_FAST_EC_MULT_VIA_KA = false;   
     }
     
     public void setECC256Config() {

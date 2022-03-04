@@ -219,6 +219,10 @@ public class ECPoint {
     public void add(ECPoint other) {
         PM.check(PM.TRAP_ECPOINT_ADD_1);
         boolean samePoint = this == other || isEqual(other);
+        if (samePoint && OperationSupport.getInstance().ECDH_XY) {
+            this.multiplication(Bignat_Helper.TWO);
+            return;
+        }
 
         ech.lock(ech.uncompressed_point_arr1);
         this.thePoint.getW(ech.uncompressed_point_arr1, (short) 0);
@@ -291,7 +295,7 @@ public class ECPoint {
         //x_r=lambda^2-x_p-x_q
         ech.fnc_add_x_r.lock();
         if (samePoint) {
-            short len = this.multiplication_x(Bignat_Helper.TWO, ech.fnc_add_x_r.as_byte_array(), (short) 0);
+            short len = this.multiplication_x_KA(Bignat_Helper.TWO, ech.fnc_add_x_r.as_byte_array(), (short) 0);
             ech.fnc_add_x_r.set_size(len); 
         } else {        
             ech.fnc_add_x_r.clone(ech.fnc_add_lambda);
@@ -341,20 +345,66 @@ public class ECPoint {
         multiplication(ech.fnc_multiplication_scalar);
         ech.fnc_multiplication_scalar.unlock();
     }
+
     /**
      * Multiply value of this point by provided scalar. Stores the result into this point.
      * @param scalar value of scalar for multiplication
      */
     public void multiplication(Bignat scalar) {
-        if(ech.bIsSimulator && scalar.same_value(Bignat_Helper.TWO)) {
+        if(OperationSupport.getInstance().EC_SW_DOUBLE && scalar.same_value(Bignat_Helper.TWO)) {
             swDouble();
             return;
         }
+        if (ech.multKA.getAlgorithm() == ECPoint_Helper.ALG_EC_SVDP_DH_PLAIN_XY) {
+            this.multiplication_xy(scalar);
+        } else if (ech.multKA.getAlgorithm() == ECPoint_Helper.ALG_EC_SVDP_DH_PLAIN) {
+            this.multiplication_x(scalar);
+        } else {
+            ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
+        }
+    }
 
+    /**
+     * Multiply value of this point by provided scalar using XY key agreement. Stores the result into this point.
+     * @param scalar value of scalar for multiplication
+     */
+    public void multiplication_xy(Bignat scalar) {
+        ech.lock(ech.uncompressed_point_arr2);
+        short len = multiplication_xy_KA(scalar, ech.uncompressed_point_arr2, (short) 0);
+        this.setW(ech.uncompressed_point_arr2, (short) 0, len);
+        ech.unlock(ech.uncompressed_point_arr2);
+    }
+
+    /**
+     * Multiplies this point value with provided scalar and stores result into
+     * provided array. No modification of this point is performed.
+     * Native XY KeyAgreement engine is used.
+     *
+     * @param scalar value of scalar for multiplication
+     * @param outBuffer output array for resulting value
+     * @param outBufferOffset offset within output array
+     * @return length of resulting value (in bytes)
+     */
+    public short multiplication_xy_KA(Bignat scalar, byte[] outBuffer, short outBufferOffset) {
+        theCurve.disposable_priv.setS(scalar.as_byte_array(), (short) 0, scalar.length());
+        ech.multKA.init(theCurve.disposable_priv);
+
+        ech.lock(ech.uncompressed_point_arr1);
+        short len = this.getW(ech.uncompressed_point_arr1, (short) 0);
+        len = ech.multKA.generateSecret(ech.uncompressed_point_arr1, (short) 0, len, outBuffer, outBufferOffset);
+        ech.unlock(ech.uncompressed_point_arr1);
+        return len;
+    }
+
+    /**
+     * Multiply value of this point by provided scalar using X-only key agreement. Stores the result into this point.
+     * @param scalar value of scalar for multiplication
+    */
+    private void multiplication_x(Bignat scalar) {
         PM.check(PM.TRAP_ECPOINT_MULT_1);
         
         ech.fnc_multiplication_x.lock();
-        short len = this.multiplication_x(scalar, ech.fnc_multiplication_x.as_byte_array(), (short) 0);
+        short len = this.multiplication_x_KA(scalar, ech.fnc_multiplication_x.as_byte_array(), (short) 0);
         ech.fnc_multiplication_x.set_size(len); 
         PM.check(PM.TRAP_ECPOINT_MULT_2);
 
@@ -405,24 +455,11 @@ public class ECPoint {
         
         PM.check(PM.TRAP_ECPOINT_MULT_12);
     }
-
-    /**
-     * Multiplies this point value with provided scalar and stores result into provided array.
-     * No modification of this point is performed.
-     * @param scalar value of scalar for multiplication
-     * @param outBuffer output array for resulting value
-     * @param outBufferOffset offset within output array
-     * @return length of resulting value (in bytes)
-     */
-    public short multiplication_x(Bignat scalar, byte[] outBuffer, short outBufferOffset) {
-        return multiplication_x_KA(scalar, outBuffer, outBufferOffset);
-    }
-    
     
     /**
      * Multiplies this point value with provided scalar and stores result into
      * provided array. No modification of this point is performed.
-     * Native KeyAgreement engine is used.
+     * Native X-only KeyAgreement engine is used.
      *
      * @param scalar value of scalar for multiplication
      * @param outBuffer output array for resulting value
@@ -435,13 +472,13 @@ public class ECPoint {
         theCurve.disposable_priv.setS(scalar.as_byte_array(), (short) 0, scalar.length());
         PM.check(PM.TRAP_ECPOINT_MULT_X_2);
 
-        ech.fnc_multiplication_x_keyAgreement.init(theCurve.disposable_priv);
+        ech.multKA.init(theCurve.disposable_priv);
         PM.check(PM.TRAP_ECPOINT_MULT_X_3);
 
         ech.lock(ech.uncompressed_point_arr1);
         short len = this.getW(ech.uncompressed_point_arr1, (short) 0); 
         PM.check(PM.TRAP_ECPOINT_MULT_X_4);
-        len = ech.fnc_multiplication_x_keyAgreement.generateSecret(ech.uncompressed_point_arr1, (short) 0, len, outBuffer, outBufferOffset);
+        len = ech.multKA.generateSecret(ech.uncompressed_point_arr1, (short) 0, len, outBuffer, outBufferOffset);
         ech.unlock(ech.uncompressed_point_arr1);
         PM.check(PM.TRAP_ECPOINT_MULT_X_5);
         // Return always length of whole coordinate X instead of len - some real cards returns shorter value equal to SHA-1 output size although PLAIN results is filled into buffer (GD60) 
