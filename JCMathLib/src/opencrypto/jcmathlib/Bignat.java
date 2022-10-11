@@ -1619,19 +1619,15 @@ public class Bignat {
      * @param p value to compute square root from
      */
     public void sqrt_FP(Bignat p) {
-        PM.check(PM.TRAP_BIGNAT_SQRT_1);
         //1. By factoring out powers of 2, find Q and S such that p-1=Q2^S p-1=Q*2^S and Q is odd
         bnh.fnc_sqrt_p_1.lock();
         bnh.fnc_sqrt_p_1.clone(p);
-        PM.check(PM.TRAP_BIGNAT_SQRT_2);
         bnh.fnc_sqrt_p_1.decrement_one();
-        PM.check(PM.TRAP_BIGNAT_SQRT_3);
 
         //Compute Q
         bnh.fnc_sqrt_Q.lock();
         bnh.fnc_sqrt_Q.clone(bnh.fnc_sqrt_p_1);
         bnh.fnc_sqrt_Q.divide_by_2(); //Q /= 2
-        PM.check(PM.TRAP_BIGNAT_SQRT_4);
 
         //Compute S
         bnh.fnc_sqrt_S.lock();
@@ -1641,22 +1637,18 @@ public class Bignat {
         bnh.fnc_sqrt_tmp.set_size(p.length());
         bnh.fnc_sqrt_tmp.zero();
 
-        PM.check(PM.TRAP_BIGNAT_SQRT_5);
         while (bnh.fnc_sqrt_tmp.same_value(bnh.fnc_sqrt_Q)==false){
             bnh.fnc_sqrt_S.increment_one();
             bnh.fnc_sqrt_tmp.mod_mult(bnh.fnc_sqrt_S, bnh.fnc_sqrt_Q, p);
         }
         bnh.fnc_sqrt_tmp.unlock();
-        PM.check(PM.TRAP_BIGNAT_SQRT_6);
         bnh.fnc_sqrt_S.unlock();
 
         //2. Find the first quadratic non-residue z by brute-force search
         bnh.fnc_sqrt_exp.lock();
         bnh.fnc_sqrt_exp.clone(bnh.fnc_sqrt_p_1);
-        PM.check(PM.TRAP_BIGNAT_SQRT_7);
         bnh.fnc_sqrt_exp.divide_by_2();
         
-        PM.check(PM.TRAP_BIGNAT_SQRT_8);
 
         bnh.fnc_sqrt_z.lock();
         bnh.fnc_sqrt_z.set_size(p.length());
@@ -1665,28 +1657,21 @@ public class Bignat {
         bnh.fnc_sqrt_tmp.zero();
         bnh.fnc_sqrt_tmp.copy(Bignat_Helper.ONE);
 
-        PM.check(PM.TRAP_BIGNAT_SQRT_9);
         while (bnh.fnc_sqrt_tmp.same_value(bnh.fnc_sqrt_p_1)==false) {
             bnh.fnc_sqrt_z.increment_one();
             bnh.fnc_sqrt_tmp.copy(bnh.fnc_sqrt_z);
             bnh.fnc_sqrt_tmp.mod_exp(bnh.fnc_sqrt_exp, p);		
         }
-        PM.check(PM.TRAP_BIGNAT_SQRT_10);
         bnh.fnc_sqrt_p_1.unlock();
         bnh.fnc_sqrt_tmp.unlock();
         bnh.fnc_sqrt_z.unlock();
         bnh.fnc_sqrt_exp.copy(bnh.fnc_sqrt_Q);
         bnh.fnc_sqrt_Q.unlock();
-        PM.check(PM.TRAP_BIGNAT_SQRT_11);
         bnh.fnc_sqrt_exp.increment_one();
-        PM.check(PM.TRAP_BIGNAT_SQRT_12);
         bnh.fnc_sqrt_exp.divide_by_2();
-        PM.check(PM.TRAP_BIGNAT_SQRT_13);
 
         this.mod(p);
-        PM.check(PM.TRAP_BIGNAT_SQRT_14);
         this.mod_exp(bnh.fnc_sqrt_exp, p);
-        PM.check(PM.TRAP_BIGNAT_SQRT_15);
         bnh.fnc_sqrt_exp.unlock();
     } // end void sqrt(Bignat p)	
 	

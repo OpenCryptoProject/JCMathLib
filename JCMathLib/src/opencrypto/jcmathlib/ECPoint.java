@@ -217,7 +217,6 @@ public class ECPoint {
      * @param other point to be added to this.
      */
     public void add(ECPoint other) {
-        PM.check(PM.TRAP_ECPOINT_ADD_1);
         boolean samePoint = this == other || isEqual(other);
         if (samePoint && OperationSupport.getInstance().ECDH_XY) {
             this.multiplication(Bignat_Helper.TWO);
@@ -234,7 +233,6 @@ public class ECPoint {
         ech.fnc_add_y_p.from_byte_array(this.theCurve.COORD_SIZE, (short) 0, ech.uncompressed_point_arr1, (short) (1 + this.theCurve.COORD_SIZE));
         ech.unlock(ech.uncompressed_point_arr1);
 
-        PM.check(PM.TRAP_ECPOINT_ADD_2);
 
         // l = (y_q-y_p)/(x_q-x_p))
         // x_r = l^2 - x_p -x_q
@@ -266,19 +264,15 @@ public class ECPoint {
             ech.fnc_add_nominator.from_byte_array(this.theCurve.COORD_SIZE, (short) 0, ech.uncompressed_point_arr1, (short) (1 + this.theCurve.COORD_SIZE));
             ech.unlock(ech.uncompressed_point_arr1);
 
-            PM.check(PM.TRAP_ECPOINT_ADD_3);
             ech.fnc_add_nominator.mod(this.theCurve.pBN);
-            PM.check(PM.TRAP_ECPOINT_ADD_4);
 
             ech.fnc_add_nominator.mod_sub(ech.fnc_add_y_p, this.theCurve.pBN);
 
             // (x_q-x_p)
             ech.fnc_add_denominator.clone(ech.fnc_add_x_q);
             ech.fnc_add_denominator.mod(this.theCurve.pBN);
-            PM.check(PM.TRAP_ECPOINT_ADD_5);
             ech.fnc_add_denominator.mod_sub(ech.fnc_add_x_p, this.theCurve.pBN);
             ech.fnc_add_denominator.mod_inv(this.theCurve.pBN);        	
-            PM.check(PM.TRAP_ECPOINT_ADD_6); 
         }
         
         ech.fnc_add_lambda.lock();
@@ -287,7 +281,6 @@ public class ECPoint {
         ech.fnc_add_lambda.mod_mult(ech.fnc_add_nominator, ech.fnc_add_denominator, this.theCurve.pBN);
         ech.fnc_add_nominator.unlock();
         ech.fnc_add_denominator.unlock();
-        PM.check(PM.TRAP_ECPOINT_ADD_7);
 
         // (x_p,y_p)+(x_q,y_q)=(x_r,y_r)
         // lambda=(y_q-y_p)/(x_q-x_p)
@@ -304,20 +297,16 @@ public class ECPoint {
             ech.fnc_add_x_r.mod_sub(ech.fnc_add_x_p, this.theCurve.pBN);
             ech.fnc_add_x_r.mod_sub(ech.fnc_add_x_q, this.theCurve.pBN);
             ech.fnc_add_x_q.unlock();                
-            PM.check(PM.TRAP_ECPOINT_ADD_8); 
         }
         //y_r=lambda(x_p-x_r)-y_p        
         ech.fnc_add_y_r.lock();
         ech.fnc_add_y_r.clone(ech.fnc_add_x_p);
         ech.fnc_add_x_p.unlock();
         ech.fnc_add_y_r.mod_sub(ech.fnc_add_x_r, this.theCurve.pBN);
-        PM.check(PM.TRAP_ECPOINT_ADD_9); 
         ech.fnc_add_y_r.mod_mult(ech.fnc_add_y_r, ech.fnc_add_lambda, this.theCurve.pBN);
         ech.fnc_add_lambda.unlock();
-        PM.check(PM.TRAP_ECPOINT_ADD_10); 
         ech.fnc_add_y_r.mod_sub(ech.fnc_add_y_p, this.theCurve.pBN);
         ech.fnc_add_y_p.unlock();
-        PM.check(PM.TRAP_ECPOINT_ADD_11);
 
         ech.lock(ech.uncompressed_point_arr1);
         ech.uncompressed_point_arr1[0] = (byte)0x04;
@@ -326,10 +315,8 @@ public class ECPoint {
         ech.fnc_add_x_r.unlock();
         ech.fnc_add_y_r.prepend_zeros(this.theCurve.COORD_SIZE, ech.uncompressed_point_arr1, (short) (1 + this.theCurve.COORD_SIZE));
         ech.fnc_add_y_r.unlock();
-        PM.check(PM.TRAP_ECPOINT_ADD_12);
         this.setW(ech.uncompressed_point_arr1, (short) 0, this.theCurve.POINT_SIZE);
         ech.unlock(ech.uncompressed_point_arr1);
-        PM.check(PM.TRAP_ECPOINT_ADD_13);
     }
 
     /**
@@ -401,31 +388,21 @@ public class ECPoint {
      * @param scalar value of scalar for multiplication
     */
     private void multiplication_x(Bignat scalar) {
-        PM.check(PM.TRAP_ECPOINT_MULT_1);
-        
         ech.fnc_multiplication_x.lock();
         short len = this.multiplication_x_KA(scalar, ech.fnc_multiplication_x.as_byte_array(), (short) 0);
         ech.fnc_multiplication_x.set_size(len); 
-        PM.check(PM.TRAP_ECPOINT_MULT_2);
 
         //Y^2 = X^3 + XA + B = x(x^2+A)+B
         ech.fnc_multiplication_y_sq.lock();
         ech.fnc_multiplication_y_sq.clone(ech.fnc_multiplication_x);
-        PM.check(PM.TRAP_ECPOINT_MULT_3);
         ech.fnc_multiplication_y_sq.mod_exp(Bignat_Helper.TWO, this.theCurve.pBN);
-        PM.check(PM.TRAP_ECPOINT_MULT_4);
         ech.fnc_multiplication_y_sq.mod_add(this.theCurve.aBN, this.theCurve.pBN);
-        PM.check(PM.TRAP_ECPOINT_MULT_5);
         ech.fnc_multiplication_y_sq.mod_mult(ech.fnc_multiplication_y_sq, ech.fnc_multiplication_x, this.theCurve.pBN);
-        PM.check(PM.TRAP_ECPOINT_MULT_6);
         ech.fnc_multiplication_y_sq.mod_add(this.theCurve.bBN, this.theCurve.pBN);
-        PM.check(PM.TRAP_ECPOINT_MULT_7);
         ech.fnc_multiplication_y1.lock();
         ech.fnc_multiplication_y1.clone(ech.fnc_multiplication_y_sq); 
         ech.fnc_multiplication_y_sq.unlock();
-        PM.check(PM.TRAP_ECPOINT_MULT_8);
         ech.fnc_multiplication_y1.sqrt_FP(this.theCurve.pBN);
-        PM.check(PM.TRAP_ECPOINT_MULT_9);
         
         // Construct public key with <x, y_1>
         ech.lock(ech.uncompressed_point_arr1);
@@ -434,7 +411,6 @@ public class ECPoint {
         ech.fnc_multiplication_x.unlock();
         ech.fnc_multiplication_y1.prepend_zeros(this.theCurve.COORD_SIZE, ech.uncompressed_point_arr1, (short) (1 + theCurve.COORD_SIZE));
         this.setW(ech.uncompressed_point_arr1, (short) 0, theCurve.POINT_SIZE); //So that we can convert to pub key
-        PM.check(PM.TRAP_ECPOINT_MULT_10);
 
         // Check if public point <x, y_1> corresponds to the "secret" (i.e., our scalar)
         ech.lock(ech.fnc_multiplication_resultArray);
@@ -448,12 +424,10 @@ public class ECPoint {
         ech.unlock(ech.fnc_multiplication_resultArray);
         ech.fnc_multiplication_y1.unlock();
         
-        PM.check(PM.TRAP_ECPOINT_MULT_11);
 
         this.setW(ech.uncompressed_point_arr1, (short)0, theCurve.POINT_SIZE);
         ech.unlock(ech.uncompressed_point_arr1);
         
-        PM.check(PM.TRAP_ECPOINT_MULT_12);
     }
     
     /**
@@ -468,19 +442,14 @@ public class ECPoint {
      */
     private short multiplication_x_KA(Bignat scalar, byte[] outBuffer, short outBufferOffset) {
         // NOTE: potential problem on real cards (j2e) - when small scalar is used (e.g., Bignat.TWO), operation sometimes freezes
-        PM.check(PM.TRAP_ECPOINT_MULT_X_1);
         theCurve.disposable_priv.setS(scalar.as_byte_array(), (short) 0, scalar.length());
-        PM.check(PM.TRAP_ECPOINT_MULT_X_2);
 
         ech.multKA.init(theCurve.disposable_priv);
-        PM.check(PM.TRAP_ECPOINT_MULT_X_3);
 
         ech.lock(ech.uncompressed_point_arr1);
         short len = this.getW(ech.uncompressed_point_arr1, (short) 0); 
-        PM.check(PM.TRAP_ECPOINT_MULT_X_4);
         len = ech.multKA.generateSecret(ech.uncompressed_point_arr1, (short) 0, len, outBuffer, outBufferOffset);
         ech.unlock(ech.uncompressed_point_arr1);
-        PM.check(PM.TRAP_ECPOINT_MULT_X_5);
         // Return always length of whole coordinate X instead of len - some real cards returns shorter value equal to SHA-1 output size although PLAIN results is filled into buffer (GD60) 
         return this.theCurve.COORD_SIZE;
     }
@@ -489,25 +458,19 @@ public class ECPoint {
      * Computes negation of this point.
      */
     public void negate() {
-        PM.check(PM.TRAP_ECPOINT_NEGATE_1);
-    	
         // Operation will dump point into uncompressed_point_arr, negate Y and restore back
         ech.fnc_negate_yBN.lock();
         ech.lock(ech.uncompressed_point_arr1);
         thePoint.getW(ech.uncompressed_point_arr1, (short) 0);
-        PM.check(PM.TRAP_ECPOINT_NEGATE_2);
         ech.fnc_negate_yBN.set_size(this.theCurve.COORD_SIZE);
         ech.fnc_negate_yBN.from_byte_array(this.theCurve.COORD_SIZE, (short) 0, ech.uncompressed_point_arr1, (short) (1 + this.theCurve.COORD_SIZE));
-        PM.check(PM.TRAP_ECPOINT_NEGATE_3);
-    	ech.fnc_negate_yBN.mod_negate(this.theCurve.pBN);
-        PM.check(PM.TRAP_ECPOINT_NEGATE_4);
+        ech.fnc_negate_yBN.mod_negate(this.theCurve.pBN);
         
         // Restore whole point back
         ech.fnc_negate_yBN.prepend_zeros(this.theCurve.COORD_SIZE, ech.uncompressed_point_arr1, (short) (1 + this.theCurve.COORD_SIZE));
         ech.fnc_negate_yBN.unlock();
         this.setW(ech.uncompressed_point_arr1, (short) 0, this.theCurve.POINT_SIZE);
         ech.unlock(ech.uncompressed_point_arr1);
-        PM.check(PM.TRAP_ECPOINT_NEGATE_5);
     }
 
     /**

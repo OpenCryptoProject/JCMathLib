@@ -5,8 +5,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import java.util.Map.Entry;
-
 import javax.smartcardio.CardException;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
@@ -42,13 +40,6 @@ public class TestClient {
     public static boolean _TEST_BN = true;
     public static boolean _TEST_INT = false;
     public static boolean _TEST_EC = true;
-    
-    public static boolean _MEASURE_PERF = false;
-    public static boolean _MEASURE_PERF_ONLY_TARGET = false;
-    
-
-
-    static ArrayList<Entry<String, Long>> m_perfResults = new ArrayList<>();
 
     public static String format = "%-40s:%s%n\n-------------------------------------------------------------------------------\n";
 
@@ -64,38 +55,23 @@ public class TestClient {
                 targetReader = Integer.getInteger(args[0]);
             }
 
-            PerfTests perfTests = new PerfTests();
-            if (_MEASURE_PERF) {
-                RunConfig runCfg = RunConfig.getConfig(_TEST_BN, _TEST_INT, _TEST_EC, NUM_OP_REPEATS, RunConfig.CARD_TYPE.PHYSICAL);
-                runCfg.numRepeats = 1;
-                runCfg.targetReaderIndex = targetReader;
-                perfTests.RunPerformanceTests(runCfg);
-            }
-            else if (_MEASURE_PERF_ONLY_TARGET) {
-                RunConfig runCfg = RunConfig.getConfig(_TEST_BN, _TEST_INT, _TEST_EC, NUM_OP_REPEATS, RunConfig.CARD_TYPE.PHYSICAL);
-                runCfg.targetReaderIndex = targetReader;
-                runCfg.bMeasureOnlyTargetOp = true;
-                perfTests.RunPerformanceTests(runCfg);
-            }
-            else {
-                RunConfig runCfg = RunConfig.getConfig(_TEST_BN, _TEST_INT, _TEST_EC, NUM_OP_REPEATS, RunConfig.CARD_TYPE.JCARDSIMLOCAL);
-                runCfg.targetReaderIndex = targetReader;
+            RunConfig runCfg = RunConfig.getConfig(_TEST_BN, _TEST_INT, _TEST_EC, NUM_OP_REPEATS, RunConfig.CARD_TYPE.JCARDSIMLOCAL);
+            runCfg.targetReaderIndex = targetReader;
                 
-                // First run debug operations on simulator and real card (if any)
-/*              OpenCryptoFunctionalTests_debug(runCfg);
-                runCfg.failedTestsList.clear();
-                runCfg.testCardType = RunConfig.CARD_TYPE.PHYSICAL;
-                OpenCryptoFunctionalTests_debug(runCfg);
-                runCfg.failedTestsList.clear();
+            // First run debug operations on simulator and real card (if any)
+/*          OpenCryptoFunctionalTests_debug(runCfg);
+            runCfg.failedTestsList.clear();
+            runCfg.testCardType = RunConfig.CARD_TYPE.PHYSICAL;
+            OpenCryptoFunctionalTests_debug(runCfg);
+            runCfg.failedTestsList.clear();
 */                
-                // Run standard tests on simulator then real card (if any)
-                //runCfg.testCardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
-                //OpenCryptoFunctionalTests(runCfg);
-                //runCfg.failedTestsList.clear();
-                //runCfg.testCardType = RunConfig.CARD_TYPE.PHYSICAL;
-                OpenCryptoFunctionalTests(runCfg);
-                runCfg.failedTestsList.clear();
-            }
+            // Run standard tests on simulator then real card (if any)
+            //runCfg.testCardType = RunConfig.CARD_TYPE.JCARDSIMLOCAL;
+            //OpenCryptoFunctionalTests(runCfg);
+            //runCfg.failedTestsList.clear();
+            //runCfg.testCardType = RunConfig.CARD_TYPE.PHYSICAL;
+            OpenCryptoFunctionalTests(runCfg);
+            runCfg.failedTestsList.clear();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -118,11 +94,9 @@ public class TestClient {
             String operationName = "";
             boolean bResult = false;
 
-            m_perfResults.clear();
             String logFileName = String.format("OC_PERF_log_%d.csv", System.currentTimeMillis());
             FileOutputStream perfFile = new FileOutputStream(logFileName);
 
-            cardMngr.transmit(new CommandAPDU(PerfTests.PERF_COMMAND_NONE));
             cardMngr.transmit(new CommandAPDU(APDU_CLEANUP)); 
 
             // Obtain allocated bytes in RAM and EEPROM
@@ -415,8 +389,7 @@ public class TestClient {
                 for (int repeat = 0; repeat < runCfg.numRepeats; repeat++) {
                     System.out.println(String.format("%s (%d)", operationName, repeat));
                     cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_GEN, 0, 0, bogusArray);
-                    response = cardMngr.transmit(cmd);
-                    PerfTests.writePerfLog(operationName, response.getSW() == (ISO7816.SW_NO_ERROR & 0xffff), cardMngr.m_lastTransmitTime, m_perfResults, perfFile);
+                    cardMngr.transmit(cmd);
                     cardMngr.transmit(new CommandAPDU(APDU_CLEANUP)); 
                 }
 
@@ -593,9 +566,6 @@ public class TestClient {
             cardMngr.Connect(runCfg);
             System.out.println(" Done.");
 
-            m_perfResults.clear();
-
-            cardMngr.transmit(new CommandAPDU(PerfTests.PERF_COMMAND_NONE));
             cardMngr.transmit(new CommandAPDU(APDU_CLEANUP));
 
             String logFileName = String.format("OC_PERF_log_%d.csv", System.currentTimeMillis());
@@ -805,7 +775,6 @@ public class TestClient {
             // Add name of failed operation 
             failedTestsList.add(operationName);
         }
-        PerfTests.writePerfLog(operationName, bResult, lastTransmitTime, m_perfResults, perfFile);
     }
     
 }

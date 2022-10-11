@@ -89,14 +89,13 @@ public class ECCurve {
         this.aBN.from_byte_array(this.a);
         this.bBN.from_byte_array(this.b);
     }
-	
+    
     /**
      * Creates a new keyPair based on this curve parameters. KeyPair object is reused if provided. Fresh keyPair value is generated.
      * @param existingKeyPair existing KeyPair object which is reused if required. If null, new KeyPair is allocated
      * @return new or existing object with fresh key pair value
      */
     KeyPair newKeyPair(KeyPair existingKeyPair) {
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_1);
         ECPrivateKey privKey;
         ECPublicKey pubKey;
         if (existingKeyPair == null) { // Allocate if not supplied
@@ -113,10 +112,8 @@ public class ECCurve {
         } catch (Exception e) {
         } // intentionally do nothing
         
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_2);
         privKey = (ECPrivateKey) existingKeyPair.getPrivate();
         pubKey = (ECPublicKey) existingKeyPair.getPublic();
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_3);
 
         // Set required values
         privKey.setFieldFP(p, (short) 0, (short) p.length);
@@ -125,7 +122,6 @@ public class ECCurve {
         privKey.setG(G, (short) 0, (short) G.length);
         privKey.setR(r, (short) 0, (short) r.length);
         privKey.setK((short) 1);
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_4);
 
         pubKey.setFieldFP(p, (short) 0, (short) p.length);
         pubKey.setA(a, (short) 0, (short) a.length);
@@ -133,25 +129,19 @@ public class ECCurve {
         pubKey.setG(G, (short) 0, (short) G.length);
         pubKey.setR(r, (short) 0, (short) r.length);
         pubKey.setK((short) 1);
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_5);
 
         existingKeyPair.genKeyPair();
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_6);
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_7);
 
         return existingKeyPair;
     }
     
     public KeyPair newKeyPair_legacy(KeyPair existingKeyPair) {
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_1);
         ECPrivateKey privKey;
         ECPublicKey pubKey;
         if (existingKeyPair == null) {
             // We need to create required objects
             privKey = (ECPrivateKey)KeyBuilder.buildKey(KeyBuilder.TYPE_EC_FP_PRIVATE, KEY_LENGTH, false);
-            PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_2);
             pubKey = (ECPublicKey)KeyBuilder.buildKey(KeyBuilder.TYPE_EC_FP_PUBLIC, KEY_LENGTH, false);
-            PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_3);
         }
         else {
             // Obtain from object
@@ -164,21 +154,17 @@ public class ECCurve {
         privKey.setB(b, (short) 0, (short) b.length);
         privKey.setG(G, (short) 0, (short) G.length);
         privKey.setR(r, (short) 0, (short) r.length);
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_4);
 
         pubKey.setFieldFP(p, (short) 0, (short) p.length);
         pubKey.setA(a, (short) 0, (short) a.length);
         pubKey.setB(b, (short) 0, (short) b.length);
         pubKey.setG(G, (short) 0, (short) G.length);
         pubKey.setR(r, (short) 0, (short) r.length);
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_5);
 
         if (existingKeyPair == null) { // Allocate if not supplied
             existingKeyPair = new KeyPair(pubKey, privKey);
         }
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_6);
         existingKeyPair.genKeyPair();
-        PM.check(PM.TRAP_ECCURVE_NEWKEYPAIR_7);
 
         return existingKeyPair;
     }

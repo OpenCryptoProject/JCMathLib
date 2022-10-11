@@ -64,8 +64,6 @@ public class OCUnitTests extends Applet {
     public final static byte INS_EC_NEG                 = (byte) 0x44;
     public final static byte INS_EC_SETCURVE_G          = (byte) 0x45;
     public final static byte INS_EC_COMPARE             = (byte) 0x46;
-
-    public final static byte INS_PERF_SETSTOP = (byte) 0xf5;
     
     
     static boolean bIsSimulator = false; 
@@ -181,9 +179,6 @@ public class OCUnitTests extends Applet {
                     if (!bIsSimulator) {
                         JCSystem.requestObjectDeletion();
                     }
-                    break;
-                case INS_PERF_SETSTOP:
-                    PM.m_perfStop = Util.makeShort(apdubuf[ISO7816.OFFSET_CDATA], apdubuf[(short) (ISO7816.OFFSET_CDATA + 1)]);
                     break;
                 case INS_GET_ALLOCATOR_STATS:
                     short offset = 0;
@@ -357,12 +352,9 @@ public class OCUnitTests extends Applet {
     void test_EC_GEN(APDU apdu) {
         byte[] apdubuf = apdu.getBuffer();
 
-        PM.check(PM.TRAP_EC_GEN_1);
         m_testPoint1.randomize();
-        PM.check(PM.TRAP_EC_GEN_2);
 
         short len = m_testPoint1.getW(apdubuf, (short) 0);
-        PM.check(PM.TRAP_EC_GEN_3);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -378,12 +370,10 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         
         Util.arrayCopyNonAtomic(apdubuf, ISO7816.OFFSET_CDATA, m_customG, (short) 0, dataLen);
-        PM.check(PM.TRAP_EC_SETCURVE_1);
 
         if (apdubuf[ISO7816.OFFSET_P2] == 1) { // If required, complete new custom curve and point is allocated
             m_testCurveCustom = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, m_customG, SecP256r1.r);
             m_testPointCustom = new ECPoint(m_testCurveCustom, m_ecc.ech);
-            PM.check(PM.TRAP_EC_SETCURVE_2);
             // Release unused previous objects
             if (!bIsSimulator) {
                 JCSystem.requestObjectDeletion();
@@ -399,31 +389,22 @@ public class OCUnitTests extends Applet {
     void test_EC_DBL(APDU apdu) {
         byte[] apdubuf = apdu.getBuffer();
 
-        PM.check(PM.TRAP_EC_DBL_1);
         m_testPointCustom.setW(apdubuf, (short) ISO7816.OFFSET_CDATA, m_testCurveCustom.POINT_SIZE);
         // NOTE: for doubling, curve G must be also set. Here we expect that test_EC_SETCURVE_G() was called before
-        PM.check(PM.TRAP_EC_DBL_2);
         m_testPointCustom.makeDouble(); //G + G
-        PM.check(PM.TRAP_EC_DBL_3);
 
         short len = m_testPointCustom.getW(apdubuf, (short) 0);
-        PM.check(PM.TRAP_EC_DBL_4);
         apdu.setOutgoingAndSend((short) 0, len);
     }    
     
     void test_EC_ADD(APDU apdu) {
         byte[] apdubuf = apdu.getBuffer();
 
-        PM.check(PM.TRAP_EC_ADD_1);
         m_testPoint1.setW(apdubuf, (short) ISO7816.OFFSET_CDATA, m_testCurve.POINT_SIZE);
-        PM.check(PM.TRAP_EC_ADD_2);
         m_testPoint2.setW(apdubuf, (short) (ISO7816.OFFSET_CDATA + m_testCurve.POINT_SIZE), m_testCurve.POINT_SIZE);
-        PM.check(PM.TRAP_EC_ADD_3);
         m_testPoint1.add(m_testPoint2);
-        PM.check(PM.TRAP_EC_ADD_4);
 
         short len = m_testPoint1.getW(apdubuf, (short) 0);
-        PM.check(PM.TRAP_EC_ADD_5);
         apdu.setOutgoingAndSend((short) 0, len);
     }
     
@@ -431,18 +412,13 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1_len = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_EC_MUL_1);
         Bignat scalar = m_testBN1;
         scalar.set_size(p1_len);
         scalar.from_byte_array(p1_len, (short) 0, apdubuf, ISO7816.OFFSET_CDATA);
-        PM.check(PM.TRAP_EC_MUL_2);
         m_testPoint1.setW(apdubuf, (short) (ISO7816.OFFSET_CDATA + p1_len), m_testCurve.POINT_SIZE);
-        PM.check(PM.TRAP_EC_MUL_3);
         m_testPoint1.multiplication(scalar);
-        PM.check(PM.TRAP_EC_MUL_4);
 
         short len = m_testPoint1.getW(apdubuf, (short) 0);
-        PM.check(PM.TRAP_EC_MUL_5);
         apdu.setOutgoingAndSend((short) 0, len);
     }
     
@@ -473,12 +449,9 @@ public class OCUnitTests extends Applet {
     void test_BN_STR(APDU apdu, short dataLen) {
         byte[] apdubuf = apdu.getBuffer();
 
-        PM.check(PM.TRAP_BN_STR_1);
         Bignat num = m_testBN1; 
         num.set_size(dataLen);
-        PM.check(PM.TRAP_BN_STR_2);
         num.from_byte_array(dataLen, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
-        PM.check(PM.TRAP_BN_STR_3);
         short len = num.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -487,24 +460,17 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_ADD_1);
         Bignat num1 = m_testBN1;
         num1.set_size(p1);
-        PM.check(PM.TRAP_BN_ADD_2);
         Bignat num2 = m_testBN2;
         num2.set_size((short) (dataLen - p1));
-        PM.check(PM.TRAP_BN_ADD_3);
         Bignat sum = m_testBN3;
         sum.set_size((short) (p1 + 1));
 
-        PM.check(PM.TRAP_BN_ADD_4);
         num1.from_byte_array(p1, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
         num2.from_byte_array((short) (dataLen - p1), (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
-        PM.check(PM.TRAP_BN_ADD_5);
         sum.copy(num1);
-        PM.check(PM.TRAP_BN_ADD_6);
         sum.add(num2);
-        PM.check(PM.TRAP_BN_ADD_7);
         short len = sum.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);    
     }
@@ -513,23 +479,16 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_SUB_1);
         Bignat sub1 = m_testBN1;
         sub1.set_size(p1);
-        PM.check(PM.TRAP_BN_SUB_2);
         Bignat sub2 = m_testBN2;
         sub2.set_size((short) (dataLen - p1));
-        PM.check(PM.TRAP_BN_SUB_3);
         Bignat result = m_testBN3;
         result.set_size((short) (p1 + 1));
-        PM.check(PM.TRAP_BN_SUB_4);
         sub1.from_byte_array(dataLen, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
         sub2.from_byte_array(dataLen, (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
-        PM.check(PM.TRAP_BN_SUB_5);
         result.copy(sub1);
-        PM.check(PM.TRAP_BN_SUB_6);
         result.subtract(sub2);
-        PM.check(PM.TRAP_BN_SUB_7);
         short len = result.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }		
@@ -538,26 +497,20 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_MUL_1);    
         Bignat mul1 = m_testBN1;
         mul1.set_size(p1);
-        PM.check(PM.TRAP_BN_MUL_2);
         Bignat mul2 = m_testBN2;
         mul2.set_size((short) (dataLen - p1));
-        PM.check(PM.TRAP_BN_MUL_3);
         Bignat product = m_testBN3;
         product.set_size(dataLen);
-        PM.check(PM.TRAP_BN_MUL_4);
         mul1.from_byte_array(p1, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
         mul2.from_byte_array((short)(dataLen-p1), (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
-        PM.check(PM.TRAP_BN_MUL_5);
         if (bFastEngine && !bIsSimulator) {
             product.mult_rsa_trick(mul1, mul2, null, null);
         }
         else {
             product.mult_schoolbook(mul1, mul2);        
         }
-        PM.check(PM.TRAP_BN_MUL_6);
         short len = product.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -567,21 +520,15 @@ public class OCUnitTests extends Applet {
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
         short p2 = (short) (apdubuf[ISO7816.OFFSET_P2] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_EXP_1);    
         Bignat base = m_testBN1;
         base.set_size(p1);
-        PM.check(PM.TRAP_BN_EXP_2);
         Bignat exp = m_testBN2;
         exp.set_size((short) (dataLen - p1));
-        PM.check(PM.TRAP_BN_EXP_3);
         Bignat res = m_testBN3;
         res.set_size((short) (m_ecc.MAX_BIGNAT_SIZE / 2));
-        PM.check(PM.TRAP_BN_EXP_4);
         base.from_byte_array(p1, (short) 0, apdubuf, ISO7816.OFFSET_CDATA);
         exp.from_byte_array((short) (dataLen - p1), (short) 0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
-        PM.check(PM.TRAP_BN_EXP_5);
         res.exponentiation(base, exp);
-        PM.check(PM.TRAP_BN_EXP_6);
         short len = res.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -605,18 +552,13 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_MOD_1);
         Bignat num = m_testBN1;
         num.set_size(p1);
-        PM.check(PM.TRAP_BN_MOD_2);
         Bignat mod = m_testBN2;
         mod.set_size((short) (dataLen - p1));
-        PM.check(PM.TRAP_BN_MOD_3);
         num.from_byte_array(p1, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
         mod.from_byte_array((short)(dataLen-p1), (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
-        PM.check(PM.TRAP_BN_MOD_4);
         num.mod(mod);
-        PM.check(PM.TRAP_BN_MOD_5);
         short len = num.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -626,23 +568,16 @@ public class OCUnitTests extends Applet {
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
         short p2 = (short) (apdubuf[ISO7816.OFFSET_P2] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_ADD_MOD_1);    
         Bignat num1 = m_testBN1;
         num1.set_size(p1);
-        PM.check(PM.TRAP_BN_ADD_MOD_2);
         Bignat num2 = m_testBN2;
         num2.set_size(p2);
-        PM.check(PM.TRAP_BN_ADD_MOD_3);
         Bignat mod = m_testBN3;
         mod.set_size((short) (dataLen - p1 - p2));
-        PM.check(PM.TRAP_BN_ADD_MOD_4);
         num1.from_byte_array(p1, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
         num2.from_byte_array(p2, (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
-        PM.check(PM.TRAP_BN_ADD_MOD_5);
         mod.from_byte_array((short)(dataLen-p1-p2), (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1+p2));
-        PM.check(PM.TRAP_BN_ADD_MOD_6);
         num1.mod_add(num2, mod);
-        PM.check(PM.TRAP_BN_ADD_MOD_7);
         short len = num1.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -652,22 +587,16 @@ public class OCUnitTests extends Applet {
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
         short p2 = (short) (apdubuf[ISO7816.OFFSET_P2] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_SUB_MOD_1);    
         Bignat num1 = m_testBN1;
         num1.set_size(p1);
-        PM.check(PM.TRAP_BN_SUB_MOD_2);
         Bignat num2 = m_testBN2;
         num2.set_size(p2);
-        PM.check(PM.TRAP_BN_SUB_MOD_3);
         Bignat mod = m_testBN3;
         mod.set_size((short) (dataLen - p1 - p2));
-        PM.check(PM.TRAP_BN_SUB_MOD_4);
         num1.from_byte_array(p1, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
         num2.from_byte_array(p2, (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
         mod.from_byte_array((short)(dataLen-p1-p2), (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1+p2));
-        PM.check(PM.TRAP_BN_SUB_MOD_5);
         num1.mod_sub(num2, mod);
-        PM.check(PM.TRAP_BN_SUB_MOD_6);
         short len = num1.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }			
@@ -677,22 +606,16 @@ public class OCUnitTests extends Applet {
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
         short p2 = (short) (apdubuf[ISO7816.OFFSET_P2] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_MUL_MOD_1);    
         Bignat num1 = m_testBN1;
         num1.set_size(p1);
-        PM.check(PM.TRAP_BN_MUL_MOD_2);
         Bignat num2 = m_testBN2;
         num2.set_size(p2);
-        PM.check(PM.TRAP_BN_MUL_MOD_3);
         Bignat mod = m_testBN3;
         mod.set_size((short) (dataLen - p1 - p2));
-        PM.check(PM.TRAP_BN_MUL_MOD_4);
         num1.from_byte_array(p1, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
         num2.from_byte_array(p2, (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
         mod.from_byte_array((short)(dataLen-p1-p2), (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1+p2));
-        PM.check(PM.TRAP_BN_MUL_MOD_5);
         num1.mod_mult(num1, num2, mod);
-        PM.check(PM.TRAP_BN_MUL_MOD_6);
         short len = num1.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -702,22 +625,16 @@ public class OCUnitTests extends Applet {
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
         short p2 = (short) (apdubuf[ISO7816.OFFSET_P2] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_EXP_MOD_1);    
         Bignat num1 = m_testBN1;
         num1.set_size(p1);
-        PM.check(PM.TRAP_BN_EXP_MOD_2);
         Bignat num2 = m_testBN2;
         num2.set_size(p2);
-        PM.check(PM.TRAP_BN_EXP_MOD_3);
         Bignat mod = m_testBN3;
         mod.set_size((short) (dataLen - p1 - p2));
-        PM.check(PM.TRAP_BN_EXP_MOD_4);
         num1.from_byte_array(p1, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
         num2.from_byte_array(p2, (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
         mod.from_byte_array((short)(dataLen-p1-p2), (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1+p2));
-        PM.check(PM.TRAP_BN_EXP_MOD_5);
         num1.mod_exp(num2, mod);
-        PM.check(PM.TRAP_BN_EXP_MOD_6);
         short len = num1.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -727,17 +644,14 @@ public class OCUnitTests extends Applet {
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
         short p2 = (short) (apdubuf[ISO7816.OFFSET_P2] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_POW2_MOD_1);
         Bignat num1 = m_testBN1;
         num1.set_size(p1);
         Bignat mod = m_testBN3;
         mod.set_size((short) (dataLen - p1));
         num1.from_byte_array(p1, (short) 0, apdubuf, ISO7816.OFFSET_CDATA);
         mod.from_byte_array((short) (dataLen - p1), (short) 0, apdubuf, (short) (ISO7816.OFFSET_CDATA + p1));
-        PM.check(PM.TRAP_BN_POW2_MOD_2);
         //num1.pow2Mod_RSATrick(mod);
         num1.mod_exp2(mod);
-        PM.check(PM.TRAP_BN_POW2_MOD_3);
         short len = num1.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }    
@@ -746,18 +660,13 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_BN_INV_MOD_1);
         Bignat num1 = m_testBN1;
         num1.set_size(p1);
-        PM.check(PM.TRAP_BN_INV_MOD_2);
         Bignat mod = m_testBN2;
         mod.set_size((short) (dataLen - p1));
-        PM.check(PM.TRAP_BN_INV_MOD_3);
         num1.from_byte_array(p1, (short)0, apdubuf, ISO7816.OFFSET_CDATA);
         mod.from_byte_array((short)(dataLen-p1), (short)0, apdubuf, (short)(ISO7816.OFFSET_CDATA+p1));
-        PM.check(PM.TRAP_BN_INV_MOD_4);
         num1.mod_inv(mod);
-        PM.check(PM.TRAP_BN_INV_MOD_5);
         short len = num1.copy_to_buffer(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -766,11 +675,9 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_INT_STR_1);
         //Integer num_int = new Integer(dataLen, (short) 0, apdubuf, ISO7816.OFFSET_CDATA);
         Integer num_int = m_testINT1;
         num_int.fromByteArray(apdubuf, ISO7816.OFFSET_CDATA, dataLen);
-        PM.check(PM.TRAP_INT_STR_2);
         short len = num_int.toByteArray(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -779,17 +686,13 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_INT_ADD_1);    
         //Integer num_add_1 = new Integer(dataLen, (short) 0, apdubuf, ISO7816.OFFSET_CDATA);
         Integer num_add_1 = m_testINT1;
         num_add_1.fromByteArray(apdubuf, ISO7816.OFFSET_CDATA, p1);
-        PM.check(PM.TRAP_INT_ADD_2);
         //Integer num_add_2 = new Integer((short) (dataLen - p1), (short) 0, apdubuf, (short) (ISO7816.OFFSET_CDATA + p1));
         Integer num_add_2 = m_testINT2;
         num_add_2.fromByteArray(apdubuf, (short) (ISO7816.OFFSET_CDATA + p1), p1);
-        PM.check(PM.TRAP_INT_ADD_3);
         num_add_1.add(num_add_2);
-        PM.check(PM.TRAP_INT_ADD_4);
         short len = num_add_1.toByteArray(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -798,15 +701,12 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_INT_SUB_1);               
         Integer num_sub_1 = m_testINT1;
         num_sub_1.fromByteArray(apdubuf, ISO7816.OFFSET_CDATA, p1);
         Integer num_sub_2 = m_testINT2;
         num_sub_2.fromByteArray(apdubuf, (short) (ISO7816.OFFSET_CDATA + p1), p1);
-        PM.check(PM.TRAP_INT_SUB_2);
 
         num_sub_1.subtract(num_sub_2);
-        PM.check(PM.TRAP_INT_SUB_3);
         short len = num_sub_1.toByteArray(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -815,15 +715,12 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_INT_MUL_1);    
         Integer num_mul_1 = m_testINT1;
         num_mul_1.fromByteArray(apdubuf, ISO7816.OFFSET_CDATA, p1);
         Integer num_mul_2 = m_testINT2;
         num_mul_2.fromByteArray(apdubuf, (short) (ISO7816.OFFSET_CDATA + p1), p1);
-        PM.check(PM.TRAP_INT_MUL_2);
 
         num_mul_1.multiply(num_mul_2);
-        PM.check(PM.TRAP_INT_MUL_3);
         short len = num_mul_1.toByteArray(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -832,15 +729,12 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
 
-        PM.check(PM.TRAP_INT_DIV_1);    
         Integer num_div_1 = m_testINT1;
         num_div_1.fromByteArray(apdubuf, ISO7816.OFFSET_CDATA, p1);
         Integer num_div_2 = m_testINT2;
         num_div_2.fromByteArray(apdubuf, (short) (ISO7816.OFFSET_CDATA + p1), p1);
-        PM.check(PM.TRAP_INT_DIV_2);
 
         num_div_1.divide(num_div_2);
-        PM.check(PM.TRAP_INT_DIV_3);
 
         short len = num_div_1.toByteArray(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
@@ -850,15 +744,12 @@ public class OCUnitTests extends Applet {
         byte[] apdubuf = apdu.getBuffer();
         short p1 = (short) (apdubuf[ISO7816.OFFSET_P1] & 0x00FF);
         
-        PM.check(PM.TRAP_INT_MOD_1);
         Integer num_mod_1 = m_testINT1;
         num_mod_1.fromByteArray(apdubuf, ISO7816.OFFSET_CDATA, p1);
         Integer num_mod_2 = m_testINT2;
         num_mod_2.fromByteArray(apdubuf, (short) (ISO7816.OFFSET_CDATA + p1), p1);
-        PM.check(PM.TRAP_INT_MOD_2);
 
         num_mod_1.modulo(num_mod_2);
-        PM.check(PM.TRAP_INT_MOD_3);
         short len = num_mod_1.toByteArray(apdubuf, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
