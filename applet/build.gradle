@@ -130,7 +130,7 @@ javacard {
             packageName 'opencrypto.jcmathlib'
             version '0.1'
             aid '4a:43:4d:61:74:68:4c:69:62'
-            output 'applet.cap'
+            output 'unit_tests.cap'
             sources 'src/main/java/opencrypto'
 
             // JC310b43 supports compilation targeting for lower API versions.
@@ -153,6 +153,31 @@ javacard {
             //     remote 'com.klinec:globalplatform:2.1.1'
             // }
         }
+
+        // When both cap configurations are present, task installJavaCard cannot be used
+        // cap {
+        //     packageName 'opencrypto.jcmathlib'
+        //     version '0.1'
+        //     aid '4a:43:4d:61:74:68:4c:69:62'
+        //     output 'ec_example.cap'
+        //     sources 'src/main/java/opencrypto'
+
+        //     targetsdk JC304
+
+        //     // Override java bytecode version if needed.
+        //     // javaversion '1.7'
+
+        //     //noinspection GroovyAssignabilityCheck
+        //     applet {
+        //         className 'opencrypto.jcmathlib.ECExample'
+        //         aid '4a:43:4d:61:74:68:4c:69:62:45:43'
+        //     }
+
+        //     //noinspection GroovyAssignabilityCheck
+        //     // dependencies {
+        //     //     remote 'com.klinec:globalplatform:2.1.1'
+        //     // }
+        // }
     }
 }
 
