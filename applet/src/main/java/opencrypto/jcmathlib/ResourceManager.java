@@ -12,21 +12,21 @@ public class ResourceManager {
      * Object responsible for logical locking and unlocking of shared arrays and
      * objects
      */
-    public ObjectLocker locker = null;
+    public ObjectLocker locker;
     /**
      * Object responsible for easy management of target placement (RAM/EEPROM)
      * fro allocated objects
      */
-    public ObjectAllocator memAlloc = null;
+    public ObjectAllocator memAlloc;
     
     
     
     // Allocated arrays
-    byte[] helper_BN_array1 = null;
-    byte[] helper_BN_array2 = null;
-    byte[] helper_uncompressed_point_arr1 = null;
-    byte[] helper_uncompressed_point_arr2 = null;
-    byte[] helper_hashArray = null;
+    byte[] helper_BN_array1;
+    byte[] helper_BN_array2;
+    byte[] helper_uncompressed_point_arr1;
+    byte[] helper_uncompressed_point_arr2;
+    byte[] helper_hashArray;
     /**
      * Number of pre-allocated helper arrays
      */

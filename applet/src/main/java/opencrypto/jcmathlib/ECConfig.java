@@ -31,15 +31,15 @@ public class ECConfig {
     public short MAX_COORD_SIZE = (short) 32; // MAX_POINT_SIZE / 2
     
     
-    public ResourceManager rm = null;
+    public ResourceManager rm;
     /**
      * Helper structure containing all preallocated objects necessary for Bignat operations
      */
-    public BigNatHelper bnh = null;
+    public BigNatHelper bnh;
     /**
      * Helper structure containing all preallocated objects necessary for ECPoint operations
      */
-    public ECPointHelper ech = null;
+    public ECPointHelper ech;
 
     /**
      * Creates new control structure for requested bit length with all preallocated arrays and engines 

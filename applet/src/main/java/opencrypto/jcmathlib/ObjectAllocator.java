@@ -15,7 +15,7 @@ import javacard.framework.Util;
 public class ObjectAllocator {
     short allocatedInRAM = 0;
     short allocatedInEEPROM = 0;
-    byte[] ALLOCATOR_TYPE_ARRAY = null;
+    byte[] ALLOCATOR_TYPE_ARRAY;
     
     public static final byte BNH_helper_BN_array1    = 0;
     public static final byte BNH_helper_BN_array2    = 1;

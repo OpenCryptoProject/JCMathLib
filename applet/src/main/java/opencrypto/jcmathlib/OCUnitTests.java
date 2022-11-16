@@ -70,26 +70,26 @@ public class OCUnitTests extends Applet {
     static boolean bTEST_256b_CURVE = true;
     static boolean bTEST_512b_CURVE = false;
     
-    short[]         m_memoryInfo = null;
-    short           m_memoryInfoOffset = 0;
+    short[] m_memoryInfo;
+    short m_memoryInfoOffset = 0;
     
-    ECConfig        m_ecc = null;
-    
-    ECCurve         m_testCurve = null;
+    ECConfig m_ecc;
 
-    ECPoint         m_testPoint1 = null;
-    ECPoint         m_testPoint2 = null;
-    
-    byte[]          m_customG = null;
-    ECCurve         m_testCurveCustom = null;
-    ECPoint         m_testPointCustom = null;
-    
+    ECCurve m_testCurve;
+
+    ECPoint m_testPoint1;
+    ECPoint m_testPoint2;
+
+    byte[] m_customG;
+    ECCurve m_testCurveCustom;
+    ECPoint m_testPointCustom;
+
     BigNat m_testBN1;
     BigNat m_testBN2;
     BigNat m_testBN3;
     
-    Integer         m_testINT1;
-    Integer         m_testINT2;
+    Integer m_testINT1;
+    Integer m_testINT2;
 
     public OCUnitTests() {
         OperationSupport.getInstance().setCard(OperationSupport.SIMULATOR); // TODO set your card

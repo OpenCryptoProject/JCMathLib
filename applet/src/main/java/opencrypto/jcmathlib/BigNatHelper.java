@@ -36,17 +36,17 @@ public class BigNatHelper extends BaseHelper {
      */
     public static final short FAST_MULT_VIA_RSA_TRESHOLD_LENGTH = (short) 16;
     
-    byte[] tmp_array_short = null;
+    byte[] tmp_array_short;
     
     //
-    // References to underlaying shared objects
+    // References to underlying shared objects
     //
-    byte[] fnc_mult_resultArray1 = null;
-    byte[] fnc_deep_resize_tmp = null;
-    byte[] fnc_mult_resultArray2 = null;
-    byte[] fnc_same_value_array1 = null;
-    byte[] fnc_same_value_hash = null;
-    byte[] fnc_shift_bytes_right_tmp = null;
+    byte[] fnc_mult_resultArray1;
+    byte[] fnc_deep_resize_tmp;
+    byte[] fnc_mult_resultArray2;
+    byte[] fnc_same_value_array1;
+    byte[] fnc_same_value_hash;
+    byte[] fnc_shift_bytes_right_tmp;
     
     // These Bignats are just pointing to some helper_BN_? so reasonable naming is preserved yet no need to actually allocated whole Bignat object
     BigNat fnc_mod_exp_modBN;
@@ -97,9 +97,9 @@ public class BigNatHelper extends BaseHelper {
 
     
     // Helper objects for fast multiplication of two large numbers (without modulo)
-    KeyPair fnc_mult_keypair = null;
-    RSAPublicKey fnc_mult_pubkey_pow2 = null;
-    Cipher fnc_mult_cipher = null;
+    KeyPair fnc_mult_keypair;
+    RSAPublicKey fnc_mult_pubkey_pow2;
+    Cipher fnc_mult_cipher;
     MessageDigest hashEngine;
 
     static byte[] CONST_ONE = {0x01};

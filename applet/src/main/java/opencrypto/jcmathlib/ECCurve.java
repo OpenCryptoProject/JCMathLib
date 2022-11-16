@@ -16,11 +16,11 @@ public class ECCurve {
     public final short COORD_SIZE; //Bytes
 
     //Parameters
-    public byte[] p = null;
-    public byte[] a = null;
-    public byte[] b = null;
-    public byte[] G = null;
-    public byte[] r = null;
+    public byte[] p;
+    public byte[] a;
+    public byte[] b;
+    public byte[] G;
+    public byte[] r;
     
     public BigNat pBN;
     public BigNat aBN;

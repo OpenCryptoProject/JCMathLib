@@ -15,9 +15,9 @@ import javacard.security.Signature;
 public class ECPoint {	
     private final ECPointHelper ech;
 
-    private ECPublicKey         thePoint;
-    private KeyPair             thePointKeyPair;
-    private final ECCurve       theCurve;
+    private ECPublicKey thePoint;
+    private KeyPair thePointKeyPair;
+    private final ECCurve theCurve;
     
     /**
      * Creates new ECPoint object for provided {@code curve}. Random initial point value is generated. 
