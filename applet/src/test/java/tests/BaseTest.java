@@ -4,7 +4,7 @@ import cz.muni.fi.crocs.rcard.client.CardManager;
 import cz.muni.fi.crocs.rcard.client.CardType;
 import cz.muni.fi.crocs.rcard.client.RunConfig;
 import cz.muni.fi.crocs.rcard.client.Util;
-import opencrypto.jcmathlib.OCUnitTests;
+import opencrypto.jcmathlib.UnitTests;
 import org.bouncycastle.util.encoders.Hex;
 
 import javax.smartcardio.CardException;
@@ -76,7 +76,7 @@ public class BaseTest {
 
         } else if (cardType != CardType.PHYSICAL && cardType != CardType.PHYSICAL_JAVAX) {
             // Running in the simulator
-            runCfg.setAppletToSimulate(OCUnitTests.class)
+            runCfg.setAppletToSimulate(UnitTests.class)
                     .setTestCardType(CardType.JCARDSIMLOCAL)
                     .setbReuploadApplet(true)
                     .setInstallData(installData);

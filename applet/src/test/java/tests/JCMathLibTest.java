@@ -8,7 +8,7 @@ import javacard.framework.ISO7816;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
-import opencrypto.jcmathlib.OCUnitTests;
+import opencrypto.jcmathlib.UnitTests;
 import opencrypto.jcmathlib.SecP256r1;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
@@ -26,10 +26,11 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * JCMathLib Unit Tests
- * @author Petr Svenda
+ *
+ * @author Petr Svenda and Antonin Dufka
  */
 public class JCMathLibTest extends BaseTest {
-    public static byte[] APDU_CLEANUP = {OCUnitTests.CLA_OC_UT, OCUnitTests.INS_CLEANUP, (byte) 0x00, (byte) 0x00, (byte) 0x00};
+    public static byte[] APDU_CLEANUP = {UnitTests.CLA_OC_UT, UnitTests.INS_CLEANUP, (byte) 0x00, (byte) 0x00, (byte) 0x00};
     public static int BIGNAT_BIT_LENGTH = 256;
 
     public JCMathLibTest() {
@@ -40,7 +41,7 @@ public class JCMathLibTest extends BaseTest {
     @Test
     public void allocationInfo() throws Exception {
         // Obtain allocated bytes in RAM and EEPROM
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_GET_ALLOCATOR_STATS, 0, 0, new byte[1]);
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_GET_ALLOCATOR_STATS, 0, 0, new byte[1]);
         ResponseAPDU response = connect().transmit(cmd);
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, response.getSW());
         byte[] data = response.getData();
@@ -54,7 +55,7 @@ public class JCMathLibTest extends BaseTest {
     @Test
     public void eccGen() throws Exception {
         CardManager cardMngr = connect();
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_GEN, 0, 0, new byte[1]);
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_GEN, 0, 0, new byte[1]);
         ResponseAPDU resp = cardMngr.transmit(cmd);
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
         cardMngr.transmit(new CommandAPDU(APDU_CLEANUP));
@@ -66,7 +67,7 @@ public class JCMathLibTest extends BaseTest {
         ECPoint point1 = randECPoint();
         ECPoint point2 = randECPoint();
         ECPoint sum = point1.add(point2);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_ADD, 0, 0, Util.concat(point1.getEncoded(false), point2.getEncoded(false)));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_ADD, 0, 0, Util.concat(point1.getEncoded(false), point2.getEncoded(false)));
         ResponseAPDU resp = cardMngr.transmit(cmd);
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
         Assertions.assertArrayEquals(sum.getEncoded(false), resp.getData());
@@ -78,7 +79,7 @@ public class JCMathLibTest extends BaseTest {
         CardManager cardMngr = connect();
         ECPoint point = randECPoint();
         ECPoint negated = point.negate();
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_NEG, point.getEncoded(false).length, 0, point.getEncoded(false));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_NEG, point.getEncoded(false).length, 0, point.getEncoded(false));
         ResponseAPDU resp = cardMngr.transmit(cmd);
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
         Assertions.assertArrayEquals(negated.getEncoded(false), resp.getData());
@@ -92,7 +93,7 @@ public class JCMathLibTest extends BaseTest {
         ECPoint point = ecSpec.getG();
         BigInteger scalar = randomBigNat(256);
         ECPoint result = point.multiply(scalar);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_MUL, scalar.toByteArray().length, 0, Util.concat(scalar.toByteArray(), point.getEncoded(false)));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_MUL, scalar.toByteArray().length, 0, Util.concat(scalar.toByteArray(), point.getEncoded(false)));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -100,16 +101,17 @@ public class JCMathLibTest extends BaseTest {
         cardMngr.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
-    @Disabled("Sometimes fails - investigate (TODO)") @Test
+    @Disabled("Sometimes fails - investigate (TODO)")
+    @Test
     public void eccMultiplyRandom() throws Exception {
         CardManager cardMngr = connect();
         ECPoint point = randECPoint();
         BigInteger scalar = randomBigNat(256);
         ECPoint result = point.multiply(scalar);
         // Set modified parameter G of the curve (our random point)
-        int rc = cardMngr.transmit(new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_SETCURVE_G, point.getEncoded(false).length, 0, point.getEncoded(false))).getSW();
+        int rc = cardMngr.transmit(new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_SET_CURVE_G, point.getEncoded(false).length, 0, point.getEncoded(false))).getSW();
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, rc);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_MUL, scalar.toByteArray().length, 0, Util.concat(scalar.toByteArray(), point.getEncoded(false)));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_MUL, scalar.toByteArray().length, 0, Util.concat(scalar.toByteArray(), point.getEncoded(false)));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -122,7 +124,7 @@ public class JCMathLibTest extends BaseTest {
         CardManager cardMngr = connect();
         ECPoint point1 = randECPoint();
         ECPoint point2 = randECPoint();
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_COMPARE, point1.getEncoded(false).length, point2.getEncoded(false).length, Util.concat(point1.getEncoded(false), point2.getEncoded(false)));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_COMPARE, point1.getEncoded(false).length, point2.getEncoded(false).length, Util.concat(point1.getEncoded(false), point2.getEncoded(false)));
         ResponseAPDU resp = cardMngr.transmit(cmd);
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
         cardMngr.transmit(new CommandAPDU(APDU_CLEANUP));
@@ -134,7 +136,7 @@ public class JCMathLibTest extends BaseTest {
         ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256r1");
         ECPoint point = ecSpec.getG();
         ECPoint doubled = point.add(point);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_DBL, 0, 0, point.getEncoded(false));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_DBL, 0, 0, point.getEncoded(false));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -148,9 +150,9 @@ public class JCMathLibTest extends BaseTest {
         ECPoint point = randECPoint();
         ECPoint doubled = point.add(point);
         // Set modified parameter G of the curve (our random point)
-        int rc = cardMngr.transmit(new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_SETCURVE_G, point.getEncoded(false).length, 0, point.getEncoded(false))).getSW();
+        int rc = cardMngr.transmit(new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_SET_CURVE_G, point.getEncoded(false).length, 0, point.getEncoded(false))).getSW();
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, rc);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_DBL, 0, 0, point.getEncoded(false));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_DBL, 0, 0, point.getEncoded(false));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -162,7 +164,7 @@ public class JCMathLibTest extends BaseTest {
     public void bigNatStorage() throws Exception {
         CardManager cardMngr = connect();
         BigInteger num = randomBigNat(BIGNAT_BIT_LENGTH);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_STR, 0, 0, num.toByteArray());
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_STR, 0, 0, num.toByteArray());
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -175,7 +177,7 @@ public class JCMathLibTest extends BaseTest {
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
         BigInteger result = num1.add(num2);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_ADD, num1.toByteArray().length, 0, Util.concat(num1.toByteArray(), num2.toByteArray()));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_ADD, num1.toByteArray().length, 0, Util.concat(num1.toByteArray(), num2.toByteArray()));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -189,7 +191,7 @@ public class JCMathLibTest extends BaseTest {
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
         BigInteger result = num1.subtract(num2);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_SUB, num1.toByteArray().length, 0, Util.concat(num1.toByteArray(), num2.toByteArray()));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SUB, num1.toByteArray().length, 0, Util.concat(num1.toByteArray(), num2.toByteArray()));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -197,13 +199,14 @@ public class JCMathLibTest extends BaseTest {
         cardMngr.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
+    @Disabled("Does not work in simulator")
     @Test
     public void bigNatMultiplication() throws Exception {
         CardManager cardMngr = connect();
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger result = num1.multiply(num2);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_MUL, num1.toByteArray().length, 0, Util.concat(num1.toByteArray(), num2.toByteArray()));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_MUL, num1.toByteArray().length, 0, Util.concat(num1.toByteArray(), num2.toByteArray()));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -217,7 +220,7 @@ public class JCMathLibTest extends BaseTest {
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger result = num1.multiply(num2);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_MUL_SCHOOL, num1.toByteArray().length, 0, Util.concat(num1.toByteArray(), num2.toByteArray()));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_MUL_SCHOOL, num1.toByteArray().length, 0, Util.concat(num1.toByteArray(), num2.toByteArray()));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -231,7 +234,7 @@ public class JCMathLibTest extends BaseTest {
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH / 4);
         BigInteger num2 = BigInteger.valueOf(3);
         BigInteger result = num1.pow(3);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_EXP, num1.toByteArray().length, result.toByteArray().length, Util.concat(num1.toByteArray(), num2.toByteArray()));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_EXP, num1.toByteArray().length, result.toByteArray().length, Util.concat(num1.toByteArray(), num2.toByteArray()));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -245,7 +248,7 @@ public class JCMathLibTest extends BaseTest {
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
         BigInteger result = num1.mod(num2);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_MOD, (num1.toByteArray()).length, 0, Util.concat((num1.toByteArray()), (num2.toByteArray())));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_MOD, (num1.toByteArray()).length, 0, Util.concat((num1.toByteArray()), (num2.toByteArray())));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -253,12 +256,13 @@ public class JCMathLibTest extends BaseTest {
         cardMngr.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
-    @Disabled("Needs fix") @Test
+    @Disabled("Needs fix")
+    @Test
     public void bigNatModSqrt() throws Exception {
         CardManager cardMngr = connect();
         BigInteger num = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger result = tonelliShanks(num, new BigInteger(1, SecP256r1.p));
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_SQRT, (num.toByteArray()).length, 0, num.toByteArray());
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQRT, (num.toByteArray()).length, 0, num.toByteArray());
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -273,7 +277,7 @@ public class JCMathLibTest extends BaseTest {
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger num3 = randomBigNat(BIGNAT_BIT_LENGTH / 8);
         BigInteger result = (num1.add(num2)).mod(num3);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_ADD_MOD, (num1.toByteArray()).length, (num2.toByteArray()).length, Util.concat((num1.toByteArray()), (num2.toByteArray()), (num3.toByteArray())));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_ADD_MOD, (num1.toByteArray()).length, (num2.toByteArray()).length, Util.concat((num1.toByteArray()), (num2.toByteArray()), (num3.toByteArray())));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -288,7 +292,7 @@ public class JCMathLibTest extends BaseTest {
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger num3 = randomBigNat(BIGNAT_BIT_LENGTH / 8);
         BigInteger result = (num1.subtract(num2)).mod(num3);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_SUB_MOD, (num1.toByteArray()).length, (num2.toByteArray()).length, Util.concat((num1.toByteArray()), (num2.toByteArray()), (num3.toByteArray())));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SUB_MOD, (num1.toByteArray()).length, (num2.toByteArray()).length, Util.concat((num1.toByteArray()), (num2.toByteArray()), (num3.toByteArray())));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -303,7 +307,7 @@ public class JCMathLibTest extends BaseTest {
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger num3 = randomBigNat(BIGNAT_BIT_LENGTH / 8);
         BigInteger result = (num1.multiply(num2)).mod(num3);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_MUL_MOD, (num1.toByteArray()).length, (num2.toByteArray()).length, Util.concat((num1.toByteArray()), (num2.toByteArray()), (num3.toByteArray())));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_MUL_MOD, (num1.toByteArray()).length, (num2.toByteArray()).length, Util.concat((num1.toByteArray()), (num2.toByteArray()), (num3.toByteArray())));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -318,7 +322,7 @@ public class JCMathLibTest extends BaseTest {
         BigInteger num2 = BigInteger.valueOf(2);
         BigInteger num3 = randomBigNat(BIGNAT_BIT_LENGTH / 8);
         BigInteger result = (num1.modPow(num2, num3));
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_EXP_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, Util.trimLeadingZeroes(num2.toByteArray()).length, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num2.toByteArray()), Util.trimLeadingZeroes(num3.toByteArray())));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_EXP_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, Util.trimLeadingZeroes(num2.toByteArray()).length, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num2.toByteArray()), Util.trimLeadingZeroes(num3.toByteArray())));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -327,13 +331,13 @@ public class JCMathLibTest extends BaseTest {
     }
 
     @Test
-    public void bigNatModExp2() throws Exception {
+    public void bigNatModSq() throws Exception {
         CardManager cardMngr = connect();
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger num2 = BigInteger.valueOf(2);
         BigInteger num3 = randomBigNat(BIGNAT_BIT_LENGTH / 8);
         BigInteger result = (num1.modPow(num2, num3));
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_POW2_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, Util.trimLeadingZeroes(num3.toByteArray()).length, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num3.toByteArray())));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQ_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, Util.trimLeadingZeroes(num3.toByteArray()).length, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num3.toByteArray())));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -345,10 +349,10 @@ public class JCMathLibTest extends BaseTest {
     public void bigNatModInv() throws Exception {
         CardManager cardMngr = connect();
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH / 2 * 3);
-        BigInteger num2 = new BigInteger(1,SecP256r1.p);
+        BigInteger num2 = new BigInteger(1, SecP256r1.p);
         BigInteger num3 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger result = num1.modInverse(num2).multiply(num1).mod(num3);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_INV_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, 0, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num2.toByteArray())));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_INV_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, 0, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num2.toByteArray())));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         BigInteger respResult = new BigInteger(1, resp.getData()).multiply(num1).mod(num3);
@@ -362,7 +366,7 @@ public class JCMathLibTest extends BaseTest {
     public void integerStorage() throws Exception {
         CardManager cardMngr = connect();
         int num = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_INT_STR, 0, 0, intToBytes(num));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_INT_STR, 0, 0, intToBytes(num));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -375,7 +379,7 @@ public class JCMathLibTest extends BaseTest {
         int num1 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
         int num2 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
         int result = num1 + num2;
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_INT_ADD, intToBytes(num1).length, 0, Util.concat(intToBytes(num1), intToBytes(num2)));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_INT_ADD, intToBytes(num1).length, 0, Util.concat(intToBytes(num1), intToBytes(num2)));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -389,7 +393,7 @@ public class JCMathLibTest extends BaseTest {
         int num1 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
         int num2 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
         int result = num1 - num2;
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_INT_SUB, intToBytes(num1).length, 0, Util.concat(intToBytes(num1), intToBytes(num2)));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_INT_SUB, intToBytes(num1).length, 0, Util.concat(intToBytes(num1), intToBytes(num2)));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -403,7 +407,7 @@ public class JCMathLibTest extends BaseTest {
         int num1 = ThreadLocalRandom.current().nextInt(0, (int) (Math.sqrt(Integer.MAX_VALUE)));
         int num2 = ThreadLocalRandom.current().nextInt(0, (int) (Math.sqrt(Integer.MAX_VALUE)));
         int result = num1 * num2;
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_INT_MUL, intToBytes(num1).length, 0, Util.concat(intToBytes(num1), intToBytes(num2)));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_INT_MUL, intToBytes(num1).length, 0, Util.concat(intToBytes(num1), intToBytes(num2)));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -417,7 +421,7 @@ public class JCMathLibTest extends BaseTest {
         int num1 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
         int num2 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
         int result = num1 / num2;
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_INT_DIV, intToBytes(num1).length, 0, Util.concat(intToBytes(num1), intToBytes(num2)));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_INT_DIV, intToBytes(num1).length, 0, Util.concat(intToBytes(num1), intToBytes(num2)));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -431,7 +435,7 @@ public class JCMathLibTest extends BaseTest {
         int num1 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
         int num2 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
         int result = num1 % num2;
-        CommandAPDU cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_INT_MOD, intToBytes(num1).length, 0, Util.concat(intToBytes(num1), intToBytes(num2)));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_INT_MOD, intToBytes(num1).length, 0, Util.concat(intToBytes(num1), intToBytes(num2)));
         ResponseAPDU resp = cardMngr.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -552,6 +556,7 @@ public class JCMathLibTest extends BaseTest {
 
     /**
      * Utility function which will generate random valid ECPoint
+     *
      * @return ECPoint
      */
     public static ECPoint randECPoint() throws Exception {

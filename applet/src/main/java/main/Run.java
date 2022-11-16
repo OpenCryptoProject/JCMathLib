@@ -3,7 +3,7 @@ package main;
 import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.utils.AIDUtil;
 import javacard.framework.AID;
-import opencrypto.jcmathlib.OCUnitTests;
+import opencrypto.jcmathlib.UnitTests;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -24,7 +24,7 @@ public class Run {
         CardSimulator simulator = new CardSimulator();
 
         AID appletAID = AIDUtil.create("UnitTests".getBytes());
-        simulator.installApplet(appletAID, OCUnitTests.class);
+        simulator.installApplet(appletAID, UnitTests.class);
 
         simulator.selectApplet(appletAID);
 
@@ -48,19 +48,19 @@ public class Run {
         CommandAPDU cmd;
         ResponseAPDU resp;
         System.out.println("BigNatural Addition: ");
-        cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_ADD, num1.toByteArray().length, 0,
+        cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_ADD, num1.toByteArray().length, 0,
                 concat(num1.toByteArray(), num2.toByteArray()));
         resp = card.transmitCommand(cmd);
         System.out.println(Hex.toHexString(resp.getData()));
 
         System.out.println("BigNatural Multiplication: ");
-        cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_MUL, num1.toByteArray().length, 0,
+        cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_MUL, num1.toByteArray().length, 0,
                 concat(num1.toByteArray(), num2.toByteArray()));
         resp = card.transmitCommand(cmd);
         System.out.println(Hex.toHexString(resp.getData()));
 
         System.out.println("BigNatural Modulo: ");
-        cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_BN_MOD, num1.toByteArray().length, 0,
+        cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_MOD, num1.toByteArray().length, 0,
                 concat(num1.toByteArray(), num2.toByteArray()));
         resp = card.transmitCommand(cmd);
         System.out.println(Hex.toHexString(resp.getData()));
@@ -86,18 +86,18 @@ public class Run {
         CommandAPDU cmd;
         ResponseAPDU resp;
         System.out.println("EC Point Generation: ");
-        cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_GEN, 0, 0);
+        cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_GEN, 0, 0);
         resp = card.transmitCommand(cmd);
         System.out.println(Hex.toHexString(resp.getData()));
 
         System.out.println("EC Point Add: ");
-        cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_ADD, 0, 0,
+        cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_ADD, 0, 0,
                 concat(point1.getEncoded(false), point2.getEncoded(false)));
         resp = card.transmitCommand(cmd);
         System.out.println(Hex.toHexString(resp.getData()));
 
         System.out.println("EC Scalar Multiplication: ");
-        cmd = new CommandAPDU(OCUnitTests.CLA_OC_UT, OCUnitTests.INS_EC_MUL, num.toByteArray().length, 0,
+        cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_MUL, num.toByteArray().length, 0,
                 concat(num.toByteArray(), base.getEncoded(false)));
         resp = card.transmitCommand(cmd);
         System.out.println(Hex.toHexString(resp.getData()));

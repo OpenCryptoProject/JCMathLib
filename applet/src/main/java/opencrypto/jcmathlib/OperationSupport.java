@@ -2,7 +2,7 @@ package opencrypto.jcmathlib;
 
 /**
  * OperationSupport class
- * 
+ *
  * @author Antonin Dufka
  */
 public class OperationSupport {
@@ -17,11 +17,12 @@ public class OperationSupport {
     public boolean RSA_MOD_EXP = false;
     public boolean RSA_PREPEND_ZEROS = false;
     public boolean RSA_KEY_REFRESH = false;
-    public boolean ECDH_XY = false;
-    public boolean ECDH_X_ONLY = true;
+    public boolean EC_HW_XY = false;
+    public boolean EC_HW_X = true;
     public boolean EC_SW_DOUBLE = false;
 
-    private OperationSupport() {}
+    private OperationSupport() {
+    }
 
     public static OperationSupport getInstance() {
         if (OperationSupport.instance == null)
@@ -45,12 +46,12 @@ public class OperationSupport {
             case J3H145:
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = false;
-                ECDH_XY = true;
+                EC_HW_XY = true;
                 break;
             case J3R180:
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = false;
-                ECDH_XY = true;
+                EC_HW_XY = true;
                 break;
             default:
                 break;

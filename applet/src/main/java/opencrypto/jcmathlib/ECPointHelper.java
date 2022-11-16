@@ -9,11 +9,6 @@ import javacard.security.Signature;
  * @author Petr Svenda
  */
 public class ECPointHelper extends BaseHelper {
-    // Selected constants missing from older JC API specs 
-    public static final byte ALG_EC_SVDP_DH_PLAIN = (byte) 3;
-    public static final byte ALG_EC_SVDP_DH_PLAIN_XY = (byte) 6;
-    public static final byte ALG_ECDSA_SHA_256 = (byte) 33;
-
     byte[] uncompressed_point_arr1;
     byte[] uncompressed_point_arr2;
     byte[] fnc_isEqual_hashArray;
@@ -49,13 +44,13 @@ public class ECPointHelper extends BaseHelper {
     public ECPointHelper(ResourceManager rm) {
         super(rm);
 
-        if(OperationSupport.getInstance().ECDH_XY) {
-            multKA = KeyAgreement.getInstance(ALG_EC_SVDP_DH_PLAIN_XY, false);
+        if(OperationSupport.getInstance().EC_HW_XY) {
+            multKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY, false);
         }
-        else if(OperationSupport.getInstance().ECDH_X_ONLY) {
-            multKA = KeyAgreement.getInstance(ALG_EC_SVDP_DH_PLAIN, false);
+        else if(OperationSupport.getInstance().EC_HW_X) {
+            multKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN, false);
         }
-        fnc_SignVerifyECDSA_signEngine = Signature.getInstance(ALG_ECDSA_SHA_256, false);
+        fnc_SignVerifyECDSA_signEngine = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
     }
 
     void initialize() {

@@ -2,14 +2,9 @@ package opencrypto.jcmathlib;
 
 import javacard.framework.ISOException;
 import javacard.framework.Util;
-import javacard.security.CryptoException;
-import javacard.security.ECPrivateKey;
-import javacard.security.ECPublicKey;
-import javacard.security.KeyPair;
-import javacard.security.Signature;
+import javacard.security.*;
 
 /**
- * 
  * @author Vasilios Mavroudis and Petr Svenda
  */
 public class ECPoint {	
@@ -218,7 +213,7 @@ public class ECPoint {
      */
     public void add(ECPoint other) {
         boolean samePoint = this == other || isEqual(other);
-        if (samePoint && OperationSupport.getInstance().ECDH_XY) {
+        if (samePoint && OperationSupport.getInstance().EC_HW_XY) {
             this.multiplication(BigNatHelper.TWO);
             return;
         }
@@ -342,9 +337,9 @@ public class ECPoint {
             swDouble();
             return;
         }
-        if (ech.multKA.getAlgorithm() == ECPointHelper.ALG_EC_SVDP_DH_PLAIN_XY) {
+        if (ech.multKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY) {
             this.multiplication_xy(scalar);
-        } else if (ech.multKA.getAlgorithm() == ECPointHelper.ALG_EC_SVDP_DH_PLAIN) {
+        } else if (ech.multKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN) {
             this.multiplication_x(scalar);
         } else {
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
