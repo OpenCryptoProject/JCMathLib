@@ -71,7 +71,6 @@ public class ECConfig {
         // Allocate shared resources and initialize mapping between shared objects and helpers
         rm.initialize(MAX_POINT_SIZE, MAX_COORD_SIZE, MAX_BIGNAT_SIZE, MULT_RSA_ENGINE_MAX_LENGTH_BITS, bnh);
         bnh.initialize(MODULO_RSA_ENGINE_MAX_LENGTH_BITS, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
-        ech.initialize();
     }
     
     public void refreshAfterReset() {
