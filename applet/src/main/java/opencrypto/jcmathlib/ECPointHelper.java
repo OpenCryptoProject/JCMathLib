@@ -5,7 +5,6 @@ import javacard.security.MessageDigest;
 import javacard.security.Signature;
 
 /**
- *
  * @author Petr Svenda
  */
 public class ECPointHelper extends BaseHelper {
@@ -14,7 +13,6 @@ public class ECPointHelper extends BaseHelper {
     byte[] fnc_isEqual_hashArray;
     byte[] fnc_multiplication_resultArray;
 
-    // These Bignats are just pointing to some helperEC_BN_? so reasonable naming is preserved yet no need to actually allocated whole Bignat object
     BigNat fnc_add_x_r; // frequent write
     BigNat fnc_add_y_r; // frequent write
     BigNat fnc_add_x_p; // one init, then just read
@@ -38,19 +36,18 @@ public class ECPointHelper extends BaseHelper {
     BigNat fnc_is_y;
 
     KeyAgreement multKA;
-    Signature    fnc_SignVerifyECDSA_signEngine; 
-    MessageDigest fnc_isEqual_hashEngine;
+    Signature verifyEcdsa;
+    MessageDigest hash;
 
     public ECPointHelper(ResourceManager rm) {
         super(rm);
 
-        if(OperationSupport.getInstance().EC_HW_XY) {
+        if (OperationSupport.getInstance().EC_HW_XY) {
             multKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY, false);
-        }
-        else if(OperationSupport.getInstance().EC_HW_X) {
+        } else if (OperationSupport.getInstance().EC_HW_X) {
             multKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN, false);
         }
-        fnc_SignVerifyECDSA_signEngine = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
+        verifyEcdsa = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
     }
 
     void initialize() {
@@ -80,7 +77,7 @@ public class ECPointHelper extends BaseHelper {
         fnc_is_y = rm.helperEC_BN_C;
 
         fnc_isEqual_hashArray = rm.helper_hashArray;
-        fnc_isEqual_hashEngine = rm.hashEngine;
+        hash = rm.hashEngine;
 
         uncompressed_point_arr1 = rm.helper_uncompressed_point_arr1;
         uncompressed_point_arr2 = rm.helper_uncompressed_point_arr2;

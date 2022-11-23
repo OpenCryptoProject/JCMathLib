@@ -4,7 +4,6 @@ import javacard.framework.Util;
 import javacard.security.MessageDigest;
 
 /**
- *
  * @author Petr Svenda
  */
 public class ResourceManager {
@@ -15,12 +14,11 @@ public class ResourceManager {
     public ObjectLocker locker;
     /**
      * Object responsible for easy management of target placement (RAM/EEPROM)
-     * fro allocated objects
+     * for allocated objects
      */
     public ObjectAllocator memAlloc;
-    
-    
-    
+
+
     // Allocated arrays
     byte[] helper_BN_array1;
     byte[] helper_BN_array2;
@@ -34,7 +32,7 @@ public class ResourceManager {
 
     MessageDigest hashEngine;
     public static final byte NUM_SHARED_HELPER_OBJECTS = 1;
-    
+
 
     // These Bignats helper_BN_? are allocated
     BigNat helper_BN_A;
@@ -51,7 +49,7 @@ public class ResourceManager {
     BigNat helperEC_BN_D;
     BigNat helperEC_BN_E;
     BigNat helperEC_BN_F;
-    
+
     public void initialize(short MAX_POINT_SIZE, short MAX_COORD_SIZE, short MAX_BIGNAT_SIZE, short MULT_RSA_ENGINE_MAX_LENGTH_BITS, BigNatHelper bnh) {
         // Allocate long-term helper values
         locker = new ObjectLocker((short) (NUM_HELPER_ARRAYS + NUM_SHARED_HELPER_OBJECTS));
@@ -60,7 +58,7 @@ public class ResourceManager {
         memAlloc.setAllAllocatorsRAM();
         //if required, memory for helper objects and arrays can be in persistent memory to save RAM (or some tradeoff)       
         //ObjectAllocator.setAllAllocatorsEEPROM();  //ObjectAllocator.setAllocatorsTradeoff();
-        
+
 
         // Multiplication speedup engines and arrays used by Bignat.mult_RSATrick()
         helper_BN_array1 = memAlloc.allocateByteArray((short) (MULT_RSA_ENGINE_MAX_LENGTH_BITS / 8), memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_array1));
@@ -75,25 +73,25 @@ public class ResourceManager {
         helper_hashArray = memAlloc.allocateByteArray(hashEngine.getLength(), memAlloc.getAllocatorType(ObjectAllocator.ECPH_hashArray));
         locker.registerLock(helper_hashArray);
         //locker.registerLock(hashEngine); // register hash engine to slightly speedup search for locked objects (hash engine used less frequently)
-        
-        
+
+
         helper_BN_A = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_A), bnh);
         helper_BN_B = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_B), bnh);
         helper_BN_C = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_C), bnh);
         helper_BN_D = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_D), bnh);
         helper_BN_E = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_E), bnh);
         helper_BN_F = new BigNat((short) (MAX_BIGNAT_SIZE + 2), memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_F), bnh); // +2 is to correct for infrequent RSA result with two or more leading zeroes
-        
+
         helperEC_BN_A = new BigNat(MAX_POINT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_A), bnh);
         helperEC_BN_B = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_B), bnh);
         helperEC_BN_C = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_C), bnh);
         helperEC_BN_D = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_D), bnh);
         helperEC_BN_E = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_E), bnh);
         helperEC_BN_F = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_F), bnh);
-        
-        
+
+
     }
-    
+
     /**
      * Erase all values stored in helper objects
      */
@@ -104,20 +102,20 @@ public class ResourceManager {
         helper_BN_D.erase();
         helper_BN_E.erase();
         helper_BN_F.erase();
-        
+
         helperEC_BN_A.erase();
         helperEC_BN_B.erase();
         helperEC_BN_C.erase();
         helperEC_BN_D.erase();
         helperEC_BN_E.erase();
         helperEC_BN_F.erase();
-        
+
 
         Util.arrayFillNonAtomic(helper_BN_array1, (short) 0, (short) helper_BN_array1.length, (byte) 0);
         Util.arrayFillNonAtomic(helper_BN_array2, (short) 0, (short) helper_BN_array2.length, (byte) 0);
         Util.arrayFillNonAtomic(helper_uncompressed_point_arr1, (short) 0, (short) helper_uncompressed_point_arr1.length, (byte) 0);
-    }    
-    
+    }
+
     /**
      * Unlocks all helper objects
      */
@@ -165,6 +163,6 @@ public class ResourceManager {
         if (locker.isLocked(helper_hashArray)) {
             locker.unlock(helper_hashArray);
         }
-        
-    }    
+
+    }
 }

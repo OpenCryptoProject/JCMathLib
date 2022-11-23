@@ -29,7 +29,7 @@ public class ECPoint {
     /**
      * Returns length of this point in bytes.
      *
-     * @return
+     * @return length of this point in bytes
      */
     public short length() {
         return (short) (thePoint.getSize() / 8);
@@ -409,7 +409,7 @@ public class ECPoint {
 
         // Check if public point <x, y_1> corresponds to the "secret" (i.e., our scalar)
         ech.lock(ech.fnc_multiplication_resultArray);
-        if (!SignVerifyECDSA(this.theCurve.bignatAsPrivateKey(scalar), this.asPublicKey(), this.ech.fnc_SignVerifyECDSA_signEngine, ech.fnc_multiplication_resultArray)) { //If verification fails, then pick the <x, y_2>
+        if (!SignVerifyECDSA(this.theCurve.bignatAsPrivateKey(scalar), this.asPublicKey(), this.ech.verifyEcdsa, ech.fnc_multiplication_resultArray)) { //If verification fails, then pick the <x, y_2>
             ech.fnc_multiplication_y2.lock();
             ech.fnc_multiplication_y2.clone(this.theCurve.pBN); //y_2 = p - y_1
             ech.fnc_multiplication_y2.mod_sub(ech.fnc_multiplication_y1, this.theCurve.pBN);
@@ -544,9 +544,9 @@ public class ECPoint {
             ech.lock(ech.fnc_isEqual_hashArray);
             //ech.lock(ech.fnc_isEqual_hashEngine);
             short len = this.getW(ech.uncompressed_point_arr1, (short) 0);
-            ech.fnc_isEqual_hashEngine.doFinal(ech.uncompressed_point_arr1, (short) 0, len, ech.fnc_isEqual_hashArray, (short) 0);
+            ech.hash.doFinal(ech.uncompressed_point_arr1, (short) 0, len, ech.fnc_isEqual_hashArray, (short) 0);
             len = other.getW(ech.uncompressed_point_arr1, (short) 0);
-            len = ech.fnc_isEqual_hashEngine.doFinal(ech.uncompressed_point_arr1, (short) 0, len, ech.uncompressed_point_arr1, (short) 0);
+            len = ech.hash.doFinal(ech.uncompressed_point_arr1, (short) 0, len, ech.uncompressed_point_arr1, (short) 0);
             bResult = Util.arrayCompare(ech.fnc_isEqual_hashArray, (short) 0, ech.uncompressed_point_arr1, (short) 0, len) == 0;
             //ech.unlock(ech.fnc_isEqual_hashEngine);
             ech.unlock(ech.fnc_isEqual_hashArray);

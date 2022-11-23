@@ -137,14 +137,14 @@ javacard {
             // Here you can specify path to the SDK you want to use.
             // Only JC304 and higher are supported for targeting.
             // If JC310b43 is not used, targetsdk cannot be set.
-            targetsdk JC304
+            targetsdk JC305
 
             // Override java bytecode version if needed.
             // javaversion '1.7'
 
             //noinspection GroovyAssignabilityCheck
             applet {
-                className 'opencrypto.jcmathlib.OCUnitTests'
+                className 'opencrypto.jcmathlib.UnitTests'
                 aid '4a:43:4d:61:74:68:4c:69:62:55:54'
             }
 

@@ -22,7 +22,7 @@ public class ReturnCodes {
     public static final short SW_OPERATION_NOT_SUPPORTED        = (short) 0x700d;
 
     
-    // Specific codes to propagate exceptions cought 
+    // Specific codes to propagate exceptions caught
     // lower byte of exception is value as defined in JCSDK/api_classic/constant-values.htm
     public final static short SW_Exception                      = (short) 0xff01;
     public final static short SW_ArrayIndexOutOfBoundsException = (short) 0xff02;
