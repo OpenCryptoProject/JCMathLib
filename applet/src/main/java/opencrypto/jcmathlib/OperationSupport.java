@@ -20,6 +20,7 @@ public class OperationSupport {
     public boolean EC_HW_XY = false;
     public boolean EC_HW_X = true;
     public boolean EC_SW_DOUBLE = false;
+    public boolean DEFERRED_INITIALIZATION = false;
 
     private OperationSupport() {
     }
@@ -49,6 +50,7 @@ public class OperationSupport {
                 EC_HW_XY = true;
                 break;
             case J3R180:
+                DEFERRED_INITIALIZATION = true;
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = false;
                 EC_HW_XY = true;

@@ -22,7 +22,7 @@ public class UnitTests extends Applet {
     static boolean TEST_P512 = false;
 
     public final static byte CLA_OC_UT = (byte) 0xB0;
-
+    public final static byte INS_INITIALIZE = (byte) 0x01;
     public final static byte INS_CLEANUP = (byte) 0x03;
     public final static byte INS_FREE_MEMORY = (byte) 0x06;
     public final static byte INS_GET_ALLOCATOR_STATS = (byte) 0x07;
@@ -59,6 +59,8 @@ public class UnitTests extends Applet {
     public final static byte INS_EC_SET_CURVE_G = (byte) 0x45;
     public final static byte INS_EC_COMPARE = (byte) 0x46;
 
+    boolean initialized = false;
+
     short[] memoryInfo;
     short memoryInfoOffset = 0;
 
@@ -80,7 +82,15 @@ public class UnitTests extends Applet {
 
     public UnitTests() {
         OperationSupport.getInstance().setCard(CARD_TYPE);
+        if (!OperationSupport.getInstance().DEFERRED_INITIALIZATION) {
+            initialize();
+        }
+    }
 
+    public void initialize() {
+        if (initialized) {
+            return;
+        }
         memoryInfo = new short[(short) (7 * 3)]; // Contains RAM and EEPROM memory required for basic library objects
         memoryInfoOffset = snapshotAvailableMemory((short) 1, memoryInfo, memoryInfoOffset);
         if (TEST_P256) {
@@ -124,6 +134,7 @@ public class UnitTests extends Applet {
         short intLen = 4;
         int1 = new Integer(intLen, ecc.bnh);
         int2 = new Integer(intLen, ecc.bnh);
+        initialized = true;
     }
 
     public static void install(byte[] ignoredArray, short ignoredOffset, byte ignoredLength) {
@@ -131,7 +142,9 @@ public class UnitTests extends Applet {
     }
 
     public boolean select() {
-        updateAfterReset();
+        if (initialized) {
+            updateAfterReset();
+        }
         return true;
     }
 
@@ -144,6 +157,13 @@ public class UnitTests extends Applet {
 
         if (apduBuffer[ISO7816.OFFSET_CLA] != CLA_OC_UT) {
             ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
+        }
+
+        if (apduBuffer[ISO7816.OFFSET_INS] == INS_INITIALIZE) {
+            initialize();
+            return;
+        } else if (!initialized) {
+            ISOException.throwIt(ReturnCodes.SW_NOT_INITIALIZED);
         }
 
         // Process Input
@@ -288,7 +308,6 @@ public class UnitTests extends Applet {
         } catch (Exception e) {
             ISOException.throwIt(ReturnCodes.SW_Exception);
         }
-
     }
 
 

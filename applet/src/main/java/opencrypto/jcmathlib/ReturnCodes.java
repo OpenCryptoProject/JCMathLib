@@ -20,6 +20,7 @@ public class ReturnCodes {
     public static final short SW_ECPOINT_UNEXPECTED_KA_LEN      = (short) 0x700b;
     public static final short SW_ALLOCATOR_INVALIDOBJID         = (short) 0x700c;
     public static final short SW_OPERATION_NOT_SUPPORTED        = (short) 0x700d;
+    public static final short SW_NOT_INITIALIZED                = (short) 0x700e;
 
     
     // Specific codes to propagate exceptions caught
