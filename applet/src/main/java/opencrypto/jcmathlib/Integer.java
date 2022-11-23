@@ -4,20 +4,18 @@ import javacard.framework.JCSystem;
 import javacard.framework.Util;
 
 /**
- * 
-* @author Vasilios Mavroudis and Petr Svenda
+ * @author Vasilios Mavroudis and Petr Svenda
  */
 public class Integer {
     private BigNatHelper bnh;
-
     private BigNat magnitude;
     private byte sign;
-    
 
     /**
-     * Allocates integer with provided length and sets to zero. 
-     * @param size 
-     * @param bnh Bignat_Helper with all supporting objects
+     * Allocates integer with provided length and sets to zero.
+     *
+     * @param size
+     * @param bnh  Bignat_Helper with all supporting objects
      */
     public Integer(short size, BigNatHelper bnh) {
         allocate(size, (byte) 0, null, (byte) -1, bnh);
@@ -26,10 +24,11 @@ public class Integer {
     /**
      * Allocates integer from provided buffer and initialize by provided value.
      * Sign is expected as first byte of value.
-     * @param value array with initial value
+     *
+     * @param value       array with initial value
      * @param valueOffset start offset within   value
-     * @param length length of array
-     * @param bnh Bignat_Helper with all supporting objects
+     * @param length      length of array
+     * @param bnh         BignatHelper with all supporting objects
      */
     public Integer(byte[] value, short valueOffset, short length, BigNatHelper bnh) {
         allocate(length, (value[valueOffset] == (byte) 0x00) ? (byte) 0 : (byte) 1, value, (short) (valueOffset + 1), bnh);
@@ -39,8 +38,8 @@ public class Integer {
      * Allocates integer from provided array with explicit sign. No sign is expected in provided array.
      *
      * @param sign  sign of integer
-     * @param value array with initial value  
-     * @param bnh Bignat_Helper with all supporting objects
+     * @param value array with initial value
+     * @param bnh   Bignat_Helper with all supporting objects
      */
     public Integer(byte sign, byte[] value, BigNatHelper bnh) {
         allocate((short) value.length, sign, value, (short) 0, bnh);
@@ -48,6 +47,7 @@ public class Integer {
 
     /**
      * Copy constructor of integer from other already existing value
+     *
      * @param other integer to copy from
      */
     public Integer(Integer other) {
@@ -55,30 +55,29 @@ public class Integer {
     }
 
     /**
-     * Creates integer from existing Bignat and provided sign. If required, 
-     * copy is performed, otherwise bignat is used as magnitude.
-     * @param sign  sign of integer
+     * Creates integer from existing Bignat and provided sign. If required,
+     * copy is performed, otherwise BigNat is used as magnitude.
+     *
+     * @param sign      sign of integer
      * @param magnitude initial magnitude
-     * @param bMakeCopy if true, magnitude is directly used (no copy). If false, new storage array is allocated.
+     * @param copy      if true, magnitude is directly used (no copy). If false, new storage array is allocated.
      */
-    public Integer(byte sign, BigNat magnitude, boolean bMakeCopy, BigNatHelper bnh) {
-        if (bMakeCopy) {
-            // Copy from provided bignat
+    public Integer(byte sign, BigNat magnitude, boolean copy, BigNatHelper bnh) {
+        if (copy) {
+            // Copy from provided BigNat
             allocate(magnitude.length(), sign, magnitude.as_byte_array(), (short) 0, bnh);
-        }
-        else {
-            // Use directly provided Bignat as storage - no allocation
+        } else {
+            // Use directly provided BigNat as storage - no allocation
             initialize(sign, magnitude, bnh);
         }
     }
-    
+
     /**
      * Initialize integer object with provided sign and already allocated Bignat
      * as magnitude
      *
-     * @param sign sign of integer
-     * @param bnStorage magnitude (object is directly used, no copy is
-     * preformed)
+     * @param sign      sign of integer
+     * @param bnStorage magnitude (object is directly used, no copy is performed)
      */
     private void initialize(byte sign, BigNat bnStorage, BigNatHelper bnh) {
         this.sign = sign;
@@ -89,10 +88,10 @@ public class Integer {
     /**
      * Allocates and initializes Integer.
      *
-     * @param size length of integer
-     * @param sign sign of integer
-     * @param fromArray input array with initial value (copy of value is
-     * performed)
+     * @param size            length of integer
+     * @param sign            sign of integer
+     * @param fromArray       input array with initial value (copy of value is
+     *                        performed)
      * @param fromArrayOffset start offset within fromArray
      */
     private void allocate(short size, byte sign, byte[] fromArray, short fromArrayOffset, BigNatHelper bignatHelper) {
@@ -103,17 +102,18 @@ public class Integer {
         }
         initialize(sign, mag, this.bnh);
     }
-    
+
     /**
      * Clone value into this Integer from other Integer. Updates size of integer.
-     * @param other other integer to copy from 
+     *
+     * @param other other integer to copy from
      */
     public void clone(Integer other) {
         this.sign = other.getSign();
         this.magnitude.copy(other.getMagnitude());
     }
 
-    /** 
+    /**
      * set this integer to zero
      */
     public void zero() {
@@ -123,13 +123,16 @@ public class Integer {
 
     /**
      * Return sign of this integer
+     *
      * @return current sign
      */
     public byte getSign() {
         return this.sign;
     }
+
     /**
      * Set sign of this integer
+     *
      * @param s new sign
      */
     public void setSign(byte s) {
@@ -138,13 +141,16 @@ public class Integer {
 
     /**
      * Return length (in bytes) of this integer
+     *
      * @return length of this integer
      */
     public short getSize() {
         return this.magnitude.length();
-    }    
+    }
+
     /**
      * Set length of this integer
+     *
      * @param newSize new length
      */
     public void setSize(short newSize) {
@@ -163,8 +169,9 @@ public class Integer {
     }
 
     /**
-     * Returns internal array as byte array. No copy is performed so change of 
+     * Returns internal array as byte array. No copy is performed so change of
      * values in array also changes this integer
+     *
      * @return byte array with magnitude
      */
     public byte[] getMagnitude_b() {
@@ -181,8 +188,9 @@ public class Integer {
     }
 
     /**
-     * Set magnitude of this integer from other one. Will not change this integer length. 
+     * Set magnitude of this integer from other one. Will not change this integer length.
      * No sign is copied from other.
+     *
      * @param other other integer to copy from
      */
     public void setMagnitude(Integer other) {
@@ -191,9 +199,10 @@ public class Integer {
 
     /**
      * Serializes this integer value into array. Sign is serialized as first byte
-     * @param outBuffer output array
+     *
+     * @param outBuffer       output array
      * @param outBufferOffset start offset within output array
-     * @return length of resulting serialized number including sign (number of bytes) 
+     * @return length of resulting serialized number including sign (number of bytes)
      */
     public short toByteArray(byte[] outBuffer, short outBufferOffset) {
         //Store sign
@@ -202,11 +211,12 @@ public class Integer {
         Util.arrayCopyNonAtomic(this.getMagnitude_b(), (short) 0, outBuffer, (short) (outBufferOffset + 1), this.getSize());
         return (short) (this.getSize() + 1);
     }
-    
+
     /**
-     * Deserialize value of this integer from provided array including sign. 
+     * Deserialize value of this integer from provided array including sign.
      * Sign is expected to be as first byte
-     * @param value array with value
+     *
+     * @param value       array with value
      * @param valueOffset start offset within value
      * @param valueLength length of value
      */
@@ -219,6 +229,7 @@ public class Integer {
 
     /**
      * Return true if integer is negative.
+     *
      * @return true if integer is negative, false otherwise
      */
     public boolean isNegative() {
@@ -236,6 +247,7 @@ public class Integer {
 
     /**
      * Compares two integers. Return true, if this is smaller than other.
+     *
      * @param other other integer to compare
      * @return true, if this is strictly smaller than other. False otherwise.
      */
@@ -253,9 +265,12 @@ public class Integer {
 
     /**
      * Add other integer to this and store result into this.
-     * @param other other integer to add 
+     *
+     * @param other other integer to add
      */
     public void add(Integer other) {
+        BigNat tmp = bnh.rm.helper_BN_A;
+
         if (this.isPositive() && other.isPositive()) { //this and other are (+)
             this.sign = 0;
             this.magnitude.add(other.magnitude);
@@ -266,23 +281,23 @@ public class Integer {
             if (this.isPositive() && other.getMagnitude().lesser(this.getMagnitude())) { //this(+) is larger than other(-)
                 this.sign = 0;
                 this.magnitude.subtract(other.magnitude);
-            } else if (this.isNegative() && other.getMagnitude().lesser(this.getMagnitude())) {	//this(-) has larger magnitude than other(+)
+            } else if (this.isNegative() && other.getMagnitude().lesser(this.getMagnitude())) {    //this(-) has larger magnitude than other(+)
                 this.sign = 1;
                 this.magnitude.subtract(other.magnitude);
             } else if (this.isPositive() && this.getMagnitude().lesser(other.getMagnitude())) { //this(+) has smaller magnitude than other(-)
                 this.sign = 1;
-                bnh.fnc_int_add_tmpMag.lock();
-                bnh.fnc_int_add_tmpMag.clone(other.getMagnitude());
-                bnh.fnc_int_add_tmpMag.subtract(this.magnitude);
-                this.magnitude.copy(bnh.fnc_int_add_tmpMag);
-                bnh.fnc_int_add_tmpMag.unlock();
+                tmp.lock();
+                tmp.clone(other.getMagnitude());
+                tmp.subtract(this.magnitude);
+                this.magnitude.copy(tmp);
+                tmp.unlock();
             } else if (this.isNegative() && this.getMagnitude().lesser(other.getMagnitude())) {  //this(-) has larger magnitude than other(+)
                 this.sign = 0;
-                bnh.fnc_int_add_tmpMag.lock();
-                bnh.fnc_int_add_tmpMag.clone(other.getMagnitude());
-                bnh.fnc_int_add_tmpMag.subtract(this.magnitude);
-                this.magnitude.copy(bnh.fnc_int_add_tmpMag);
-                bnh.fnc_int_add_tmpMag.unlock();
+                tmp.lock();
+                tmp.clone(other.getMagnitude());
+                tmp.subtract(this.magnitude);
+                this.magnitude.copy(tmp);
+                tmp.unlock();
             } else if (this.getMagnitude().same_value(other.getMagnitude())) {  //this has opposite sign than other, and the same magnitude
                 this.sign = 0;
                 this.zero();
@@ -308,6 +323,9 @@ public class Integer {
      * @param other other integer to multiply
      */
     public void multiply(Integer other) {
+        BigNat mod = bnh.rm.helper_BN_A;
+        BigNat tmp = bnh.rm.helper_BN_B;
+
         if (this.isPositive() && other.isNegative()) {
             this.setSign((byte) 1);
         } else if (this.isNegative() && other.isPositive()) {
@@ -317,17 +335,17 @@ public class Integer {
         }
 
         // Make mod BN as maximum value (positive, leading 0x80)
-        bnh.fnc_int_multiply_mod.lock();
-        bnh.fnc_int_multiply_mod.set_size(this.magnitude.length());
-        bnh.fnc_int_multiply_mod.zero(); 
-        bnh.fnc_int_multiply_mod.as_byte_array()[0] = (byte) 0x80;  // Max INT+1 Value 
+        mod.lock();
+        mod.set_size(this.magnitude.length());
+        mod.zero();
+        mod.as_byte_array()[0] = (byte) 0x80;  // Max INT+1 Value
 
-        bnh.fnc_int_multiply_tmpThis.lock();
-        bnh.fnc_int_multiply_tmpThis.set_size(this.magnitude.length());
-        bnh.fnc_int_multiply_tmpThis.mod_mult(this.getMagnitude(), other.getMagnitude(), bnh.fnc_int_multiply_mod);
-        this.magnitude.copy(bnh.fnc_int_multiply_tmpThis);
-        bnh.fnc_int_multiply_mod.unlock();
-        bnh.fnc_int_multiply_tmpThis.unlock();
+        tmp.lock();
+        tmp.set_size(this.magnitude.length());
+        tmp.mod_mult(this.getMagnitude(), other.getMagnitude(), mod);
+        this.magnitude.copy(tmp);
+        mod.unlock();
+        tmp.unlock();
     }
 
     /**
@@ -336,6 +354,8 @@ public class Integer {
      * @param other divisor
      */
     public void divide(Integer other) {
+        BigNat tmp = bnh.rm.helper_BN_A;
+
         if (this.isPositive() && other.isNegative()) {
             this.setSign((byte) 1);
         } else if (this.isNegative() && other.isPositive()) {
@@ -344,17 +364,17 @@ public class Integer {
             this.setSign((byte) 0);
         }
 
-        bnh.fnc_int_divide_tmpThis.lock();
-        bnh.fnc_int_divide_tmpThis.clone(this.magnitude);
-        bnh.fnc_int_divide_tmpThis.remainder_divide(other.getMagnitude(), this.magnitude);
-        bnh.fnc_int_divide_tmpThis.unlock();
+        tmp.lock();
+        tmp.clone(this.magnitude);
+        tmp.remainder_divide(other.getMagnitude(), this.magnitude);
+        tmp.unlock();
     }
 
     /**
      * Computes modulo of this by other integer and store result into this.
      *
      * @param other modulus
-     */    
+     */
     public void modulo(Integer other) {
         this.magnitude.mod(other.getMagnitude());
     }

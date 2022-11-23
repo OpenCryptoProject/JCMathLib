@@ -83,11 +83,6 @@ public class BigNatHelper extends BaseHelper {
 
     BigNat fnc_negate_tmp;
     
-    BigNat fnc_int_add_tmpMag;
-    BigNat fnc_int_multiply_mod;
-    BigNat fnc_int_multiply_tmpThis;
-    BigNat fnc_int_divide_tmpThis;
-            
     RSAPublicKey fnc_NmodE_pubKey;
     Cipher fnc_NmodE_cipher;
     
@@ -158,12 +153,6 @@ public class BigNatHelper extends BaseHelper {
 
         fnc_mod_exp_modBN = rm.helper_BN_F;  // mod_exp is called from  fnc_sqrt => requires helper_BN_F not being locked  in fnc_sqrt when mod_exp is called
 
-        fnc_int_add_tmpMag = rm.helper_BN_A;
-        fnc_int_multiply_mod = rm.helper_BN_A;
-        fnc_int_multiply_tmpThis = rm.helper_BN_B;
-        fnc_int_divide_tmpThis = rm.helper_BN_A;        
-        
-        
         // Allocate BN constants always in EEPROM (only reading)
         ONE = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
         ONE.one();
