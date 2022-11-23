@@ -36,10 +36,6 @@ public class ECConfig {
      * Helper structure containing all preallocated objects necessary for Bignat operations
      */
     public BigNatHelper bnh;
-    /**
-     * Helper structure containing all preallocated objects necessary for ECPoint operations
-     */
-    public ECPointHelper ech;
 
     /**
      * Creates new control structure for requested bit length with all preallocated arrays and engines 
@@ -52,7 +48,6 @@ public class ECConfig {
         // Note: due to circular references, we need to split object creation and actual alloaction and initailiztion later (initialize()) 
         rm = new ResourceManager();
         bnh = new BigNatHelper(rm);
-        ech = new ECPointHelper(rm);
 
         // Set proper lengths and other internal settings based on required ECC length
         if (maxECLength <= (short) 256) {

@@ -19,6 +19,7 @@ public class OperationSupport {
     public boolean RSA_KEY_REFRESH = false;
     public boolean EC_HW_XY = false;
     public boolean EC_HW_X = true;
+    public boolean EC_HW_ADD = false;
     public boolean EC_SW_DOUBLE = false;
     public boolean DEFERRED_INITIALIZATION = false;
 
@@ -39,6 +40,7 @@ public class OperationSupport {
                 RSA_PREPEND_ZEROS = true;
                 RSA_KEY_REFRESH = true;
                 EC_SW_DOUBLE = true;
+                EC_HW_ADD = true;
                 break;
             case J2E145G:
                 RSA_MULT_TRICK = true;
@@ -54,6 +56,7 @@ public class OperationSupport {
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = false;
                 EC_HW_XY = true;
+                EC_HW_ADD = true;
                 break;
             default:
                 break;

@@ -118,10 +118,10 @@ public class UnitTests extends Applet {
         }
 
         memoryInfoOffset = snapshotAvailableMemory((short) 5, memoryInfo, memoryInfoOffset);
-        point1 = new ECPoint(curve, ecc.ech);
+        point1 = new ECPoint(curve, ecc.rm);
         memoryInfoOffset = snapshotAvailableMemory((short) 6, memoryInfo, memoryInfoOffset);
-        point2 = new ECPoint(curve, ecc.ech);
-        customPoint = new ECPoint(customCurve, ecc.ech);
+        point2 = new ECPoint(curve, ecc.rm);
+        customPoint = new ECPoint(customCurve, ecc.rm);
 
         // Testing BigNat objects used in tests
         memoryInfoOffset = snapshotAvailableMemory((short) 7, memoryInfo, memoryInfoOffset);
@@ -348,7 +348,7 @@ public class UnitTests extends Applet {
 
         if (apduBuffer[ISO7816.OFFSET_P2] == 1) { // If required, complete new custom curve and point is allocated
             customCurve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, customG, SecP256r1.r);
-            customPoint = new ECPoint(customCurve, ecc.ech);
+            customPoint = new ECPoint(customCurve, ecc.rm);
             // Release unused previous objects
             if (CARD_TYPE != OperationSupport.SIMULATOR) {
                 JCSystem.requestObjectDeletion();

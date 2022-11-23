@@ -20,11 +20,6 @@ public class BaseHelper {
      * @throws SW_ALREADYLOCKED if already locked (is already in use by other
      * operation)
      */
-/*    
-    public void lock(Object objToLock) {
-        rm.locker.lock(objToLock);
-    }
-*/
     public void lock(byte[] objToLock) {
         rm.locker.lock(objToLock);
     }
@@ -38,11 +33,6 @@ public class BaseHelper {
      * @throws SW_NOTLOCKED_BIGNAT if was not locked before (inconsistence in
      * lock/unlock sequence)
      */
-/*    
-    public void unlock(Object objToUnlock) {
-        rm.locker.unlock(objToUnlock);
-    }
-*/
     public void unlock(byte[] objToUnlock) {
         rm.locker.unlock(objToUnlock);
     }
@@ -54,17 +44,6 @@ public class BaseHelper {
         rm.locker.unlockAll();
     }
 
-    /**
-     * Check if provided object is logically locked
-     *
-     * @param objToUnlock object to be checked
-     * @return true of array is logically locked, false otherwise
-     */
-/*    
-    public boolean isLocked(Object objToUnlock) {
-        return rm.locker.isLocked(objToUnlock);
-    }    
-*/    
     /**
      * Allocates new byte[] array with provided length either in RAM or EEPROM
      * based on an allocator type. Method updates internal counters of bytes

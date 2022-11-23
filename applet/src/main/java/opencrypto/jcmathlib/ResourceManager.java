@@ -1,7 +1,9 @@
 package opencrypto.jcmathlib;
 
 import javacard.framework.Util;
+import javacard.security.KeyAgreement;
 import javacard.security.MessageDigest;
+import javacard.security.Signature;
 
 /**
  * @author Petr Svenda
@@ -28,9 +30,11 @@ public class ResourceManager {
     /**
      * Number of pre-allocated helper arrays
      */
-    public static final byte NUM_HELPER_ARRAYS = 4;
+    public static final byte NUM_HELPER_ARRAYS = 5;
 
     MessageDigest hashEngine;
+    KeyAgreement ecMultKA;
+    Signature verifyEcdsa;
     public static final byte NUM_SHARED_HELPER_OBJECTS = 1;
 
 
@@ -72,7 +76,6 @@ public class ResourceManager {
         hashEngine = MessageDigest.getInstance(MessageDigest.ALG_SHA_256, false);
         helper_hashArray = memAlloc.allocateByteArray(hashEngine.getLength(), memAlloc.getAllocatorType(ObjectAllocator.ECPH_hashArray));
         locker.registerLock(helper_hashArray);
-        //locker.registerLock(hashEngine); // register hash engine to slightly speedup search for locked objects (hash engine used less frequently)
 
 
         helper_BN_A = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_A), bnh);
@@ -89,6 +92,13 @@ public class ResourceManager {
         helperEC_BN_E = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_E), bnh);
         helperEC_BN_F = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_F), bnh);
 
+        // ECC Engines
+        if (OperationSupport.getInstance().EC_HW_XY) {
+            ecMultKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY, false);
+        } else if (OperationSupport.getInstance().EC_HW_X) {
+            ecMultKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN, false);
+        }
+        verifyEcdsa = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
 
     }
 
@@ -117,7 +127,23 @@ public class ResourceManager {
     }
 
     /**
-     * Unlocks all helper objects
+     * Lock a byte array
+     * @param objToLock the byte array
+     */
+    public void lock(byte[] objToLock) {
+        locker.lock(objToLock);
+    }
+
+    /**
+     * Unlock a byte array
+     * @param objToUnlock the byte array
+     */
+    public void unlock(byte[] objToUnlock) {
+        locker.unlock(objToUnlock);
+    }
+
+    /**
+     * Unlocks all locked objects
      */
     public void unlockAll() {
         if (helper_BN_A.isLocked()) {
@@ -157,12 +183,7 @@ public class ResourceManager {
         if (helperEC_BN_F.isLocked()) {
             helperEC_BN_F.unlock();
         }
-        if (locker.isLocked(helper_uncompressed_point_arr1)) {
-            locker.unlock(helper_uncompressed_point_arr1);
-        }
-        if (locker.isLocked(helper_hashArray)) {
-            locker.unlock(helper_hashArray);
-        }
 
+        locker.unlockAll();
     }
 }
