@@ -39,12 +39,6 @@ public class ECConfig {
      *      initialize properly underlying arrays and engines.  
      */
     public ECConfig(short maxECLength) {
-        
-        // Allocate helper objects for BN and EC
-        // Note: due to circular references, we need to split object creation and actual alloaction and initailiztion later (initialize()) 
-        rm = new ResourceManager();
-
-        // Set proper lengths and other internal settings based on required ECC length
         if (maxECLength <= (short) 256) {
             setECC256Config();
         }
@@ -57,9 +51,8 @@ public class ECConfig {
         else {
             ISOException.throwIt(ReturnCodes.SW_ECPOINT_INVALIDLENGTH);
         }
-        
-        // Allocate shared resources and initialize mapping between shared objects and helpers
-        rm.initialize(MAX_POINT_SIZE, MAX_COORD_SIZE, MAX_BIGNAT_SIZE, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
+
+        rm = new ResourceManager(MAX_POINT_SIZE, MAX_COORD_SIZE, MAX_BIGNAT_SIZE, MULT_RSA_ENGINE_MAX_LENGTH_BITS, MODULO_RSA_ENGINE_MAX_LENGTH_BITS);
     }
     
     public void refreshAfterReset() {
@@ -67,40 +60,28 @@ public class ECConfig {
             rm.locker.refreshAfterReset();
         }        
     }
-    
-    void reset() {}
-    
+
     public void setECC256Config() {
-        reset();
         MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 512;
         MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768;        
         MAX_POINT_SIZE = (short) 64;
         computeDerivedLengths();
     }
     public void setECC384Config() {
-        reset();
         MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768;
         MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1024;
         MAX_POINT_SIZE = (short) 96;
         computeDerivedLengths();
     }
     public void setECC512Config() {
-        reset();
         MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1024;
         MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1280;
         MAX_POINT_SIZE = (short) 128;
         computeDerivedLengths();
-    }    
-    public void setECC521Config() {
-        reset();
-        MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1280;
-        MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1280;
-        MAX_POINT_SIZE = (short) 129;
-        computeDerivedLengths();
     }
-    
+
     private void computeDerivedLengths() {
-        MAX_BIGNAT_SIZE = (short) ((short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8) + 1);
+        MAX_BIGNAT_SIZE = (short) ((short) (MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8) + 1);
         MAX_COORD_SIZE = (short) (MAX_POINT_SIZE / 2);
     }
 
@@ -110,6 +91,5 @@ public class ECConfig {
      */
     void unlockAll() {
         rm.unlockAll();
-        rm.locker.unlockAll();
     }
 }

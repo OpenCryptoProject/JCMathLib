@@ -67,7 +67,7 @@ public class ECPoint {
         if (length() != other.length()) {
             ISOException.throwIt(ReturnCodes.SW_ECPOINT_INVALIDLENGTH);
         }
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);
         short len = other.getW(pointBuffer, (short) 0);
@@ -128,7 +128,7 @@ public class ECPoint {
      * @return length of X coordinate (in bytes)
      */
     public short getX(byte[] buffer, short offset) {
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);
         point.getW(pointBuffer, (short) 0);
@@ -145,7 +145,7 @@ public class ECPoint {
      * @return length of Y coordinate (in bytes)
      */
     public short getY(byte[] buffer, short offset) {
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);
         point.getW(pointBuffer, (short) 0);
@@ -167,11 +167,11 @@ public class ECPoint {
      * Double this point. Pure implementation without KeyAgreement.
      */
     public void swDouble() {
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
-        BigNat pX = rm.helperEC_BN_B;
-        BigNat pY = rm.helperEC_BN_C;
-        BigNat lambda = rm.helperEC_BN_D;
-        BigNat tmp = rm.helperEC_BN_E;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
+        BigNat pX = rm.EC_BN_B;
+        BigNat pY = rm.EC_BN_C;
+        BigNat lambda = rm.EC_BN_D;
+        BigNat tmp = rm.EC_BN_E;
 
         rm.lock(pointBuffer);
         getW(pointBuffer, (short) 0);
@@ -234,15 +234,15 @@ public class ECPoint {
             return;
         }
 
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
-        BigNat xR = rm.helperEC_BN_B;
-        BigNat yR = rm.helperEC_BN_C;
-        BigNat xP = rm.helperEC_BN_D;
-        BigNat yP = rm.helperEC_BN_E;
-        BigNat xQ = rm.helperEC_BN_F;
-        BigNat nominator = rm.helperEC_BN_B;
-        BigNat denominator = rm.helperEC_BN_C;
-        BigNat lambda = rm.helperEC_BN_A;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
+        BigNat xR = rm.EC_BN_B;
+        BigNat yR = rm.EC_BN_C;
+        BigNat xP = rm.EC_BN_D;
+        BigNat yP = rm.EC_BN_E;
+        BigNat xQ = rm.EC_BN_F;
+        BigNat nominator = rm.EC_BN_B;
+        BigNat denominator = rm.EC_BN_C;
+        BigNat lambda = rm.EC_BN_A;
 
         rm.lock(pointBuffer);
         point.getW(pointBuffer, (short) 0);
@@ -347,7 +347,7 @@ public class ECPoint {
      * @param scalarBytes value of scalar for multiplication
      */
     public void multiplication(byte[] scalarBytes, short scalarOffset, short scalarLen) {
-        BigNat scalar = rm.helperEC_BN_F;
+        BigNat scalar = rm.EC_BN_F;
 
         scalar.lock();
         scalar.set_size(scalarLen);
@@ -379,7 +379,7 @@ public class ECPoint {
      * @param scalar value of scalar for multiplication
      */
     public void multXY(BigNat scalar) {
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr2;
+        byte[] pointBuffer = rm.POINT_ARRAY_B;
 
         rm.lock(pointBuffer);
         short len = multXYKA(scalar, pointBuffer, (short) 0);
@@ -398,7 +398,7 @@ public class ECPoint {
      * @return length of resulting value (in bytes)
      */
     public short multXYKA(BigNat scalar, byte[] outBuffer, short outBufferOffset) {
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         curve.disposable_priv.setS(scalar.as_byte_array(), (short) 0, scalar.length());
         rm.ecMultKA.init(curve.disposable_priv);
@@ -416,12 +416,12 @@ public class ECPoint {
      * @param scalar value of scalar for multiplication
      */
     private void multX(BigNat scalar) {
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
-        byte[] resultBuffer = rm.helper_BN_array1;
-        BigNat x = rm.helperEC_BN_B;
-        BigNat ySq = rm.helperEC_BN_C;
-        BigNat y1 = rm.helperEC_BN_D;
-        BigNat y2 = rm.helperEC_BN_B;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
+        byte[] resultBuffer = rm.ARRAY_A;
+        BigNat x = rm.EC_BN_B;
+        BigNat ySq = rm.EC_BN_C;
+        BigNat y1 = rm.EC_BN_D;
+        BigNat y2 = rm.EC_BN_B;
 
         x.lock();
         short len = multXKA(scalar, x.as_byte_array(), (short) 0);
@@ -475,7 +475,7 @@ public class ECPoint {
      * @return length of resulting value (in bytes)
      */
     private short multXKA(BigNat scalar, byte[] outBuffer, short outBufferOffset) {
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
         // NOTE: potential problem on real cards (j2e) - when small scalar is used (e.g., BigNat.TWO), operation sometimes freezes
         curve.disposable_priv.setS(scalar.as_byte_array(), (short) 0, scalar.length());
 
@@ -494,8 +494,8 @@ public class ECPoint {
      * The operation will dump point into uncompressed_point_arr, negate Y and restore back
      */
     public void negate() {
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
-        BigNat y = rm.helperEC_BN_C;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
+        BigNat y = rm.EC_BN_C;
 
         y.lock();
         rm.lock(pointBuffer);
@@ -517,7 +517,7 @@ public class ECPoint {
      * @param xLen    length of the X coordinate
      */
     public void fromX(byte[] xCoord, short xOffset, short xLen) {
-        BigNat x = rm.helperEC_BN_F;
+        BigNat x = rm.EC_BN_F;
 
         x.lock();
         x.set_size(xLen);
@@ -532,9 +532,9 @@ public class ECPoint {
      * @param x the x coordinate
      */
     private void fromX(BigNat x) {
-        BigNat y_sq = rm.helperEC_BN_C;
-        BigNat y = rm.helperEC_BN_D;
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
+        BigNat y_sq = rm.EC_BN_C;
+        BigNat y = rm.EC_BN_D;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         //Y^2 = X^3 + XA + B = x(x^2+A)+B
         y_sq.lock();
@@ -564,7 +564,7 @@ public class ECPoint {
      * @return true if Y coordinate is even; false otherwise
      */
     public boolean isYEven() {
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);
         point.getW(pointBuffer, (short) 0);
@@ -586,8 +586,8 @@ public class ECPoint {
         // The comparison is made with hash of point values instead of directly values.
         // This way, offset of first mismatching byte is not leaked via timing side-channel.
         // Additionally, only single array is required for storage of plain point values thus saving some RAM.
-        byte[] pointBuffer = rm.helper_uncompressed_point_arr1;
-        byte[] hashBuffer = rm.helper_hashArray;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
+        byte[] hashBuffer = rm.HASH_ARRAY;
 
         rm.lock(pointBuffer);
         rm.lock(hashBuffer);

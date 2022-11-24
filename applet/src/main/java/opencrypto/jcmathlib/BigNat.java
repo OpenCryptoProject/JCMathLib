@@ -14,6 +14,9 @@ import javacard.security.RSAPublicKey;
  * @author Vasilios Mavroudis and Petr Svenda
  */
 public class BigNat {
+    // Threshold bit length of mult operand to invoke RSA trick
+    public static final short FAST_MULT_VIA_RSA_THRESHOLD_LENGTH = (short) 16;
+
     private final ResourceManager rm;
     /**
      * Configuration flag controlling re-allocation of internal array. If true, internal BigNat buffer can be enlarged during clone
@@ -282,7 +285,7 @@ public class BigNat {
             return;
         }
 
-        byte[] tmpBuffer = rm.helper_BN_array1;
+        byte[] tmpBuffer = rm.ARRAY_A;
         short this_start, other_start, len;
 
         rm.lock(tmpBuffer);
@@ -517,8 +520,8 @@ public class BigNat {
      */
     public boolean same_value(BigNat other) {
         short hashLen;
-        byte[] tmpBuffer = rm.helper_BN_array1;
-        byte[] hashBuffer = rm.helper_BN_array2;
+        byte[] tmpBuffer = rm.ARRAY_A;
+        byte[] hashBuffer = rm.ARRAY_B;
 
         // Compare using hash engine
         // The comparison is made with hash of point values instead of directly values.
@@ -1075,8 +1078,8 @@ public class BigNat {
      * @param other short value to add
      */
     public void add(short other) {
-        Util.setShort(rm.ram_word, (short) 0, other); // serialize other into array
-        this.add_carry(rm.ram_word, (short) 0, (short) 2); // add as array
+        Util.setShort(rm.RAM_WORD, (short) 0, other); // serialize other into array
+        this.add_carry(rm.RAM_WORD, (short) 0, (short) 2); // add as array
     }
 
     /**
@@ -1154,7 +1157,7 @@ public class BigNat {
      * @param modulo value of modulo to compute
      */
     public void mod_add(BigNat other, BigNat modulo) {
-        BigNat tmp = rm.helper_BN_A;
+        BigNat tmp = rm.BN_A;
 
         short tmp_size = this.size;
         if (tmp_size < other.size) {
@@ -1179,9 +1182,9 @@ public class BigNat {
      * @param modulo value of modulo to apply
      */
     public void mod_sub(BigNat other, BigNat modulo) {
-        BigNat tmp = rm.helper_BN_B;
-        BigNat tmpOther = rm.helper_BN_C;
-        BigNat tmpThis = rm.helper_BN_A;
+        BigNat tmp = rm.BN_B;
+        BigNat tmpOther = rm.BN_C;
+        BigNat tmpThis = rm.BN_A;
 
         if (other.lesser(this)) { // CTO
             this.subtract(other);
@@ -1274,7 +1277,7 @@ public class BigNat {
      * @param other value of divisor
      */
     public void divide(BigNat other) {
-        BigNat tmp = rm.helper_BN_E;
+        BigNat tmp = rm.BN_E;
 
         tmp.lock();
         tmp.clone(this);
@@ -1290,8 +1293,8 @@ public class BigNat {
      * @param other value of other BigNat
      */
     public void gcd(BigNat other) {
-        BigNat tmp = rm.helper_BN_A;
-        BigNat tmpOther = rm.helper_BN_B;
+        BigNat tmp = rm.BN_A;
+        BigNat tmpOther = rm.BN_B;
 
         tmp.lock();
         tmpOther.lock();
@@ -1318,7 +1321,7 @@ public class BigNat {
      * @return true if coprime, false otherwise
      */
     public boolean is_coprime(BigNat a, BigNat b) {
-        BigNat tmp = rm.helper_BN_C; // is_coprime calls gcd internally
+        BigNat tmp = rm.BN_C; // is_coprime calls gcd internally
 
         tmp.lock();
         tmp.clone(a);
@@ -1334,8 +1337,8 @@ public class BigNat {
      * @param exp  value of exponent
      */
     public void exponentiation(BigNat base, BigNat exp) {
-        BigNat tmp = rm.helper_BN_A;
-        BigNat i = rm.helper_BN_B;
+        BigNat tmp = rm.BN_A;
+        BigNat i = rm.BN_B;
 
         this.one();
         i.lock();
@@ -1361,7 +1364,7 @@ public class BigNat {
      * @param y second factor
      */
     public void mult(BigNat x, BigNat y) {
-        if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() < ResourceManager.FAST_MULT_VIA_RSA_THRESHOLD_LENGTH) {
+        if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() < FAST_MULT_VIA_RSA_THRESHOLD_LENGTH) {
             // If simulator or not supported, use slow multiplication
             // Use slow multiplication also when numbers are small => faster to do in software
             mult_schoolbook(x, y);
@@ -1405,8 +1408,8 @@ public class BigNat {
         short xOffset;
         short yOffset;
 
-        byte[] resultBuffer1 = rm.helper_BN_array1;
-        byte[] resultBuffer2 = rm.helper_BN_array2;
+        byte[] resultBuffer1 = rm.ARRAY_A;
+        byte[] resultBuffer2 = rm.ARRAY_B;
 
         rm.lock(resultBuffer1);
 
@@ -1512,7 +1515,7 @@ public class BigNat {
      * @param modulo value of modulo
      */
     public void mod_mult(BigNat x, BigNat y, BigNat modulo) {
-        BigNat tmp = rm.helper_BN_E; // mod_mult is called from sqrt_FP => requires helper_BN_E not being locked when mod_mult is called
+        BigNat tmp = rm.BN_E; // mod_mult is called from sqrt_FP => requires helper_BN_E not being locked when mod_mult is called
 
         tmp.lock();
         tmp.resize_to_max(false);
@@ -1581,9 +1584,9 @@ public class BigNat {
      * @param mod modulus, first two digits must be zero
      */
     public void mod_mult_inefficient(BigNat x, BigNat y, BigNat mod) {
-        BigNat tmp = rm.helper_BN_A;
-        BigNat tmpMod = rm.helper_BN_B;
-        BigNat tmpX = rm.helper_BN_C;
+        BigNat tmp = rm.BN_A;
+        BigNat tmpMod = rm.BN_B;
+        BigNat tmpX = rm.BN_C;
 
         short len = 0;
         if (x.length() >= mod.length()) {
@@ -1627,12 +1630,12 @@ public class BigNat {
      * @param p value to compute square root from
      */
     public void sqrt_FP(BigNat p) {
-        BigNat s = rm.helper_BN_A;
-        BigNat exp = rm.helper_BN_A;
-        BigNat p1 = rm.helper_BN_B;
-        BigNat q = rm.helper_BN_C;
-        BigNat tmp = rm.helper_BN_D;
-        BigNat z = rm.helper_BN_E;
+        BigNat s = rm.BN_A;
+        BigNat exp = rm.BN_A;
+        BigNat p1 = rm.BN_B;
+        BigNat q = rm.BN_C;
+        BigNat tmp = rm.BN_D;
+        BigNat z = rm.BN_E;
 
         // 1. By factoring out powers of 2, find Q and S such that p-1=Q2^S p-1=Q*2^S and Q is odd
         p1.lock();
@@ -1709,7 +1712,7 @@ public class BigNat {
      * @param modulo value of modulo
      */
     public void mod_inv(BigNat modulo) {
-        BigNat tmp = rm.helper_BN_B;
+        BigNat tmp = rm.BN_B;
         tmp.lock();
         tmp.clone(modulo);
         tmp.decrement_one();
@@ -1730,9 +1733,9 @@ public class BigNat {
         if (!OperationSupport.getInstance().RSA_MOD_EXP)
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
 
+        BigNat tmpMod = rm.BN_F;  // mod_exp is called from sqrt_FP => requires helper_BN_F not being locked when mod_exp is called
+        byte[] tmpBuffer = rm.ARRAY_A;
         short tmp_size = (short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
-        BigNat tmpMod = rm.helper_BN_F;  // mod_exp is called from sqrt_FP => requires helper_BN_F not being locked when mod_exp is called
-        byte[] tmpBuffer = rm.helper_BN_array1;
 
         tmpMod.lock();
         tmpMod.set_size(tmp_size);
@@ -1818,7 +1821,7 @@ public class BigNat {
      * @param resultOffset start offset of resultArray
      */
     private short n_mod_exp(short baseLen, BigNat base, byte[] exponent, short exponentLen, BigNat modulo, byte[] resultArray, short resultOffset) {
-        byte[] tmpBuffer = rm.helper_BN_array1;
+        byte[] tmpBuffer = rm.ARRAY_A;
 
         // Verify if pre-allocated engine match the required values
         if (rm.expPK.getSize() < (short) (modulo.length() * 8)) {
@@ -1853,7 +1856,7 @@ public class BigNat {
      * @param mod value of modulus
      */
     public void mod_negate(BigNat mod) {
-        BigNat tmp = rm.helper_BN_B;
+        BigNat tmp = rm.BN_B;
 
         tmp.lock();
         tmp.set_size(mod.length());
@@ -1873,7 +1876,7 @@ public class BigNat {
      * @param numBytes number of bytes to shift
      */
     public void shift_bytes_right(short numBytes) {
-        byte[] tmp = rm.helper_BN_array1;
+        byte[] tmp = rm.ARRAY_A;
 
         // Move whole content by numBytes offset
         rm.lock(tmp);

@@ -9,31 +9,8 @@ import javacardx.crypto.Cipher;
  * @author Petr Svenda
  */
 public class ResourceManager {
-    // At least the bit length of the biggest BigNat
-    public short MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 512;
-
-    // At least double of the bit length of the biggest BigNat
-    public short MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768;
-
-    // Threshold bit length of mult operand to invoke RSA trick
-    public static final short FAST_MULT_VIA_RSA_THRESHOLD_LENGTH = (short) 16;
-
     public ObjectLocker locker;
     public ObjectAllocator memAlloc;
-
-
-    // Allocated arrays
-    byte[] helper_BN_array1;
-    byte[] helper_BN_array2;
-    byte[] helper_uncompressed_point_arr1;
-    byte[] helper_uncompressed_point_arr2;
-    byte[] helper_hashArray;
-    byte[] ram_word;
-
-    /**
-     * Number of pre-allocated helper arrays
-     */
-    public static final byte NUM_HELPER_ARRAYS = 5;
 
     MessageDigest hashEngine;
     KeyAgreement ecMultKA;
@@ -41,69 +18,59 @@ public class ResourceManager {
     Cipher multCiph;
     RSAPublicKey expPK;
     Cipher expCiph;
+
+    byte[] ARRAY_A, ARRAY_B, POINT_ARRAY_A, POINT_ARRAY_B, HASH_ARRAY;
+    public static final byte LOCKER_ARRAYS = 5;
+    byte[] RAM_WORD; // Without lock
+
     static byte[] CONST_TWO = {0x02};
-    public static final byte NUM_SHARED_HELPER_OBJECTS = 1;
+    public static final byte LOCKER_OBJECTS = 1;
 
+    BigNat BN_A, BN_B, BN_C, BN_D, BN_E, BN_F;
+    BigNat EC_BN_A, EC_BN_B, EC_BN_C, EC_BN_D, EC_BN_E, EC_BN_F;
+    public static BigNat ONE, TWO, THREE;
 
-    // These Bignats helper_BN_? are allocated
-    BigNat helper_BN_A;
-    BigNat helper_BN_B;
-    BigNat helper_BN_C;
-    BigNat helper_BN_D;
-    BigNat helper_BN_E;
-    BigNat helper_BN_F;
+    // TODO remove if possible
+    public final short MODULO_RSA_ENGINE_MAX_LENGTH_BITS;
 
-    // These Bignats helperEC_BN_? are allocated
-    BigNat helperEC_BN_A;
-    BigNat helperEC_BN_B;
-    BigNat helperEC_BN_C;
-    BigNat helperEC_BN_D;
-    BigNat helperEC_BN_E;
-    BigNat helperEC_BN_F;
-
-    public static BigNat ONE;
-    public static BigNat TWO;
-    public static BigNat THREE;
-
-    public void initialize(short MAX_POINT_SIZE, short MAX_COORD_SIZE, short MAX_BIGNAT_SIZE, short MULT_RSA_ENGINE_MAX_LENGTH_BITS) {
+    public ResourceManager(short MAX_POINT_SIZE, short MAX_COORD_SIZE, short MAX_BIGNAT_SIZE, short MULT_RSA_ENGINE_MAX_LENGTH_BITS, short MODULO_RSA_ENGINE_MAX_LENGTH_BITS) {
+        this.MODULO_RSA_ENGINE_MAX_LENGTH_BITS = MODULO_RSA_ENGINE_MAX_LENGTH_BITS;
         // Allocate long-term helper values
-        locker = new ObjectLocker((short) (NUM_HELPER_ARRAYS + NUM_SHARED_HELPER_OBJECTS));
-        //locker.setLockingActive(false); // if required, locking can be disabled
+        locker = new ObjectLocker((short) (LOCKER_ARRAYS + LOCKER_OBJECTS));
+        // locker.setLockingActive(false); // if required, locking can be disabled
         memAlloc = new ObjectAllocator();
         memAlloc.setAllAllocatorsRAM();
-        //if required, memory for helper objects and arrays can be in persistent memory to save RAM (or some tradeoff)       
-        //ObjectAllocator.setAllAllocatorsEEPROM();  //ObjectAllocator.setAllocatorsTradeoff();
+        // if required, memory for helper objects and arrays can be in persistent memory to save RAM (or some tradeoff)
+        // ObjectAllocator.setAllAllocatorsEEPROM();
+        // ObjectAllocator.setAllocatorsTradeoff();
 
 
-        // Multiplication speedup engines and arrays used by Bignat.mult_RSATrick()
-        helper_BN_array1 = memAlloc.allocateByteArray((short) (MULT_RSA_ENGINE_MAX_LENGTH_BITS / 8), memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_array1));
-        locker.registerLock(helper_BN_array1);
-        helper_BN_array2 = memAlloc.allocateByteArray((short) (MULT_RSA_ENGINE_MAX_LENGTH_BITS / 8), memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_array2));
-        locker.registerLock(helper_BN_array2);
-        helper_uncompressed_point_arr1 = memAlloc.allocateByteArray((short) (MAX_POINT_SIZE + 1), memAlloc.getAllocatorType(ObjectAllocator.ECPH_uncompressed_point_arr1));
-        locker.registerLock(helper_uncompressed_point_arr1);
-        helper_uncompressed_point_arr2 = memAlloc.allocateByteArray((short) (MAX_POINT_SIZE + 1), memAlloc.getAllocatorType(ObjectAllocator.ECPH_uncompressed_point_arr2));
-        locker.registerLock(helper_uncompressed_point_arr2);
+        ARRAY_A = memAlloc.allocateByteArray((short) (MULT_RSA_ENGINE_MAX_LENGTH_BITS / 8), memAlloc.getAllocatorType(ObjectAllocator.ARRAY_A));
+        locker.registerLock(ARRAY_A);
+        ARRAY_B = memAlloc.allocateByteArray((short) (MULT_RSA_ENGINE_MAX_LENGTH_BITS / 8), memAlloc.getAllocatorType(ObjectAllocator.ARRAY_B));
+        locker.registerLock(ARRAY_B);
+        POINT_ARRAY_A = memAlloc.allocateByteArray((short) (MAX_POINT_SIZE + 1), memAlloc.getAllocatorType(ObjectAllocator.POINT_ARRAY_A));
+        locker.registerLock(POINT_ARRAY_A);
+        POINT_ARRAY_B = memAlloc.allocateByteArray((short) (MAX_POINT_SIZE + 1), memAlloc.getAllocatorType(ObjectAllocator.POINT_ARRAY_B));
+        locker.registerLock(POINT_ARRAY_B);
         hashEngine = MessageDigest.getInstance(MessageDigest.ALG_SHA_256, false);
-        helper_hashArray = memAlloc.allocateByteArray(hashEngine.getLength(), memAlloc.getAllocatorType(ObjectAllocator.ECPH_hashArray));
-        locker.registerLock(helper_hashArray);
+        HASH_ARRAY = memAlloc.allocateByteArray(hashEngine.getLength(), memAlloc.getAllocatorType(ObjectAllocator.HASH_ARRAY));
+        locker.registerLock(HASH_ARRAY);
+        RAM_WORD = memAlloc.allocateByteArray((short) 2, JCSystem.MEMORY_TYPE_TRANSIENT_RESET); // only 2b RAM for faster add(short)
 
+        BN_A = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_A), this);
+        BN_B = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_B), this);
+        BN_C = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_C), this);
+        BN_D = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_D), this);
+        BN_E = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_E), this);
+        BN_F = new BigNat((short) (MAX_BIGNAT_SIZE + 2), memAlloc.getAllocatorType(ObjectAllocator.BN_F), this); // +2 is to correct for infrequent RSA result with two or more leading zeroes
 
-        helper_BN_A = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_A), this);
-        helper_BN_B = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_B), this);
-        helper_BN_C = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_C), this);
-        helper_BN_D = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_D), this);
-        helper_BN_E = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_E), this);
-        helper_BN_F = new BigNat((short) (MAX_BIGNAT_SIZE + 2), memAlloc.getAllocatorType(ObjectAllocator.BNH_helper_BN_F), this); // +2 is to correct for infrequent RSA result with two or more leading zeroes
-
-        helperEC_BN_A = new BigNat(MAX_POINT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_A), this);
-        helperEC_BN_B = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_B), this);
-        helperEC_BN_C = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_C), this);
-        helperEC_BN_D = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_D), this);
-        helperEC_BN_E = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_E), this);
-        helperEC_BN_F = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.ECPH_helperEC_BN_F), this);
-
-        ram_word = memAlloc.allocateByteArray((short) 2, JCSystem.MEMORY_TYPE_TRANSIENT_RESET); // only 2b RAM for faster add(short)
+        EC_BN_A = new BigNat(MAX_POINT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.EC_BN_A), this);
+        EC_BN_B = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.EC_BN_B), this);
+        EC_BN_C = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.EC_BN_C), this);
+        EC_BN_D = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.EC_BN_D), this);
+        EC_BN_E = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.EC_BN_E), this);
+        EC_BN_F = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.EC_BN_F), this);
 
         // Allocate BN constants always in EEPROM (only reading)
         ONE = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
@@ -122,7 +89,7 @@ public class ResourceManager {
         verifyEcdsa = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
 
         // RSA Mult Helpers
-        KeyPair multKP = new KeyPair(KeyPair.ALG_RSA_CRT, this.MULT_RSA_ENGINE_MAX_LENGTH_BITS);
+        KeyPair multKP = new KeyPair(KeyPair.ALG_RSA_CRT, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
         multKP.genKeyPair();
         RSAPublicKey multPK = (RSAPublicKey) multKP.getPublic();
         multPK.setExponent(CONST_TWO, (short) 0, (short) CONST_TWO.length);
@@ -138,25 +105,24 @@ public class ResourceManager {
      * Erase all values stored in helper objects
      */
     void erase() {
-        helper_BN_A.erase();
-        helper_BN_B.erase();
-        helper_BN_C.erase();
-        helper_BN_D.erase();
-        helper_BN_E.erase();
-        helper_BN_F.erase();
+        BN_A.erase();
+        BN_B.erase();
+        BN_C.erase();
+        BN_D.erase();
+        BN_E.erase();
+        BN_F.erase();
 
-        helperEC_BN_A.erase();
-        helperEC_BN_B.erase();
-        helperEC_BN_C.erase();
-        helperEC_BN_D.erase();
-        helperEC_BN_E.erase();
-        helperEC_BN_F.erase();
+        EC_BN_A.erase();
+        EC_BN_B.erase();
+        EC_BN_C.erase();
+        EC_BN_D.erase();
+        EC_BN_E.erase();
+        EC_BN_F.erase();
 
-
-        Util.arrayFillNonAtomic(helper_BN_array1, (short) 0, (short) helper_BN_array1.length, (byte) 0);
-        Util.arrayFillNonAtomic(helper_BN_array2, (short) 0, (short) helper_BN_array2.length, (byte) 0);
-        Util.arrayFillNonAtomic(helper_uncompressed_point_arr1, (short) 0, (short) helper_uncompressed_point_arr1.length, (byte) 0);
-        Util.arrayFillNonAtomic(ram_word, (short) 0, (short) ram_word.length, (byte) 0);
+        Util.arrayFillNonAtomic(ARRAY_A, (short) 0, (short) ARRAY_A.length, (byte) 0);
+        Util.arrayFillNonAtomic(ARRAY_B, (short) 0, (short) ARRAY_B.length, (byte) 0);
+        Util.arrayFillNonAtomic(POINT_ARRAY_A, (short) 0, (short) POINT_ARRAY_A.length, (byte) 0);
+        Util.arrayFillNonAtomic(RAM_WORD, (short) 0, (short) RAM_WORD.length, (byte) 0);
     }
 
     /**
@@ -181,42 +147,42 @@ public class ResourceManager {
      * Unlocks all locked objects
      */
     public void unlockAll() {
-        if (helper_BN_A.isLocked()) {
-            helper_BN_A.unlock();
+        if (BN_A.isLocked()) {
+            BN_A.unlock();
         }
-        if (helper_BN_B.isLocked()) {
-            helper_BN_B.unlock();
+        if (BN_B.isLocked()) {
+            BN_B.unlock();
         }
-        if (helper_BN_C.isLocked()) {
-            helper_BN_C.unlock();
+        if (BN_C.isLocked()) {
+            BN_C.unlock();
         }
-        if (helper_BN_D.isLocked()) {
-            helper_BN_D.unlock();
+        if (BN_D.isLocked()) {
+            BN_D.unlock();
         }
-        if (helper_BN_E.isLocked()) {
-            helper_BN_E.unlock();
+        if (BN_E.isLocked()) {
+            BN_E.unlock();
         }
-        if (helper_BN_F.isLocked()) {
-            helper_BN_F.unlock();
+        if (BN_F.isLocked()) {
+            BN_F.unlock();
         }
 
-        if (helperEC_BN_A.isLocked()) {
-            helperEC_BN_A.unlock();
+        if (EC_BN_A.isLocked()) {
+            EC_BN_A.unlock();
         }
-        if (helperEC_BN_B.isLocked()) {
-            helperEC_BN_B.unlock();
+        if (EC_BN_B.isLocked()) {
+            EC_BN_B.unlock();
         }
-        if (helperEC_BN_C.isLocked()) {
-            helperEC_BN_C.unlock();
+        if (EC_BN_C.isLocked()) {
+            EC_BN_C.unlock();
         }
-        if (helperEC_BN_D.isLocked()) {
-            helperEC_BN_D.unlock();
+        if (EC_BN_D.isLocked()) {
+            EC_BN_D.unlock();
         }
-        if (helperEC_BN_E.isLocked()) {
-            helperEC_BN_E.unlock();
+        if (EC_BN_E.isLocked()) {
+            EC_BN_E.unlock();
         }
-        if (helperEC_BN_F.isLocked()) {
-            helperEC_BN_F.unlock();
+        if (EC_BN_F.isLocked()) {
+            EC_BN_F.unlock();
         }
 
         locker.unlockAll();

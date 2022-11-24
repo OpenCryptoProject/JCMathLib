@@ -269,7 +269,7 @@ public class Integer {
      * @param other other integer to add
      */
     public void add(Integer other) {
-        BigNat tmp = rm.helper_BN_A;
+        BigNat tmp = rm.BN_A;
 
         if (this.isPositive() && other.isPositive()) { //this and other are (+)
             this.sign = 0;
@@ -323,8 +323,8 @@ public class Integer {
      * @param other other integer to multiply
      */
     public void multiply(Integer other) {
-        BigNat mod = rm.helper_BN_A;
-        BigNat tmp = rm.helper_BN_B;
+        BigNat mod = rm.BN_A;
+        BigNat tmp = rm.BN_B;
 
         if (this.isPositive() && other.isNegative()) {
             this.setSign((byte) 1);
@@ -354,7 +354,7 @@ public class Integer {
      * @param other divisor
      */
     public void divide(Integer other) {
-        BigNat tmp = rm.helper_BN_A;
+        BigNat tmp = rm.BN_A;
 
         if (this.isPositive() && other.isNegative()) {
             this.setSign((byte) 1);
