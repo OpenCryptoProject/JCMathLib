@@ -32,10 +32,6 @@ public class ECConfig {
     
     
     public ResourceManager rm;
-    /**
-     * Helper structure containing all preallocated objects necessary for Bignat operations
-     */
-    public BigNatHelper bnh;
 
     /**
      * Creates new control structure for requested bit length with all preallocated arrays and engines 
@@ -47,7 +43,6 @@ public class ECConfig {
         // Allocate helper objects for BN and EC
         // Note: due to circular references, we need to split object creation and actual alloaction and initailiztion later (initialize()) 
         rm = new ResourceManager();
-        bnh = new BigNatHelper(rm);
 
         // Set proper lengths and other internal settings based on required ECC length
         if (maxECLength <= (short) 256) {
@@ -64,8 +59,7 @@ public class ECConfig {
         }
         
         // Allocate shared resources and initialize mapping between shared objects and helpers
-        rm.initialize(MAX_POINT_SIZE, MAX_COORD_SIZE, MAX_BIGNAT_SIZE, MULT_RSA_ENGINE_MAX_LENGTH_BITS, bnh);
-        bnh.initialize(MODULO_RSA_ENGINE_MAX_LENGTH_BITS, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
+        rm.initialize(MAX_POINT_SIZE, MAX_COORD_SIZE, MAX_BIGNAT_SIZE, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
     }
     
     public void refreshAfterReset() {
@@ -74,9 +68,7 @@ public class ECConfig {
         }        
     }
     
-    void reset() {
-        bnh.FLAG_FAST_MULT_VIA_RSA = false;     
-    }
+    void reset() {}
     
     public void setECC256Config() {
         reset();
@@ -108,7 +100,7 @@ public class ECConfig {
     }
     
     private void computeDerivedLengths() {
-        MAX_BIGNAT_SIZE = (short) ((short) (bnh.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8) + 1);
+        MAX_BIGNAT_SIZE = (short) ((short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8) + 1);
         MAX_COORD_SIZE = (short) (MAX_POINT_SIZE / 2);
     }
 

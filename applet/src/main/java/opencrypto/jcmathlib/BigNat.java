@@ -1,5 +1,5 @@
 /**
- * Credits: Based on Bignat library from OV-chip project https://ovchip.cs.ru.nl/OV-chip_2.0 by Radboud University Nijmegen 
+ * Credits: Based on Bignat library from OV-chip project https://ovchip.cs.ru.nl/OV-chip_2.0 by Radboud University Nijmegen
  */
 package opencrypto.jcmathlib;
 
@@ -11,142 +11,138 @@ import javacard.security.KeyBuilder;
 import javacard.security.RSAPublicKey;
 
 /**
- * 
  * @author Vasilios Mavroudis and Petr Svenda
  */
 public class BigNat {
-    private final BigNatHelper bnh;
+    private final ResourceManager rm;
     /**
-     * Configuration flag controlling re-allocation of internal array. If true, internal Bignat buffer can be enlarged during clone
+     * Configuration flag controlling re-allocation of internal array. If true, internal BigNat buffer can be enlarged during clone
      * operation if required (keep false to prevent slow reallocations)
      */
-    boolean ALLOW_RUNTIME_REALLOCATION = false; 
-    
+    boolean ALLOW_RUNTIME_REALLOCATION = false;
+
     /**
-     * Configuration flag controlling clearing of shared Bignats on lock as prevention of unwanted leak of sensitive information from previous operation.
-     * If true, internal storage array is erased once Bignat is locked for use 
+     * Configuration flag controlling clearing of shared BigNats on lock as prevention of unwanted leak of sensitive information from previous operation.
+     * If true, internal storage array is erased once BigNat is locked for use
      */
     boolean ERASE_ON_LOCK = false;
     /**
      * Configuration flag controlling clearing of shared Bignats on unlock as
-     * prevention of unwanted leak of sensitive information to next operation. 
+     * prevention of unwanted leak of sensitive information to next operation.
      * If true, internal storage array is erased once Bignat is unlocked from use
      */
     boolean ERASE_ON_UNLOCK = false;
-    
+
     /**
-    * Factor for converting digit size into short length. 1 for the short/short
-    * converting, 4 for the int/long configuration.
-    * 
-    */
+     * Factor for converting digit size into short length. 1 for the short/short
+     * converting, 4 for the int/long configuration.
+     */
     public static final short size_multiplier = 1;
 
     /**
-    * Bitmask for extracting a digit out of a longer int/short value. short
-    * 0xff for the short/short configuration, long 0xffffffffL the int/long
-    * configuration.
-    */
+     * Bitmask for extracting a digit out of a longer int/short value. short
+     * 0xff for the short/short configuration, long 0xffffffffL the int/long
+     * configuration.
+     */
     public static final short digit_mask = 0xff;
 
     /**
-    * Bitmask for the highest bit in a digit. short 0x80 for the short/short
-    * configuration, long 0x80000000 for the int/long configuration.
-    * 
-    */
+     * Bitmask for the highest bit in a digit. short 0x80 for the short/short
+     * configuration, long 0x80000000 for the int/long configuration.
+     */
     public static final short digit_first_bit_mask = 0x80;
 
     /**
-    * Bitmask for the second highest bit in a digit. short 0x40 for the
-    * short/short configuration, long 0x40000000 for the int/long
-    * configuration.
-    * 
-    */
+     * Bitmask for the second highest bit in a digit. short 0x40 for the
+     * short/short configuration, long 0x40000000 for the int/long
+     * configuration.
+     */
     public static final short digit_second_bit_mask = 0x40;
 
     /**
-    * Bitmask for the two highest bits in a digit. short 0xC0 for the
-    * short/short configuration, long 0xC0000000 for the int/long
-    * configuration.
-    * 
-    */
+     * Bitmask for the two highest bits in a digit. short 0xC0 for the
+     * short/short configuration, long 0xC0000000 for the int/long
+     * configuration.
+     */
     public static final short digit_first_two_bit_mask = 0xC0;
 
     /**
-    * Size in bits of one digit. 8 for the short/short configuration, 32 for
-    * the int/long configuration.
-    */
+     * Size in bits of one digit. 8 for the short/short configuration, 32 for
+     * the int/long configuration.
+     */
     public static final short digit_len = 8;
 
     /**
-    * Size in bits of a double digit. 16 for the short/short configuration, 64
-    * for the int/long configuration.
-    */
+     * Size in bits of a double digit. 16 for the short/short configuration, 64
+     * for the int/long configuration.
+     */
     private static final short double_digit_len = 16;
 
     /**
-    * Bitmask for erasing the sign bit in a double digit. short 0x7fff for the
-    * short/short configuration, long 0x7fffffffffffffffL for the int/long
-    * configuration.
-    */
+     * Bitmask for erasing the sign bit in a double digit. short 0x7fff for the
+     * short/short configuration, long 0x7fffffffffffffffL for the int/long
+     * configuration.
+     */
     private static final short positive_double_digit_mask = 0x7fff;
 
     /**
-    * Bitmask for the highest bit in a double digit.
-    */
+     * Bitmask for the highest bit in a double digit.
+     */
     public static final short highest_digit_bit = (short) (1L << (digit_len - 1));
 
     /**
-    * The base as a double digit. The base is first value that does not fit
-    * into a single digit. 2^8 for the short/short configuration and 2^32 for
-    * the int/long configuration.
-    */
+     * The base as a double digit. The base is first value that does not fit
+     * into a single digit. 2^8 for the short/short configuration and 2^32 for
+     * the int/long configuration.
+     */
     public static final short bignat_base = (short) (1L << digit_len);
 
     /**
-    * Bitmask with just the highest bit in a double digit.
-    */
+     * Bitmask with just the highest bit in a double digit.
+     */
     public static final short highest_double_digit_bit = (short) (1L << (double_digit_len - 1));
 
     /**
-    * Digit array. Elements have type byte.
-    */
-    
-    /**
-     * Internal storage array for this Bignat. The current version uses byte array with 
-     * intermediate values stored which can be quickly processed with 
+     * Digit array. Elements have type byte.
      */
-    private byte[] value;               
+
+    /**
+     * Internal storage array for this Bignat. The current version uses byte array with
+     * intermediate values stored which can be quickly processed with
+     */
+    private byte[] value;
     private short size = -1;     // Current size of stored Bignat. Current number is encoded in first {@code size} of value array, starting from value[0]
     private short max_size = -1; // Maximum size of this Bignat. Corresponds to value.length
     private byte allocatorType = JCSystem.MEMORY_TYPE_PERSISTENT; // Memory storage type for value buffer
 
-    private boolean bLocked = false;    // Logical flag to store info if this Bignat is currently used for some operation. Used as a prevention of unintentional parallel use of same temporary pre-allocated Bignats.
+    private boolean locked = false;    // Logical flag to store info if this Bignat is currently used for some operation. Used as a prevention of unintentional parallel use of same temporary pre-allocated Bignats.
 
     /**
-     * Construct a Bignat of size {@code size} in shorts. Allocated in EEPROM or RAM based on 
+     * Construct a Bignat of size {@code size} in shorts. Allocated in EEPROM or RAM based on
      * {@code allocatorType}. JCSystem.MEMORY_TYPE_PERSISTENT, in RAM otherwise.
      *
-     * @param size the size of the new Bignat in bytes
-     * @param allocatorType type of allocator storage 
-     *      JCSystem.MEMORY_TYPE_PERSISTENT => EEPROM (slower writes, but RAM is saved)
-     *      JCSystem.MEMORY_TYPE_TRANSIENT_RESET => RAM 
-     *      JCSystem.MEMORY_TYPE_TRANSIENT_DESELECT => RAM
-     * @param bignatHelper {@code Bignat_Helper} class with helper objects
+     * @param size          the size of the new Bignat in bytes
+     * @param allocatorType type of allocator storage
+     *                      JCSystem.MEMORY_TYPE_PERSISTENT => EEPROM (slower writes, but RAM is saved)
+     *                      JCSystem.MEMORY_TYPE_TRANSIENT_RESET => RAM
+     *                      JCSystem.MEMORY_TYPE_TRANSIENT_DESELECT => RAM
+     * @param bignatHelper  {@code Bignat_Helper} class with helper objects
      */
-    public BigNat(short size, byte allocatorType, BigNatHelper bignatHelper) {
-        this.bnh = bignatHelper;
+    public BigNat(short size, byte allocatorType, ResourceManager rm) {
+        this.rm = rm;
         allocate_storage_array(size, allocatorType);
     }
 
     /**
      * Construct a Bignat with provided array used as internal storage as well as initial value.
-     * No copy of array is made. If this Bignat is used in operation which modifies the Bignat value, 
+     * No copy of array is made. If this Bignat is used in operation which modifies the Bignat value,
      * content of provided array is changed.
-     * @param valueBuffer internal storage
+     *
+     * @param valueBuffer  internal storage
      * @param bignatHelper {@code Bignat_Helper} class with all relevant settings and helper objects
      */
-    public BigNat(byte[] valueBuffer, BigNatHelper bignatHelper) {
-        this.bnh = bignatHelper;
+    public BigNat(byte[] valueBuffer, ResourceManager rm) {
+        this.rm = rm;
         this.size = (short) valueBuffer.length;
         this.max_size = (short) valueBuffer.length;
         this.allocatorType = -1; // no allocator
@@ -154,33 +150,34 @@ public class BigNat {
     }
 
     /**
-     * Lock/reserve this bignat for subsequent use. 
-     * Used to protect corruption of pre-allocated temporary Bignats used in different, 
-     * potentially nested operations. Must be unlocked by {@code unlock()} later on. 
-     * @throws SW_ALREADYLOCKED_BIGNAT if already locked (is already in use by other operation)
+     * Lock/reserve this bignat for subsequent use.
+     * Used to protect corruption of pre-allocated temporary Bignats used in different,
+     * potentially nested operations. Must be unlocked by {@code unlock()} later on.
+     *
+     * @throws SW_LOCK_ALREADYLOCKED if already locked (is already in use by other operation)
      */
     public void lock() {
-        if (!bLocked) {
-            bLocked = true;
+        if (!locked) {
+            locked = true;
             if (ERASE_ON_LOCK) {
                 erase();
             }
-        }
-        else {
+        } else {
             // this Bignat is already locked, raise exception (incorrect sequence of locking and unlocking)
-           ISOException.throwIt(ReturnCodes.SW_LOCK_ALREADYLOCKED);
+            ISOException.throwIt(ReturnCodes.SW_LOCK_ALREADYLOCKED);
         }
     }
+
     /**
      * Unlock/release this bignat from use. Used to protect corruption
      * of pre-allocated temporary Bignats used in different nested operations.
      * Must be locked before.
      *
-     * @throws SW_NOTLOCKED_BIGNAT if was not locked before (inconsistence in lock/unlock sequence)
+     * @throws SW_LOCK_NOTLOCKED if was not locked before (inconsistence in lock/unlock sequence)
      */
     public void unlock() {
-        if (bLocked) {
-            bLocked = false;
+        if (locked) {
+            locked = false;
             if (ERASE_ON_UNLOCK) {
                 erase();
             }
@@ -188,34 +185,36 @@ public class BigNat {
             // this Bignat is not locked, raise exception (incorrect sequence of locking and unlocking)
             ISOException.throwIt(ReturnCodes.SW_LOCK_NOTLOCKED);
         }
-    }    
-    
+    }
+
     /**
      * Return current state of logical lock of this object
+     *
      * @return true if object is logically locked (reserved), false otherwise
      */
     public boolean isLocked() {
-        return bLocked;
-    }    
+        return locked;
+    }
 
     /**
-    * Return this Bignat as byte array. For the short/short configuration
-    * simply the digit array is returned. For other configurations a new short
-    * array is allocated and returned. Modifying the returned short array
-    * therefore might or might not change this bignat.
-    * IMPORTANT: this function returns directly the underlying storage array. 
-    * Current value of this Bignat can be stored in smaller number of bytes. 
-    * Use {@code getLength()} method to obtain actual size.
-    * 
-    * @return this bignat as byte array
-    */
-    public byte[] as_byte_array() { 
+     * Return this Bignat as byte array. For the short/short configuration
+     * simply the digit array is returned. For other configurations a new short
+     * array is allocated and returned. Modifying the returned short array
+     * therefore might or might not change this bignat.
+     * IMPORTANT: this function returns directly the underlying storage array.
+     * Current value of this Bignat can be stored in smaller number of bytes.
+     * Use {@code getLength()} method to obtain actual size.
+     *
+     * @return this BigNat as byte array
+     */
+    public byte[] as_byte_array() {
         return value;
     }
 
     /**
-     * Serialize this Bignat value into a provided buffer
-     * @param buffer target buffer
+     * Serialize this BigNat value into a provided buffer
+     *
+     * @param buffer       target buffer
      * @param bufferOffset start offset in buffer
      * @return number of bytes copied
      */
@@ -226,36 +225,36 @@ public class BigNat {
 
 
     /**
-    * Return the size in digits. Provides access to the internal {@link #size}
-    * field.
-    * <P>
-    * The return value is adjusted by {@link #set_size}.
-    * 
-    * @return size in digits.
-    */
+     * Return the size in digits. Provides access to the internal {@link #size}
+     * field.
+     * <p>
+     * The return value is adjusted by {@link #set_size}.
+     *
+     * @return size in digits.
+     */
     public short length() {
         return size;
     }
 
     /**
-     * Sets internal size of Bignat. Previous value are kept so value is either non-destructively trimmed or enlarged. 
-     * @param newSize new size of Bignat. Must be in range of [0, max_size] where max_size was provided during object creation
+     * Sets internal size of BigNat. Previous value are kept so value is either non-destructively trimmed or enlarged.
+     *
+     * @param newSize new size of BigNat. Must be in range of [0, max_size] where max_size was provided during object creation
      */
     public void set_size(short newSize) {
         if (newSize < 0 || newSize > max_size) {
             ISOException.throwIt(ReturnCodes.SW_BIGNAT_RESIZETOLONGER);
-        }
-        else {
+        } else {
             this.size = newSize;
         }
-    }                
-    
+    }
+
     /**
      * Resize internal length of this Bignat to maximum size given during object
      * creation. If required, object is also zeroized
      *
      * @param bZeroize if true, all bytes of internal array are also set to
-     * zero. If false, previous value is kept.
+     *                 zero. If false, previous value is kept.
      */
     public void resize_to_max(boolean bZeroize) {
         set_size(max_size);
@@ -265,7 +264,7 @@ public class BigNat {
     }
 
     /**
-     * Create Bignat with different number of bytes used. Will cause longer number 
+     * Create BigNat with different number of bytes used. Will cause longer number
      * to shrink (loss of the more significant bytes) and shorter to be prepended with zeroes
      *
      * @param new_size new size in bytes
@@ -278,72 +277,75 @@ public class BigNat {
                 ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED); // Reallocation to longer size not permitted
             }
         }
-        
+
         if (new_size == this.size) {
-            // No need to resize enything, same length
-        } 
-        else {
-            short this_start, other_start, len;
-            bnh.lock(bnh.fnc_deep_resize_tmp);
-            if (this.size >= new_size) {
-                this_start = (short) (this.size - new_size);
-                other_start = 0;
-                len = new_size;
-
-                // Shrinking/cropping 
-                Util.arrayCopyNonAtomic(value, this_start, bnh.fnc_deep_resize_tmp, (short) 0, len);
-                Util.arrayCopyNonAtomic(bnh.fnc_deep_resize_tmp, (short) 0, value, (short) 0, len); // Move bytes in item array towards beggining
-                // Erase rest of allocated array with zeroes (just as sanitization)
-                short toErase = (short) (this.max_size - new_size);
-                if (toErase > 0) {
-                    Util.arrayFillNonAtomic(value, new_size, toErase, (byte) 0);
-                }
-            } else {
-                this_start = 0;
-                other_start = (short) (new_size - this.size);
-                len = this.size;
-                // Enlarging => Insert zeroes at begging, move bytes in item array towards the end
-                Util.arrayCopyNonAtomic(value, this_start, bnh.fnc_deep_resize_tmp, (short) 0, len);
-                // Move bytes in item array towards end
-                Util.arrayCopyNonAtomic(bnh.fnc_deep_resize_tmp, (short) 0, value, other_start, len);
-                // Fill begin of array with zeroes (just as sanitization)
-                if (other_start > 0) {
-                    Util.arrayFillNonAtomic(value, (short) 0, other_start, (byte) 0);
-                }
-            }
-            bnh.unlock(bnh.fnc_deep_resize_tmp);
-
-            set_size(new_size);
+            return;
         }
+
+        byte[] tmpBuffer = rm.helper_BN_array1;
+        short this_start, other_start, len;
+
+        rm.lock(tmpBuffer);
+        if (this.size >= new_size) {
+            this_start = (short) (this.size - new_size);
+            other_start = 0;
+            len = new_size;
+
+            // Shrinking/cropping
+            Util.arrayCopyNonAtomic(value, this_start, tmpBuffer, (short) 0, len);
+            Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, value, (short) 0, len); // Move bytes in item array towards beginning
+            // Erase rest of allocated array with zeroes (just as sanitization)
+            short toErase = (short) (this.max_size - new_size);
+            if (toErase > 0) {
+                Util.arrayFillNonAtomic(value, new_size, toErase, (byte) 0);
+            }
+        } else {
+            this_start = 0;
+            other_start = (short) (new_size - this.size);
+            len = this.size;
+            // Enlarging => Insert zeroes at begging, move bytes in item array towards the end
+            Util.arrayCopyNonAtomic(value, this_start, tmpBuffer, (short) 0, len);
+            // Move bytes in item array towards end
+            Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, value, other_start, len);
+            // Fill begin of array with zeroes (just as sanitization)
+            if (other_start > 0) {
+                Util.arrayFillNonAtomic(value, (short) 0, other_start, (byte) 0);
+            }
+        }
+        rm.unlock(tmpBuffer);
+
+        set_size(new_size);
     }
-    
-    
+
+
     /**
-     * Appends zeros in the suffix to reach the defined byte length 
-     * Essentially multiplies the number with 16 (HEX) 
+     * Appends zeros in the suffix to reach the defined byte length
+     * Essentially multiplies the number with 16 (HEX)
+     *
      * @param targetLength required length including appended zeroes
-     * @param outBuffer output buffer for value with appended zeroes
-     * @param outOffset start offset inside outBuffer for write
+     * @param outBuffer    output buffer for value with appended zeroes
+     * @param outOffset    start offset inside outBuffer for write
      */
     public void append_zeros(short targetLength, byte[] outBuffer, short outOffset) {
         Util.arrayCopyNonAtomic(value, (short) 0, outBuffer, outOffset, this.size); //copy the value
         Util.arrayFillNonAtomic(outBuffer, (short) (outOffset + this.size), (short) (targetLength - this.size), (byte) 0); //append zeros
-    } 
+    }
+
     /**
-     * Prepends zeros before the value of this Bignat up to target length. 
+     * Prepends zeros before the value of this Bignat up to target length.
      *
      * @param targetLength required length including prepended zeroes
-     * @param outBuffer output buffer for value with prepended zeroes
-     * @param outOffset start offset inside outBuffer for write
+     * @param outBuffer    output buffer for value with prepended zeroes
+     * @param outOffset    start offset inside outBuffer for write
      */
-    public void prepend_zeros(short targetLength, byte[] outBuffer, short outOffset) { 
+    public void prepend_zeros(short targetLength, byte[] outBuffer, short outOffset) {
         short other_start = (short) (targetLength - this.size);
         if (other_start > 0) {
             Util.arrayFillNonAtomic(outBuffer, outOffset, other_start, (byte) 0); //fill prefix with zeros
         }
         Util.arrayCopyNonAtomic(value, (short) 0, outBuffer, (short) (outOffset + other_start), this.size); //copy the value
-    }    
-    
+    }
+
     /**
      * Remove leading zeroes (if any) from Bignat value and decrease size accordingly
      */
@@ -351,51 +353,53 @@ public class BigNat {
         short i = 0;
         for (i = 0; i < this.length(); i++) { // Find first non-zero byte
             if (this.value[i] != 0) {
-            	break;
+                break;
             }
         }
 
-        short new_size = (short)(this.size-i);
+        short new_size = (short) (this.size - i);
         if (new_size < 0) {
             ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDRESIZE);
         }
         this.deep_resize(new_size);
     }
-    
-    
+
+
     /**
-    * Stores zero in this object for currently used subpart given by internal size.
-    */
+     * Stores zero in this object for currently used subpart given by internal size.
+     */
     public void zero() {
         Util.arrayFillNonAtomic(value, (short) 0, this.size, (byte) 0);
     }
+
     /**
      * Stores zero in this object for whole internal buffer regardless of current size.
-     */    
+     */
     public void zero_complete() {
         Util.arrayFillNonAtomic(value, (short) 0, (short) value.length, (byte) 0);
     }
-    
+
     /**
      * Erase value stored inside this Bignat
      */
     public void erase() {
         zero_complete();
     }
-    
-    
+
+
     /**
-    * Stores one in this object. Keeps previous size of this Bignat 
-    * (1 is prepended with required number of zeroes).
-    */
+     * Stores one in this object. Keeps previous size of this Bignat
+     * (1 is prepended with required number of zeroes).
+     */
     public void one() {
         this.zero();
         value[(short) (size - 1)] = 1;
     }
+
     /**
-    * Stores two in this object. Keeps previous size of this Bignat (2 is
-    * prepended with required number of zeroes).
-    */
+     * Stores two in this object. Keeps previous size of this Bignat (2 is
+     * prepended with required number of zeroes).
+     */
     public void two() {
         this.zero();
         value[(short) (size - 1)] = 0x02;
@@ -415,6 +419,7 @@ public class BigNat {
         this.zero();
         value[(short) (size - 1)] = 0x05;
     }
+
     public void eight() {
         this.zero();
         value[(short) (size - 1)] = 0x08;
@@ -424,36 +429,33 @@ public class BigNat {
         this.zero();
         value[(short) (size - 1)] = 0x0A;
     }
-	
+
     public void twentyfive() {
         this.zero();
-        value[(short)(size-1)] = 0x19;
+        value[(short) (size - 1)] = 0x19;
     }
 
     public void twentyseven() {
         this.zero();
-        value[(short)(size-1)] = 0x1B;
+        value[(short) (size - 1)] = 0x1B;
     }
-    
+
     public void athousand() {
         this.zero();
-        value[(short)(size-2)] = (byte)0x03;
-        value[(short)(size-1)] = (byte)0xE8;
+        value[(short) (size - 2)] = (byte) 0x03;
+        value[(short) (size - 1)] = (byte) 0xE8;
     }
-    
-    
 
 
     /**
-    * Copies {@code other} into this. No size requirements. If {@code other}
-    * has more digits then the superfluous leading digits of {@code other} are
-    * asserted to be zero. If this bignat has more digits than its leading
-    * digits are correctly initilized to zero. This function will not change size 
-    * attribute of this object.
-    * 
-    * @param other
-    *            Bignat to copy into this object.
-    */
+     * Copies {@code other} into this. No size requirements. If {@code other}
+     * has more digits then the superfluous leading digits of {@code other} are
+     * asserted to be zero. If this bignat has more digits than its leading
+     * digits are correctly initilized to zero. This function will not change size
+     * attribute of this object.
+     *
+     * @param other Bignat to copy into this object.
+     */
     public void copy(BigNat other) {
         short this_start, other_start, len;
         if (this.size >= other.size) {
@@ -465,7 +467,7 @@ public class BigNat {
             other_start = (short) (other.size - this.size);
             len = this.size;
             // Verify here that other have leading zeroes up to other_start
-            for (short i = 0; i < other_start; i ++) {
+            for (short i = 0; i < other_start; i++) {
                 if (other.value[i] != 0) {
                     ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDCOPYOTHER);
                 }
@@ -478,27 +480,26 @@ public class BigNat {
         }
         Util.arrayCopyNonAtomic(other.value, other_start, this.value, this_start, len);
     }
-	
+
     /**
-     * Copies content of {@code other} into this and set size of this to {@code other}. 
+     * Copies content of {@code other} into this and set size of this to {@code other}.
      * The size attribute (returned by length()) is updated. If {@code other}
-     * is longer than maximum capacity of this, internal buffer is reallocated if enabled 
+     * is longer than maximum capacity of this, internal buffer is reallocated if enabled
      * (ALLOW_RUNTIME_REALLOCATION), otherwise exception is thrown.
-     * @param other 
-     *            Bignat to clone into this object.
-     */    
+     *
+     * @param other Bignat to clone into this object.
+     */
     public void clone(BigNat other) {
         // Reallocate array only if current array cannot store the other value and reallocation is enabled by ALLOW_RUNTIME_REALLOCATION
         if (this.max_size < other.length()) {
             // Reallocation necessary
             if (ALLOW_RUNTIME_REALLOCATION) {
                 allocate_storage_array(other.length(), this.allocatorType);
-            }
-            else {
+            } else {
                 ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED);
             }
         }
-        
+
         // copy value from other into proper place in this (this can be longer than other so rest of bytes wil be filled with 0)
         other.copy_to_buffer(this.value, (short) 0);
         if (this.max_size > other.length()) {
@@ -511,59 +512,60 @@ public class BigNat {
      * Equality check. Requires that this object and other have the same size or are padded with zeroes.
      * Returns true if all digits (except for leading zeroes) are equal.
      *
-     *
-     * @param other Bignat to compare
+     * @param other BigNat to compare
      * @return true if this and other have the same value, false otherwise.
      */
     public boolean same_value(BigNat other) {
         short hashLen;
+        byte[] tmpBuffer = rm.helper_BN_array1;
+        byte[] hashBuffer = rm.helper_BN_array2;
+
         // Compare using hash engine
-        // The comparison is made with hash of point values instead of directly values. 
-        // This way, offset of first mismatching byte is not leaked via timing side-channel. 
-        bnh.lock(bnh.fnc_same_value_array1);
-        bnh.lock(bnh.fnc_same_value_hash);
+        // The comparison is made with hash of point values instead of directly values.
+        // This way, offset of first mismatching byte is not leaked via timing side-channel.
+        rm.lock(tmpBuffer);
+        rm.lock(hashBuffer);
         if (this.length() == other.length()) {
             // Same length, we can hash directly from BN values
-            bnh.hashEngine.doFinal(this.value, (short) 0, this.length(), bnh.fnc_same_value_hash, (short) 0);
-            hashLen = bnh.hashEngine.doFinal(other.value, (short) 0, other.length(), bnh.fnc_same_value_array1, (short) 0);
-        }
-        else {
+            rm.hashEngine.doFinal(this.value, (short) 0, this.length(), hashBuffer, (short) 0);
+            hashLen = rm.hashEngine.doFinal(other.value, (short) 0, other.length(), tmpBuffer, (short) 0);
+        } else {
             // Different length of bignats - can be still same if prepended with zeroes 
             // Find the length of longer one and padd other one with starting zeroes
             if (this.length() < other.length()) {
-                this.prepend_zeros(other.length(), bnh.fnc_same_value_array1, (short) 0);
-                bnh.hashEngine.doFinal(bnh.fnc_same_value_array1, (short) 0, other.length(), bnh.fnc_same_value_hash, (short) 0);
-                hashLen = bnh.hashEngine.doFinal(other.value, (short) 0, other.length(), bnh.fnc_same_value_array1, (short) 0);
-            }
-            else {
-                other.prepend_zeros(this.length(), bnh.fnc_same_value_array1, (short) 0);
-                bnh.hashEngine.doFinal(bnh.fnc_same_value_array1, (short) 0, this.length(), bnh.fnc_same_value_hash, (short) 0);
-                hashLen = bnh.hashEngine.doFinal(this.value, (short) 0, this.length(), bnh.fnc_same_value_array1, (short) 0);
+                this.prepend_zeros(other.length(), tmpBuffer, (short) 0);
+                rm.hashEngine.doFinal(tmpBuffer, (short) 0, other.length(), hashBuffer, (short) 0);
+                hashLen = rm.hashEngine.doFinal(other.value, (short) 0, other.length(), tmpBuffer, (short) 0);
+            } else {
+                other.prepend_zeros(this.length(), tmpBuffer, (short) 0);
+                rm.hashEngine.doFinal(tmpBuffer, (short) 0, this.length(), hashBuffer, (short) 0);
+                hashLen = rm.hashEngine.doFinal(this.value, (short) 0, this.length(), tmpBuffer, (short) 0);
             }
         }
 
-        boolean bResult = Util.arrayCompare(bnh.fnc_same_value_hash, (short) 0, bnh.fnc_same_value_array1, (short) 0, hashLen) == 0;
+        boolean result = Util.arrayCompare(hashBuffer, (short) 0, tmpBuffer, (short) 0, hashLen) == 0;
 
-        bnh.unlock(bnh.fnc_same_value_array1);
-        bnh.unlock(bnh.fnc_same_value_hash);
+        rm.unlock(tmpBuffer);
+        rm.unlock(hashBuffer);
 
-        return bResult;
+        return result;
     }
-	
-	
+
+
     /**
-    * Addition of big integers x and y stored in byte arrays with specified offset and length.
-    * The result is stored into x array argument. 
-    * @param x          array with first bignat
-    * @param xOffset    start offset in array of {@code x}
-    * @param xLength    length of {@code x}
-    * @param y          array with second bignat
-    * @param yOffset    start offset in array of {@code y}
-    * @param yLength    length of {@code y}
-    * @return true if carry of most significant byte occurs, false otherwise  
-    */
+     * Addition of big integers x and y stored in byte arrays with specified offset and length.
+     * The result is stored into x array argument.
+     *
+     * @param x       array with first bignat
+     * @param xOffset start offset in array of {@code x}
+     * @param xLength length of {@code x}
+     * @param y       array with second bignat
+     * @param yOffset start offset in array of {@code y}
+     * @param yLength length of {@code y}
+     * @return true if carry of most significant byte occurs, false otherwise
+     */
     public static boolean add(byte[] x, short xOffset, short xLength, byte[] y,
-                    short yOffset, short yLength) {
+                              short yOffset, short yLength) {
         short result = 0;
         short i = (short) (xLength + xOffset - 1);
         short j = (short) (yLength + yOffset - 1);
@@ -585,16 +587,17 @@ public class BigNat {
     }
 
     /**
-    * Subtracts big integer y from x specified by offset and length.
-    * The result is stored into x array argument.
-    * @param x array with first bignat
+     * Subtracts big integer y from x specified by offset and length.
+     * The result is stored into x array argument.
+     *
+     * @param x       array with first bignat
      * @param xOffset start offset in array of {@code x}
      * @param xLength length of {@code x}
-     * @param y array with second bignat
+     * @param y       array with second bignat
      * @param yOffset start offset in array of {@code y}
      * @param yLength length of {@code y}
      * @return true if carry of most significant byte occurs, false otherwise
-    */
+     */
     public static boolean subtract(byte[] x, short xOffset, short xLength, byte[] y,
                                    short yOffset, short yLength) {
         short i = (short) (xLength + xOffset - 1);
@@ -616,41 +619,39 @@ public class BigNat {
 
         return carry > 0;
     }
-	
+
     /**
      * Substract provided other bignat from this bignat.
+     *
      * @param other bignat to be substracted from this
      */
     public void subtract(BigNat other) {
         this.times_minus(other, (short) 0, (short) 1);
     }
-    
+
     /**
-    * Scaled subtraction. Subtracts {@code mult * 2^(}{@link #digit_len}
-    * {@code  * shift) * other} from this.
-    * <P>
-    * That is, shifts {@code mult * other} precisely {@code shift} digits to
-    * the left and subtracts that value from this. {@code mult} must be less
-    * than {@link #bignat_base}, that is, it must fit into one digit. It is
-    * only declared as short here to avoid negative values.
-    * <P>
-    * {@code mult} has type short.
-    * <P>
-    * No size constraint. However, an assertion is thrown, if the result would
-    * be negative. {@code other} can have more digits than this object, but
-    * then sufficiently many leading digits must be zero to avoid the
-    * underflow.
-    * <P>
-    * Used in division.
-    * 
-    * @param other
-    *            Bignat to subtract from this object
-    * @param shift
-    *            number of digits to shift {@code other} to the left
-    * @param mult
-    *            of type short, multiple of {@code other} to subtract from this
-    *            object. Must be below {@link #bignat_base}.
-    */
+     * Scaled subtraction. Subtracts {@code mult * 2^(}{@link #digit_len}
+     * {@code  * shift) * other} from this.
+     * <p>
+     * That is, shifts {@code mult * other} precisely {@code shift} digits to
+     * the left and subtracts that value from this. {@code mult} must be less
+     * than {@link #bignat_base}, that is, it must fit into one digit. It is
+     * only declared as short here to avoid negative values.
+     * <p>
+     * {@code mult} has type short.
+     * <p>
+     * No size constraint. However, an assertion is thrown, if the result would
+     * be negative. {@code other} can have more digits than this object, but
+     * then sufficiently many leading digits must be zero to avoid the
+     * underflow.
+     * <p>
+     * Used in division.
+     *
+     * @param other Bignat to subtract from this object
+     * @param shift number of digits to shift {@code other} to the left
+     * @param mult  of type short, multiple of {@code other} to subtract from this
+     *              object. Must be below {@link #bignat_base}.
+     */
     public void times_minus(BigNat other, short shift, short mult) {
         short akku = 0;
         short subtraction_result;
@@ -678,9 +679,9 @@ public class BigNat {
             i--;
         }
     }
-	
+
     /**
-     * Quick function for decrement of this bignat value by 1. Faster than {@code substract(Bignat.one())}
+     * Quick function for decrement of this BigNat value by 1. Faster than {@code substract(BigNat.one())}
      */
     public void decrement_one() {
         short tmp = 0;
@@ -689,12 +690,12 @@ public class BigNat {
             this.value[i] = (byte) (tmp - 1);
             if (tmp != 0) {
                 break; // CTO
-            }
-            else {
+            } else {
                 // need to modify also one byte up, continue with cycle
             }
         }
     }
+
     /**
      * Quick function for increment of this bignat value by 1. Faster than
      * {@code add(Bignat.one())}
@@ -710,20 +711,19 @@ public class BigNat {
                 // need to modify also one byte up (carry) , continue with cycle
             }
         }
-    }    
-                
+    }
+
     /**
-    * Index of the most significant 1 bit.
-    * <P>
-    * {@code x} has type short.
-    * <P>
-    * Utility method, used in division.
-    * 
-    * @param x
-    *            of type short
-    * @return index of the most significant 1 bit in {@code x}, returns
-    *         {@link #double_digit_len} for {@code x == 0}.
-    */
+     * Index of the most significant 1 bit.
+     * <p>
+     * {@code x} has type short.
+     * <p>
+     * Utility method, used in division.
+     *
+     * @param x of type short
+     * @return index of the most significant 1 bit in {@code x}, returns
+     * {@link #double_digit_len} for {@code x == 0}.
+     */
     private static short highest_bit(short x) {
         for (short i = 0; i < double_digit_len; i++) {
             if (x < 0) {
@@ -735,36 +735,30 @@ public class BigNat {
     }
 
     /**
-    * Shift to the left and fill. Takes {@code high} {@code middle} {@code low}
-    * as 4 digits, shifts them {@code shift} bits to the left and returns the
-    * most significant {@link #double_digit_len} bits.
-    * <P>
-    * Utility method, used in division.
-    * 
-    * 
-    * @param high
-    *            of type short, most significant {@link #double_digit_len} bits
-    * @param middle
-    *            of type byte, middle {@link #digit_len} bits
-    * @param low
-    *            of type byte, least significant {@link #digit_len} bits
-    * @param shift
-    *            amount of left shift
-    * @return most significant {@link #double_digit_len} as short
-    */
+     * Shift to the left and fill. Takes {@code high} {@code middle} {@code low}
+     * as 4 digits, shifts them {@code shift} bits to the left and returns the
+     * most significant {@link #double_digit_len} bits.
+     * <p>
+     * Utility method, used in division.
+     *
+     * @param high   of type short, most significant {@link #double_digit_len} bits
+     * @param middle of type byte, middle {@link #digit_len} bits
+     * @param low    of type byte, least significant {@link #digit_len} bits
+     * @param shift  amount of left shift
+     * @return most significant {@link #double_digit_len} as short
+     */
     private static short shift_bits(short high, byte middle, byte low,
-                    short shift) {
+                                    short shift) {
         // shift high
         high <<= shift;
 
         // merge middle bits
         byte mask = (byte) (digit_mask << (shift >= digit_len ? 0 : digit_len
-                        - shift));
+                - shift));
         short bits = (short) ((short) (middle & mask) & digit_mask);
         if (shift > digit_len) {
             bits <<= shift - digit_len;
-        }
-        else {
+        } else {
             bits >>>= digit_len - shift;
         }
         high |= bits;
@@ -782,30 +776,27 @@ public class BigNat {
     }
 
     /**
-    * Scaled comparison. Compares this number with {@code other * 2^(}
-    * {@link #digit_len} {@code * shift)}. That is, shifts {@code other}
-    * {@code shift} digits to the left and compares then. This bignat and
-    * {@code other} will not be modified inside this method.
-    * <P>
-    * 
-    * As optimization {@code start} can be greater than zero to skip the first
-    * {@code start} digits in the comparison. These first digits must be zero
-    * then, otherwise an assertion is thrown. (So the optimization takes only
-    * effect when <a
-    * href="../../../overview-summary.html#NO_CARD_ASSERT">NO_CARD_ASSERT</a>
-    * is defined.)
-    * 
-    * @param other
-    *            Bignat to compare to
-    * @param shift
-    *            left shift of other before the comparison
-    * @param start
-    *            digits to skip at the beginning
-    * @return true if this number is strictly less than the shifted
-    *         {@code other}, false otherwise.
-    */
+     * Scaled comparison. Compares this number with {@code other * 2^(}
+     * {@link #digit_len} {@code * shift)}. That is, shifts {@code other}
+     * {@code shift} digits to the left and compares then. This bignat and
+     * {@code other} will not be modified inside this method.
+     * <p>
+     * <p>
+     * As optimization {@code start} can be greater than zero to skip the first
+     * {@code start} digits in the comparison. These first digits must be zero
+     * then, otherwise an assertion is thrown. (So the optimization takes only
+     * effect when <a
+     * href="../../../overview-summary.html#NO_CARD_ASSERT">NO_CARD_ASSERT</a>
+     * is defined.)
+     *
+     * @param other Bignat to compare to
+     * @param shift left shift of other before the comparison
+     * @param start digits to skip at the beginning
+     * @return true if this number is strictly less than the shifted
+     * {@code other}, false otherwise.
+     */
     public boolean shift_lesser(BigNat other, short shift, short start) {
-            short j;
+        short j;
 
         j = (short) (other.size + shift - this.size + start);
         short this_short, other_short;
@@ -813,8 +804,7 @@ public class BigNat {
             this_short = (short) (this.value[i] & digit_mask);
             if (j >= 0 && j < other.size) {
                 other_short = (short) (other.value[j] & digit_mask);
-            }
-            else {
+            } else {
                 other_short = 0;
             }
             if (this_short < other_short) {
@@ -828,9 +818,10 @@ public class BigNat {
     }
 
     /**
-     * Compares this and other bignat. 
+     * Compares this and other BigNat.
+     *
      * @param other other value to compare with
-     * @return true if this bignat is smaller, false if bigger or equal
+     * @return true if this BigNat is smaller, false if bigger or equal
      */
     public boolean smaller(BigNat other) {
         short index_this = 0;
@@ -860,25 +851,24 @@ public class BigNat {
 
         return false;
     }
-	
-	
+
+
     /**
-    * Comparison of this and other.
-    * 
-    * @param other
-    *            Bignat to compare with
-    * @return true if this number is strictly lesser than {@code other}, false
-    *         otherwise.
-    */
+     * Comparison of this and other.
+     *
+     * @param other Bignat to compare with
+     * @return true if this number is strictly lesser than {@code other}, false
+     * otherwise.
+     */
     public boolean lesser(BigNat other) {
         return this.shift_lesser(other, (short) 0, (short) 0);
     }
 
     /**
-    * Test equality with zero.
-    * 
-    * @return true if this bignat equals zero.
-    */
+     * Test equality with zero.
+     *
+     * @return true if this bignat equals zero.
+     */
     public boolean is_zero() {
         for (short i = 0; i < size; i++) {
             if (value[i] != 0) {
@@ -887,36 +877,35 @@ public class BigNat {
         }
         return true;
     }
-        
-    /** Check if stored bignat is odd.
-     * 
-     * @return  true if odd, false if even
+
+    /**
+     * Check if stored bignat is odd.
+     *
+     * @return true if odd, false if even
      */
     public boolean is_odd() {
         if ((value[(short) (this.size - 1)] & 1) == 0) {
             return false; // CTO
         }
         return true;
-    }        
+    }
 
     /**
-    * Remainder and Quotient. Divide this number by {@code divisor} and store
-    * the remainder in this. If {@code quotient} is non-null store the quotient
-    * there.
-    * <P>
-    * There are no direct size constraints, but if {@code quotient} is
-    * non-null, it must be big enough for the quotient, otherwise an assertion
-    * is thrown.
-    * <P>
-    * Uses schoolbook division inside and has O^2 complexity in the difference
-    * of significant digits of the divident (in this number) and the divisor.
-    * For numbers of equal size complexity is linear.
-    * 
-    * @param divisor
-    *            must be non-zero
-    * @param quotient
-    *            gets the quotient if non-null
-    */
+     * Remainder and Quotient. Divide this number by {@code divisor} and store
+     * the remainder in this. If {@code quotient} is non-null store the quotient
+     * there.
+     * <p>
+     * There are no direct size constraints, but if {@code quotient} is
+     * non-null, it must be big enough for the quotient, otherwise an assertion
+     * is thrown.
+     * <p>
+     * Uses schoolbook division inside and has O^2 complexity in the difference
+     * of significant digits of the divident (in this number) and the divisor.
+     * For numbers of equal size complexity is linear.
+     *
+     * @param divisor  must be non-zero
+     * @param quotient gets the quotient if non-null
+     */
     public void remainder_divide(BigNat divisor, BigNat quotient) {
         // There are some size requirements, namely that quotient must
         // be big enough. However, this depends on the value of the
@@ -1015,7 +1004,7 @@ public class BigNat {
                 // 2. both might be very small, in which case the estimated
                 // multiple is very inaccurate.
                 if (divident_digits < 0) {
-                        // case 1: shift both one bit to the right
+                    // case 1: shift both one bit to the right
                     // In standard java (ie. in the test frame) the operation
                     // for >>= and >>>= seems to be done in integers,
                     // even if the left hand side is a short. Therefore,
@@ -1025,10 +1014,10 @@ public class BigNat {
                     divident_digits = (short) ((divident_digits >>> 1) & positive_double_digit_mask);
                     divisor_digit = (short) ((first_divisor_digit >>> 1) & positive_double_digit_mask);
                 } else {
-                        // To avoid case 2 shift both to the left
+                    // To avoid case 2 shift both to the left
                     // and add relevant bits.
                     divident_bit_shift = (short) (highest_bit(divident_digits) - 1);
-                        // Below we add one to divisor_digit to avoid underflow.
+                    // Below we add one to divisor_digit to avoid underflow.
                     // Take therefore the highest bit of divisor_digit + 1
                     // to avoid running into the negatives.
                     bit_shift = divident_bit_shift <= divisor_bit_shift ? divident_bit_shift
@@ -1079,40 +1068,40 @@ public class BigNat {
         }
     }
 
-        
+
     /**
      * Add short value to this bignat
-     * @param other short value to add 
+     *
+     * @param other short value to add
      */
     public void add(short other) {
-        Util.setShort(bnh.tmp_array_short, (short) 0, other); // serialize other into array
-        this.add_carry(bnh.tmp_array_short, (short) 0, (short) 2); // add as array
+        Util.setShort(rm.ram_word, (short) 0, other); // serialize other into array
+        this.add_carry(rm.ram_word, (short) 0, (short) 2); // add as array
     }
-	
+
     /**
-    * Addition with carry report. Adds other to this number. If this is too
-    * small for the result (i.e., an overflow occurs) the method returns true.
-    * Further, the result in {@code this} will then be the correct result of an
-    * addition modulo the first number that does not fit into {@code this} (
-    * {@code 2^(}{@link #digit_len}{@code * }{@link #size this.size}{@code )}),
-    * i.e., only one leading 1 bit is missing. If there is no overflow the
-    * method will return false.
-    * <P>
-    * 
-    * It would be more natural to report the overflow with an
-    * {@link javacard.framework.UserException}, however its
-    * {@link javacard.framework.UserException#throwIt throwIt} method dies with
-    * a null pointer exception when it runs in a host test frame...
-    * <P>
-    * 
-    * Asserts that the size of other is not greater than the size of this.
-    * 
-    * @param other
-    *            Bignat to add
-    * @param otherOffset start offset within other buffer
-    * @param otherLen length of other
-    * @return true if carry occurs, false otherwise
-    */
+     * Addition with carry report. Adds other to this number. If this is too
+     * small for the result (i.e., an overflow occurs) the method returns true.
+     * Further, the result in {@code this} will then be the correct result of an
+     * addition modulo the first number that does not fit into {@code this} (
+     * {@code 2^(}{@link #digit_len}{@code * }{@link #size this.size}{@code )}),
+     * i.e., only one leading 1 bit is missing. If there is no overflow the
+     * method will return false.
+     * <p>
+     * <p>
+     * It would be more natural to report the overflow with an
+     * {@link javacard.framework.UserException}, however its
+     * {@link javacard.framework.UserException#throwIt throwIt} method dies with
+     * a null pointer exception when it runs in a host test frame...
+     * <p>
+     * <p>
+     * Asserts that the size of other is not greater than the size of this.
+     *
+     * @param other       Bignat to add
+     * @param otherOffset start offset within other buffer
+     * @param otherLen    length of other
+     * @return true if carry occurs, false otherwise
+     */
     public boolean add_carry(byte[] other, short otherOffset, short otherLen) {
         short akku = 0;
         short j = (short) (this.size - 1);
@@ -1132,8 +1121,10 @@ public class BigNat {
 
         return akku != 0;
     }
+
     /**
      * Add with carry. See {@code add_cary()} for full description
+     *
      * @param other value to be added
      * @return true if carry happens, false otherwise
      */
@@ -1143,91 +1134,97 @@ public class BigNat {
 
 
     /**
-    * Addition. Adds other to this number. 
-    * <P>
-    * Same as {@link #times_add times_add}{@code (other, 1)} but without the
-    * multiplication overhead.
-    * <P>
-    * Asserts that the size of other is not greater than the size of this.
-    * 
-    * @param other
-    *            Bignat to add
-    */
+     * Addition. Adds other to this number.
+     * <p>
+     * Same as {@link #times_add times_add}{@code (other, 1)} but without the
+     * multiplication overhead.
+     * <p>
+     * Asserts that the size of other is not greater than the size of this.
+     *
+     * @param other Bignat to add
+     */
     public void add(BigNat other) {
         add_carry(other);
     }
 
     /**
-     * Add other bignat to this bignat modulo {@code modulo} value. 
-     * @param other value to add
-     * @param modulo value of modulo to compute 
+     * Add other bignat to this bignat modulo {@code modulo} value.
+     *
+     * @param other  value to add
+     * @param modulo value of modulo to compute
      */
     public void mod_add(BigNat other, BigNat modulo) {
+        BigNat tmp = rm.helper_BN_A;
+
         short tmp_size = this.size;
         if (tmp_size < other.size) {
             tmp_size = other.size;
         }
         tmp_size++;
-        bnh.fnc_mod_add_tmp.lock();
-        bnh.fnc_mod_add_tmp.set_size(tmp_size); 
-        bnh.fnc_mod_add_tmp.zero();
-        bnh.fnc_mod_add_tmp.copy(this);
-        bnh.fnc_mod_add_tmp.add(other);
-        bnh.fnc_mod_add_tmp.mod(modulo);
-        bnh.fnc_mod_add_tmp.shrink();
-        this.clone(bnh.fnc_mod_add_tmp);
-        bnh.fnc_mod_add_tmp.unlock();
+        tmp.lock();
+        tmp.set_size(tmp_size);
+        tmp.zero();
+        tmp.copy(this);
+        tmp.add(other);
+        tmp.mod(modulo);
+        tmp.shrink();
+        this.clone(tmp);
+        tmp.unlock();
     }
 
     /**
-     * Substract other bignat from this bignat modulo {@code modulo} value.
+     * Subtract other BigNat from this BigNat modulo {@code modulo} value.
      *
-     * @param other value to substract
+     * @param other  value to substract
      * @param modulo value of modulo to apply
      */
     public void mod_sub(BigNat other, BigNat modulo) {
+        BigNat tmp = rm.helper_BN_B;
+        BigNat tmpOther = rm.helper_BN_C;
+        BigNat tmpThis = rm.helper_BN_A;
+
         if (other.lesser(this)) { // CTO
             this.subtract(other);
             this.mod(modulo);
         } else { //other>this (mod-other+this)
-            bnh.fnc_mod_sub_tmpOther.lock();
-            bnh.fnc_mod_sub_tmpOther.clone(other);
-            bnh.fnc_mod_sub_tmpOther.mod(modulo);
+            tmpOther.lock();
+            tmpOther.clone(other);
+            tmpOther.mod(modulo);
 
             //fnc_mod_sub_tmpThis = new Bignat(this.length());
-            bnh.fnc_mod_sub_tmpThis.lock();
-            bnh.fnc_mod_sub_tmpThis.clone(this);
-            bnh.fnc_mod_sub_tmpThis.mod(modulo);
+            tmpThis.lock();
+            tmpThis.clone(this);
+            tmpThis.mod(modulo);
 
-            bnh.fnc_mod_sub_tmp.lock();
-            bnh.fnc_mod_sub_tmp.clone(modulo);
-            bnh.fnc_mod_sub_tmp.subtract(bnh.fnc_mod_sub_tmpOther);
-            bnh.fnc_mod_sub_tmpOther.unlock();
-            bnh.fnc_mod_sub_tmp.add(bnh.fnc_mod_sub_tmpThis); //this will never overflow as "other" is larger than "this"
-            bnh.fnc_mod_sub_tmpThis.unlock();
-            bnh.fnc_mod_sub_tmp.mod(modulo);
-            bnh.fnc_mod_sub_tmp.shrink();
-            this.clone(bnh.fnc_mod_sub_tmp);
-            bnh.fnc_mod_sub_tmp.unlock();
+            tmp.lock();
+            tmp.clone(modulo);
+            tmp.subtract(tmpOther);
+            tmpOther.unlock();
+            tmp.add(tmpThis); //this will never overflow as "other" is larger than "this"
+            tmpThis.unlock();
+            tmp.mod(modulo);
+            tmp.shrink();
+            this.clone(tmp);
+            tmp.unlock();
         }
     }
-	
-	
+
+
     /**
      * Scaled addition. Add {@code mult * other} to this number. {@code mult}
      * must be below {@link #bignat_base}, that is, it must fit into one digit.
      * It is only declared as a short here to avoid negative numbers.
-     * <P>
+     * <p>
      * Asserts (overly restrictive) that this and other have the same size.
-     * <P>
+     * <p>
      * Same as {@link #times_add_shift times_add_shift}{@code (other, 0, mult)}
      * but without the shift overhead.
-     * <P>
+     * <p>
      * Used in multiplication.
      *
      * @param other Bignat to add
-     * @param mult of short, factor to multiply {@code other} with before
-     * addition. Must be less than {@link #bignat_base}.
+     * @param mult  of short, factor to multiply {@code other} with before
+     *              addition. Must be less than {@link #bignat_base}.
      */
     public void times_add(BigNat other, short mult) {
         short akku = 0;
@@ -1242,19 +1239,19 @@ public class BigNat {
      * Scaled addition. Adds {@code mult * other * 2^(}{@link #digit_len}
      * {@code * shift)} to this. That is, shifts other {@code shift} digits to
      * the left, multiplies it with {@code mult} and adds then.
-     * <P>
+     * <p>
      * {@code mult} must be less than {@link #bignat_base}, that is, it must fit
      * into one digit. It is only declared as a short here to avoid negative
      * numbers.
-     * <P>
+     * <p>
      * Asserts that the size of this is greater than or equal to
      * {@code other.size + shift + 1}.
      *
-     * @param x Bignat to add
-     * @param mult of short, factor to multiply {@code other} with before
-     * addition. Must be less than {@link #bignat_base}.
+     * @param x     Bignat to add
+     * @param mult  of short, factor to multiply {@code other} with before
+     *              addition. Must be less than {@link #bignat_base}.
      * @param shift number of digits to shift {@code other} to the left, before
-     * addition.
+     *              addition.
      */
     public void times_add_shift(BigNat x, short shift, short mult) {
         short akku = 0;
@@ -1270,137 +1267,137 @@ public class BigNat {
         this.value[j] = (byte) (akku & digit_mask);
         // BUGUG: assert no overflow
     }
-    
+
     /**
-     * Division of this bignat by provided other bignat.  
+     * Division of this bignat by provided other bignat.
+     *
      * @param other value of divisor
      */
     public void divide(BigNat other) {
-        bnh.fnc_divide_tmpThis.lock();
-        bnh.fnc_divide_tmpThis.clone(this);
-        bnh.fnc_divide_tmpThis.remainder_divide(other, this);
-        this.clone(bnh.fnc_divide_tmpThis); 
-        bnh.fnc_divide_tmpThis.unlock();
+        BigNat tmp = rm.helper_BN_E;
+
+        tmp.lock();
+        tmp.clone(this);
+        tmp.remainder_divide(other, this);
+        this.clone(tmp);
+        tmp.unlock();
     }
 
     /**
-     * Greatest common divisor of this bignat with other bignat. Result is
+     * Greatest common divisor of this BigNat with other BigNat. Result is
      * stored into this.
      *
-     * @param other value of other bignat
+     * @param other value of other BigNat
      */
     public void gcd(BigNat other) {
-        bnh.fnc_gcd_tmp.lock();
-        bnh.fnc_gcd_tmpOther.lock();
+        BigNat tmp = rm.helper_BN_A;
+        BigNat tmpOther = rm.helper_BN_B;
 
-        bnh.fnc_gcd_tmpOther.clone(other);
+        tmp.lock();
+        tmpOther.lock();
+
+        tmpOther.clone(other);
 
         // TODO: optimise?
         while (!other.is_zero()) {
-            bnh.fnc_gcd_tmp.clone(bnh.fnc_gcd_tmpOther);
-            this.mod(bnh.fnc_gcd_tmpOther);
-            bnh.fnc_gcd_tmpOther.clone(this);
-            this.clone(bnh.fnc_gcd_tmp);
+            tmp.clone(tmpOther);
+            this.mod(tmpOther);
+            tmpOther.clone(this);
+            this.clone(tmp);
         }
 
-        bnh.fnc_gcd_tmp.unlock();
-        bnh.fnc_gcd_tmpOther.unlock();
+        tmp.unlock();
+        tmpOther.unlock();
     }
 
     /**
      * Decides whether the arguments are coprime or not.
      *
-     * @param a Bignat value
-     * @param b Bignat value
+     * @param a BigNat value
+     * @param b BigNat value
      * @return true if coprime, false otherwise
      */
     public boolean is_coprime(BigNat a, BigNat b) {
-        bnh.fnc_is_coprime_tmp.lock();
-        bnh.fnc_is_coprime_tmp.clone(a);
+        BigNat tmp = rm.helper_BN_C; // is_coprime calls gcd internally
 
-        bnh.fnc_is_coprime_tmp.gcd(b);
-        return bnh.fnc_is_coprime_tmp.same_value(BigNatHelper.ONE);
+        tmp.lock();
+        tmp.clone(a);
+
+        tmp.gcd(b);
+        return tmp.same_value(ResourceManager.ONE);
     }
 
     /**
      * Computes base^exp and stores result into this bignat
+     *
      * @param base value of base
-     * @param exp value of exponent
+     * @param exp  value of exponent
      */
     public void exponentiation(BigNat base, BigNat exp) {
+        BigNat tmp = rm.helper_BN_A;
+        BigNat i = rm.helper_BN_B;
+
         this.one();
-        bnh.fnc_exponentiation_i.lock();
-        bnh.fnc_exponentiation_i.set_size(exp.length());
-        bnh.fnc_exponentiation_i.zero();
-        bnh.fnc_exponentiation_tmp.lock();
-        bnh.fnc_exponentiation_tmp.set_size((short) (2 * this.length()));
-        for (; bnh.fnc_exponentiation_i.lesser(exp); bnh.fnc_exponentiation_i.increment_one()) { 
-            bnh.fnc_exponentiation_tmp.mult(this, base);
-            this.copy(bnh.fnc_exponentiation_tmp);
+        i.lock();
+        i.set_size(exp.length());
+        i.zero();
+        tmp.lock();
+        tmp.set_size((short) (2 * this.length()));
+        for (; i.lesser(exp); i.increment_one()) {
+            tmp.mult(this, base);
+            this.copy(tmp);
         }
-        bnh.fnc_exponentiation_i.unlock();
-        bnh.fnc_exponentiation_tmp.unlock();
+        i.unlock();
+        tmp.unlock();
     }
-    
+
     /**
-    * Multiplication. Automatically selects fastest available algorithm. 
-    * Stores {@code x * y} in this. To ensure this is big
-    * enough for the result it is asserted that the size of this is greater
-    * than or equal to the sum of the sizes of {@code x} and {@code y}.
-    * 
-    * @param x
-    *            first factor
-    * @param y
-    *            second factor
-    */
+     * Multiplication. Automatically selects fastest available algorithm.
+     * Stores {@code x * y} in this. To ensure this is big
+     * enough for the result it is asserted that the size of this is greater
+     * than or equal to the sum of the sizes of {@code x} and {@code y}.
+     *
+     * @param x first factor
+     * @param y second factor
+     */
     public void mult(BigNat x, BigNat y) {
-        if (!OperationSupport.getInstance().RSA_MULT_TRICK || !bnh.FLAG_FAST_MULT_VIA_RSA || x.length() < BigNatHelper.FAST_MULT_VIA_RSA_TRESHOLD_LENGTH) {
+        if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() < ResourceManager.FAST_MULT_VIA_RSA_THRESHOLD_LENGTH) {
             // If simulator or not supported, use slow multiplication
             // Use slow multiplication also when numbers are small => faster to do in software
             mult_schoolbook(x, y);
-        }
-        else { 
+        } else {
             mult_rsa_trick(x, y, null, null);
-        } 
-    }        
+        }
+    }
 
-    /** 
+    /**
      * Slow schoolbook algorithm for multiplication
+     *
      * @param x first number to multiply
      * @param y second number to multiply
-     */        
+     */
     public void mult_schoolbook(BigNat x, BigNat y) {
-    	this.zero(); // important to keep, used in exponentiation()
+        this.zero(); // important to keep, used in exponentiation()
         for (short i = (short) (y.size - 1); i >= 0; i--) {
             this.times_add_shift(x, (short) (y.size - 1 - i), (short) (y.value[i] & digit_mask));
         }
     }
-    
-    /**
-     * Performs multiplication of two bignats x and y and stores result into
-     * this. RSA engine is used to speedup operation.
-     * @param x first value to multiply
-     * @param y second value to multiply
-     */
-    public void mult_RSATrick(BigNat x, BigNat y) {
-        mult_rsa_trick(x, y, null, null);
-    }
 
     /**
-     * Performs multiplication of two bignats x and y and stores result into this. 
+     * Performs multiplication of two bignats x and y and stores result into this.
      * RSA engine is used to speedup operation for large values.
-     * Idea of speedup: 
-     * We need to mutiply x.y where both x and y are 32B 
-     * (x + y)^2 == x^2 + y^2 + 2xy 
-     * Fast RSA engine is available (a^b mod n) 
-     * n can be set bigger than 64B => a^b mod n == a^b 
-     * [(x + y)^2 mod n] - [x^2 mod n] - [y^2 mod n] => 2xy where [] means single RSA operation 
-     * 2xy / 2 => result of mult(x,y) 
-     * Note: if multiplication is used with either x or y argument same repeatedly, 
+     * Idea of speedup:
+     * We need to mutiply x.y where both x and y are 32B
+     * (x + y)^2 == x^2 + y^2 + 2xy
+     * Fast RSA engine is available (a^b mod n)
+     * n can be set bigger than 64B => a^b mod n == a^b
+     * [(x + y)^2 mod n] - [x^2 mod n] - [y^2 mod n] => 2xy where [] means single RSA operation
+     * 2xy / 2 => result of mult(x,y)
+     * Note: if multiplication is used with either x or y argument same repeatedly,
      * [x^2 mod n] or [y^2 mod n] can be precomputed and passed as arguments x_pow_2 or y_pow_2
      *
-     * @param x first value to multiply
-     * @param y second value to multiply
+     * @param x       first value to multiply
+     * @param y       second value to multiply
      * @param x_pow_2 if not null, array with precomputed value x^2 is expected
      * @param y_pow_2 if not null, array with precomputed value y^2 is expected
      */
@@ -1408,77 +1405,80 @@ public class BigNat {
         short xOffset;
         short yOffset;
 
-        bnh.lock(bnh.fnc_mult_resultArray1);
+        byte[] resultBuffer1 = rm.helper_BN_array1;
+        byte[] resultBuffer2 = rm.helper_BN_array2;
+
+        rm.lock(resultBuffer1);
 
         // x+y
-        Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray1, (short) 0, (short) bnh.fnc_mult_resultArray1.length, (byte) 0);
+        Util.arrayFillNonAtomic(resultBuffer1, (short) 0, (short) resultBuffer1.length, (byte) 0);
         // We must copy bigger number first
         if (x.size > y.size) {
             // Copy x to the end of mult_resultArray
-            xOffset = (short) (bnh.fnc_mult_resultArray1.length - x.length());
-            Util.arrayCopyNonAtomic(x.value, (short) 0, bnh.fnc_mult_resultArray1, xOffset, x.length());
-            if (add(bnh.fnc_mult_resultArray1, xOffset, x.size, y.value, (short) 0, y.size)) {
+            xOffset = (short) (resultBuffer1.length - x.length());
+            Util.arrayCopyNonAtomic(x.value, (short) 0, resultBuffer1, xOffset, x.length());
+            if (add(resultBuffer1, xOffset, x.size, y.value, (short) 0, y.size)) {
                 xOffset--;
-                bnh.fnc_mult_resultArray1[xOffset] = 0x01;
+                resultBuffer1[xOffset] = 0x01;
             }
         } else {
             // Copy x to the end of mult_resultArray
-            yOffset = (short) (bnh.fnc_mult_resultArray1.length - y.length());
-            Util.arrayCopyNonAtomic(y.value, (short) 0, bnh.fnc_mult_resultArray1, yOffset, y.length());
-            if (add(bnh.fnc_mult_resultArray1, yOffset, y.size, x.value, (short) 0, x.size)) {
+            yOffset = (short) (resultBuffer1.length - y.length());
+            Util.arrayCopyNonAtomic(y.value, (short) 0, resultBuffer1, yOffset, y.length());
+            if (add(resultBuffer1, yOffset, y.size, x.value, (short) 0, x.size)) {
                 yOffset--;
-                bnh.fnc_mult_resultArray1[yOffset] = 0x01; // add carry if occured
+                resultBuffer1[yOffset] = 0x01; // add carry if occured
             }
         }
 
         // ((x+y)^2)
-        bnh.fnc_mult_cipher.doFinal(bnh.fnc_mult_resultArray1, (byte) 0, (short) bnh.fnc_mult_resultArray1.length, bnh.fnc_mult_resultArray1, (short) 0);
+        rm.multCiph.doFinal(resultBuffer1, (byte) 0, (short) resultBuffer1.length, resultBuffer1, (short) 0);
 
         // x^2
-        bnh.lock(bnh.fnc_mult_resultArray2);
+        rm.lock(resultBuffer2);
         if (x_pow_2 == null) {
             // x^2 is not precomputed
-            Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length, (byte) 0);
-            xOffset = (short) (bnh.fnc_mult_resultArray2.length - x.length());
-            Util.arrayCopyNonAtomic(x.value, (short) 0, bnh.fnc_mult_resultArray2, xOffset, x.length());
-            bnh.fnc_mult_cipher.doFinal(bnh.fnc_mult_resultArray2, (byte) 0, (short) bnh.fnc_mult_resultArray2.length, bnh.fnc_mult_resultArray2, (short) 0);
+            Util.arrayFillNonAtomic(resultBuffer2, (short) 0, (short) resultBuffer2.length, (byte) 0);
+            xOffset = (short) (resultBuffer2.length - x.length());
+            Util.arrayCopyNonAtomic(x.value, (short) 0, resultBuffer2, xOffset, x.length());
+            rm.multCiph.doFinal(resultBuffer2, (byte) 0, (short) resultBuffer2.length, resultBuffer2, (short) 0);
         } else {
             // x^2 is precomputed
-            if ((short) x_pow_2.length != (short) bnh.fnc_mult_resultArray2.length) {
-                Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length, (byte) 0);
-                xOffset = (short) ((short) bnh.fnc_mult_resultArray2.length - (short) x_pow_2.length);
+            if ((short) x_pow_2.length != (short) resultBuffer2.length) {
+                Util.arrayFillNonAtomic(resultBuffer2, (short) 0, (short) resultBuffer2.length, (byte) 0);
+                xOffset = (short) ((short) resultBuffer2.length - (short) x_pow_2.length);
             } else {
                 xOffset = 0;
             }
-            Util.arrayCopyNonAtomic(x_pow_2, (short) 0, bnh.fnc_mult_resultArray2, xOffset, (short) x_pow_2.length);
+            Util.arrayCopyNonAtomic(x_pow_2, (short) 0, resultBuffer2, xOffset, (short) x_pow_2.length);
         }
         // ((x+y)^2) - x^2
-        subtract(bnh.fnc_mult_resultArray1, (short) 0, (short) bnh.fnc_mult_resultArray1.length, bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length);
+        subtract(resultBuffer1, (short) 0, (short) resultBuffer1.length, resultBuffer2, (short) 0, (short) resultBuffer2.length);
 
         // y^2
         if (y_pow_2 == null) {
             // y^2 is not precomputed
-            Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length, (byte) 0);
-            yOffset = (short) (bnh.fnc_mult_resultArray2.length - y.length());
-            Util.arrayCopyNonAtomic(y.value, (short) 0, bnh.fnc_mult_resultArray2, yOffset, y.length());
-            bnh.fnc_mult_cipher.doFinal(bnh.fnc_mult_resultArray2, (byte) 0, (short) bnh.fnc_mult_resultArray2.length, bnh.fnc_mult_resultArray2, (short) 0);
+            Util.arrayFillNonAtomic(resultBuffer2, (short) 0, (short) resultBuffer2.length, (byte) 0);
+            yOffset = (short) (resultBuffer2.length - y.length());
+            Util.arrayCopyNonAtomic(y.value, (short) 0, resultBuffer2, yOffset, y.length());
+            rm.multCiph.doFinal(resultBuffer2, (byte) 0, (short) resultBuffer2.length, resultBuffer2, (short) 0);
         } else {
             // y^2 is precomputed
-            if ((short) y_pow_2.length != (short) bnh.fnc_mult_resultArray2.length) {
-                Util.arrayFillNonAtomic(bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length, (byte) 0);
-                yOffset = (short) ((short) bnh.fnc_mult_resultArray2.length - (short) y_pow_2.length);
+            if ((short) y_pow_2.length != (short) resultBuffer2.length) {
+                Util.arrayFillNonAtomic(resultBuffer2, (short) 0, (short) resultBuffer2.length, (byte) 0);
+                yOffset = (short) ((short) resultBuffer2.length - (short) y_pow_2.length);
             } else {
                 yOffset = 0;
             }
-            Util.arrayCopyNonAtomic(y_pow_2, (short) 0, bnh.fnc_mult_resultArray2, yOffset, (short) y_pow_2.length);
+            Util.arrayCopyNonAtomic(y_pow_2, (short) 0, resultBuffer2, yOffset, (short) y_pow_2.length);
         }
-        
+
 
         // {(x+y)^2) - x^2} - y^2
-        subtract(bnh.fnc_mult_resultArray1, (short) 0, (short) bnh.fnc_mult_resultArray1.length, bnh.fnc_mult_resultArray2, (short) 0, (short) bnh.fnc_mult_resultArray2.length);
+        subtract(resultBuffer1, (short) 0, (short) resultBuffer1.length, resultBuffer2, (short) 0, (short) resultBuffer2.length);
 
         // we now have 2xy in mult_resultArray, divide it by 2 => shift by one bit and fill back into this
-        short multOffset = (short) ((short) bnh.fnc_mult_resultArray1.length - 1);
+        short multOffset = (short) ((short) resultBuffer1.length - 1);
         short res = 0;
         short res2 = 0;
         // this.length() must be different from multOffset, set proper ending condition
@@ -1492,54 +1492,56 @@ public class BigNat {
             Util.arrayFillNonAtomic(this.value, (short) 0, stopOffset, (byte) 0);
         }
         for (short i = (short) (this.length() - 1); i >= stopOffset; i--) {
-            res = (short) (bnh.fnc_mult_resultArray1[multOffset] & 0xff);
+            res = (short) (resultBuffer1[multOffset] & 0xff);
             res = (short) (res >> 1);
-            res2 = (short) (bnh.fnc_mult_resultArray1[(short) (multOffset - 1)] & 0xff);
+            res2 = (short) (resultBuffer1[(short) (multOffset - 1)] & 0xff);
             res2 = (short) (res2 << 7);
             this.value[i] = (byte) (short) (res | res2);
             multOffset--;
         }
-        bnh.unlock(bnh.fnc_mult_resultArray1);
-        bnh.unlock(bnh.fnc_mult_resultArray2);
-    }    
+        rm.unlock(resultBuffer1);
+        rm.unlock(resultBuffer2);
+    }
 
     /**
-     * Multiplication of bignats x and y computed by modulo {@code modulo}. 
+     * Multiplication of bignats x and y computed by modulo {@code modulo}.
      * The result is stored to this.
-     * @param x first value to multiply
-     * @param y second value to multiply
+     *
+     * @param x      first value to multiply
+     * @param y      second value to multiply
      * @param modulo value of modulo
      */
     public void mod_mult(BigNat x, BigNat y, BigNat modulo) {
-        bnh.fnc_mod_mult_tmpThis.lock();
-        bnh.fnc_mod_mult_tmpThis.resize_to_max(false);
+        BigNat tmp = rm.helper_BN_E; // mod_mult is called from sqrt_FP => requires helper_BN_E not being locked when mod_mult is called
+
+        tmp.lock();
+        tmp.resize_to_max(false);
         // Perform fast multiplication using RSA trick
-        bnh.fnc_mod_mult_tmpThis.mult(x, y);        
+        tmp.mult(x, y);
         // Compute modulo 
-        bnh.fnc_mod_mult_tmpThis.mod(modulo);
-        bnh.fnc_mod_mult_tmpThis.shrink();
-        this.clone(bnh.fnc_mod_mult_tmpThis);
-        bnh.fnc_mod_mult_tmpThis.unlock();
+        tmp.mod(modulo);
+        tmp.shrink();
+        this.clone(tmp);
+        tmp.unlock();
     }
     // Potential speedup for  modular multiplication
     // Binomial theorem: (op1 + op2)^2 - (op1 - op2)^2 = 4 * op1 * op2 mod (mod)
-    
-    
+
 
     /**
      * One digit left shift.
-     * <P>
+     * <p>
      * Asserts that the first digit is zero.
      */
     public void shift_left() {
         // NOTE: assumes that overlapping src and dest arrays are properly handled by Util.arrayCopyNonAtomic
-        Util.arrayCopyNonAtomic(this.value, (short) 1, this.value, (short) 0, (short) (size - 1)); 
+        Util.arrayCopyNonAtomic(this.value, (short) 1, this.value, (short) 0, (short) (size - 1));
         value[(short) (size - 1)] = 0;
     }
-        
+
     /**
      * Optimized division by value two
-     */    
+     */
     private void divide_by_2() {
         short tmp = 0;
         short tmp2 = 0;
@@ -1547,26 +1549,26 @@ public class BigNat {
         for (short i = 0; i < this.size; i++) {
             tmp = (short) (this.value[i] & 0xff);
             tmp2 = tmp;
-            tmp >>=1; // shift by 1 => divide by 2
+            tmp >>= 1; // shift by 1 => divide by 2
             this.value[i] = (byte) (tmp | carry);
             carry = (short) (tmp2 & 0x01); // save lowest bit
             carry <<= 7; // shifted to highest position
         }
     }
-        
+
     /**
      * Inefficient modular multiplication.
-     *
+     * <p>
      * This bignat is assigned to {@code x * y} modulo {@code mod}. Inefficient,
      * because it computes the modules with {@link #remainder_divide
      * remainder_divide} in each multiplication round. To avoid overflow the
      * first two digits of {@code x} and {@code mod} must be zero (which plays
      * nicely with the requirements for montgomery multiplication, see
      * {@link #montgomery_mult montgomery_mult}).
-     * <P>
+     * <p>
      * Asserts that {@code x} and {@code mod} have the same size. Argument
      * {@code y} can be arbitrary in size.
-     * <P>
+     * <p>
      * Included here to make it possible to compute the squared <a
      * href="package-summary.html#montgomery_factor">montgomery factor</a>,
      * which is needed to montgomerize numbers before montgomery multiplication.
@@ -1574,11 +1576,15 @@ public class BigNat {
      * computed on the host and then installed on the card. Or numbers are
      * montgomerized on the host already.
      *
-     * @param x first factor, first two digits must be zero
-     * @param y second factor
+     * @param x   first factor, first two digits must be zero
+     * @param y   second factor
      * @param mod modulus, first two digits must be zero
      */
     public void mod_mult_inefficient(BigNat x, BigNat y, BigNat mod) {
+        BigNat tmp = rm.helper_BN_A;
+        BigNat tmpMod = rm.helper_BN_B;
+        BigNat tmpX = rm.helper_BN_C;
+
         short len = 0;
         if (x.length() >= mod.length()) {
             len = x.length();
@@ -1587,162 +1593,176 @@ public class BigNat {
         }
 
         short magicAdd = 2;
-        bnh.fnc_mult_mod_tmp_x.lock();
-        bnh.fnc_mult_mod_tmp_x.set_size((short) (len + magicAdd));
-        bnh.fnc_mult_mod_tmp_x.copy(x);
+        tmpX.lock();
+        tmpX.set_size((short) (len + magicAdd));
+        tmpX.copy(x);
 
-        bnh.fnc_mult_mod_tmp_mod.lock();
-        bnh.fnc_mult_mod_tmp_mod.set_size((short) (len + magicAdd));
-        bnh.fnc_mult_mod_tmp_mod.copy(mod);
+        tmpMod.lock();
+        tmpMod.set_size((short) (len + magicAdd));
+        tmpMod.copy(mod);
 
-        bnh.fnc_mult_mod_tmpThis.lock();
-        bnh.fnc_mult_mod_tmpThis.set_size((short) (this.length() + magicAdd));
-        bnh.fnc_mult_mod_tmpThis.zero();
+        tmp.lock();
+        tmp.set_size((short) (this.length() + magicAdd));
+        tmp.zero();
         for (short i = 0; i < y.size; i++) {
-            bnh.fnc_mult_mod_tmpThis.shift_left();
-            bnh.fnc_mult_mod_tmpThis.times_add(bnh.fnc_mult_mod_tmp_x, (short) (y.value[i] & digit_mask));
-            bnh.fnc_mult_mod_tmpThis.remainder_divide(bnh.fnc_mult_mod_tmp_mod, null);
+            tmp.shift_left();
+            tmp.times_add(tmpX, (short) (y.value[i] & digit_mask));
+            tmp.remainder_divide(tmpMod, null);
         }
-        bnh.fnc_mult_mod_tmp_x.unlock();
-        bnh.fnc_mult_mod_tmp_mod.unlock();
+        tmpX.unlock();
+        tmpMod.unlock();
 
-        bnh.fnc_mult_mod_tmpThis.shrink();
-        this.clone(bnh.fnc_mult_mod_tmpThis);
-        bnh.fnc_mult_mod_tmpThis.unlock();
+        tmp.shrink();
+        this.clone(tmp);
+        tmp.unlock();
     }
-	
+
 
     //
+
     /**
      * Computes square root of provided bignat which MUST be prime using Tonelli
-     * Shanks Algorithm. The result (one of the two roots) is stored to this. 
+     * Shanks Algorithm. The result (one of the two roots) is stored to this.
+     *
      * @param p value to compute square root from
      */
     public void sqrt_FP(BigNat p) {
-        //1. By factoring out powers of 2, find Q and S such that p-1=Q2^S p-1=Q*2^S and Q is odd
-        bnh.fnc_sqrt_p_1.lock();
-        bnh.fnc_sqrt_p_1.clone(p);
-        bnh.fnc_sqrt_p_1.decrement_one();
+        BigNat s = rm.helper_BN_A;
+        BigNat exp = rm.helper_BN_A;
+        BigNat p1 = rm.helper_BN_B;
+        BigNat q = rm.helper_BN_C;
+        BigNat tmp = rm.helper_BN_D;
+        BigNat z = rm.helper_BN_E;
 
-        //Compute Q
-        bnh.fnc_sqrt_Q.lock();
-        bnh.fnc_sqrt_Q.clone(bnh.fnc_sqrt_p_1);
-        bnh.fnc_sqrt_Q.divide_by_2(); //Q /= 2
+        // 1. By factoring out powers of 2, find Q and S such that p-1=Q2^S p-1=Q*2^S and Q is odd
+        p1.lock();
+        p1.clone(p);
+        p1.decrement_one();
+
+        // Compute Q
+        q.lock();
+        q.clone(p1);
+        q.divide_by_2(); // Q /= 2
 
         //Compute S
-        bnh.fnc_sqrt_S.lock();
-        bnh.fnc_sqrt_S.set_size(p.length());
-        bnh.fnc_sqrt_S.zero();
-        bnh.fnc_sqrt_tmp.lock();
-        bnh.fnc_sqrt_tmp.set_size(p.length());
-        bnh.fnc_sqrt_tmp.zero();
+        s.lock();
+        s.set_size(p.length());
+        s.zero();
+        tmp.lock();
+        tmp.set_size(p.length());
+        tmp.zero();
 
-        while (bnh.fnc_sqrt_tmp.same_value(bnh.fnc_sqrt_Q)==false){
-            bnh.fnc_sqrt_S.increment_one();
-            bnh.fnc_sqrt_tmp.mod_mult(bnh.fnc_sqrt_S, bnh.fnc_sqrt_Q, p);
+        while (!tmp.same_value(q)) {
+            s.increment_one();
+            tmp.mod_mult(s, q, p);
         }
-        bnh.fnc_sqrt_tmp.unlock();
-        bnh.fnc_sqrt_S.unlock();
+        tmp.unlock();
+        s.unlock();
 
-        //2. Find the first quadratic non-residue z by brute-force search
-        bnh.fnc_sqrt_exp.lock();
-        bnh.fnc_sqrt_exp.clone(bnh.fnc_sqrt_p_1);
-        bnh.fnc_sqrt_exp.divide_by_2();
-        
+        // 2. Find the first quadratic non-residue z by brute-force search
+        exp.lock();
+        exp.clone(p1);
+        exp.divide_by_2();
 
-        bnh.fnc_sqrt_z.lock();
-        bnh.fnc_sqrt_z.set_size(p.length());
-        bnh.fnc_sqrt_z.one();
-        bnh.fnc_sqrt_tmp.lock();
-        bnh.fnc_sqrt_tmp.zero();
-        bnh.fnc_sqrt_tmp.copy(BigNatHelper.ONE);
 
-        while (bnh.fnc_sqrt_tmp.same_value(bnh.fnc_sqrt_p_1)==false) {
-            bnh.fnc_sqrt_z.increment_one();
-            bnh.fnc_sqrt_tmp.copy(bnh.fnc_sqrt_z);
-            bnh.fnc_sqrt_tmp.mod_exp(bnh.fnc_sqrt_exp, p);		
+        z.lock();
+        z.set_size(p.length());
+        z.one();
+        tmp.lock();
+        tmp.zero();
+        tmp.copy(ResourceManager.ONE);
+
+        while (!tmp.same_value(p1)) {
+            z.increment_one();
+            tmp.copy(z);
+            tmp.mod_exp(exp, p);
         }
-        bnh.fnc_sqrt_p_1.unlock();
-        bnh.fnc_sqrt_tmp.unlock();
-        bnh.fnc_sqrt_z.unlock();
-        bnh.fnc_sqrt_exp.copy(bnh.fnc_sqrt_Q);
-        bnh.fnc_sqrt_Q.unlock();
-        bnh.fnc_sqrt_exp.increment_one();
-        bnh.fnc_sqrt_exp.divide_by_2();
+        p1.unlock();
+        tmp.unlock();
+        z.unlock();
+        exp.copy(q);
+        q.unlock();
+        exp.increment_one();
+        exp.divide_by_2();
 
         this.mod(p);
-        this.mod_exp(bnh.fnc_sqrt_exp, p);
-        bnh.fnc_sqrt_exp.unlock();
-    } // end void sqrt(Bignat p)	
-	
-    
+        this.mod_exp(exp, p);
+        exp.unlock();
+    }
+
+
     /**
-     * Computes and stores modulo of this bignat. 
+     * Computes and stores modulo of this bignat.
+     *
      * @param modulo value of modulo
      */
     public void mod(BigNat modulo) {
         this.remainder_divide(modulo, null);
         // NOTE: attempt made to utilize crypto co-processor in pow2Mod_RSATrick_worksOnlyAbout30pp, but doesn't work for all inputs 
     }
-    
-        
 
-    /** 
-     * Computes inversion of this bignat taken modulo {@code modulo}. 
+
+    /**
+     * Computes inversion of this bignat taken modulo {@code modulo}.
      * The result is stored into this.
+     *
      * @param modulo value of modulo
      */
     public void mod_inv(BigNat modulo) {
-        bnh.fnc_mod_minus_2.lock();
-        bnh.fnc_mod_minus_2.clone(modulo);
-        bnh.fnc_mod_minus_2.decrement_one();
-        bnh.fnc_mod_minus_2.decrement_one();
-        
-        mod_exp(bnh.fnc_mod_minus_2, modulo);
-        bnh.fnc_mod_minus_2.unlock();
+        BigNat tmp = rm.helper_BN_B;
+        tmp.lock();
+        tmp.clone(modulo);
+        tmp.decrement_one();
+        tmp.decrement_one();
+
+        mod_exp(tmp, modulo);
+        tmp.unlock();
     }
-    
+
     /**
-     * Computes {@code res := this ** exponent mod modulo} and store results into this. 
+     * Computes {@code res := this ** exponent mod modulo} and store results into this.
      * Uses RSA engine to quickly compute this^exponent % modulo
+     *
      * @param exponent value of exponent
-     * @param modulo value of modulo
+     * @param modulo   value of modulo
      */
     public void mod_exp(BigNat exponent, BigNat modulo) {
         if (!OperationSupport.getInstance().RSA_MOD_EXP)
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
 
-        short tmp_size = (short)(bnh.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
-        bnh.fnc_mod_exp_modBN.lock();
-        bnh.fnc_mod_exp_modBN.set_size(tmp_size);
+        short tmp_size = (short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
+        BigNat tmpMod = rm.helper_BN_F;  // mod_exp is called from sqrt_FP => requires helper_BN_F not being locked when mod_exp is called
+        byte[] tmpBuffer = rm.helper_BN_array1;
 
-        short len = n_mod_exp(tmp_size, this, exponent.as_byte_array(), exponent.length(), modulo, bnh.fnc_mod_exp_modBN.value, (short) 0);
+        tmpMod.lock();
+        tmpMod.set_size(tmp_size);
+
+        short len = n_mod_exp(tmp_size, this, exponent.as_byte_array(), exponent.length(), modulo, tmpMod.value, (short) 0);
         if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
             // Decrypted length can be either tmp_size or less because of leading zeroes consumed by simulator engine implementation
             // Move obtained value into proper position with zeroes prepended
             if (len != tmp_size) {
-                bnh.lock(bnh.fnc_deep_resize_tmp);
-                Util.arrayFillNonAtomic(bnh.fnc_deep_resize_tmp, (short) 0, (short) bnh.fnc_deep_resize_tmp.length, (byte) 0);
-                Util.arrayCopyNonAtomic(bnh.fnc_mod_exp_modBN.value, (short) 0, bnh.fnc_deep_resize_tmp, (short) (tmp_size - len), len);
-                Util.arrayCopyNonAtomic(bnh.fnc_deep_resize_tmp, (short) 0, bnh.fnc_mod_exp_modBN.value, (short) 0, tmp_size);
-                bnh.unlock(bnh.fnc_deep_resize_tmp);
+                rm.lock(tmpBuffer);
+                Util.arrayFillNonAtomic(tmpBuffer, (short) 0, (short) tmpBuffer.length, (byte) 0);
+                Util.arrayCopyNonAtomic(tmpMod.value, (short) 0, tmpBuffer, (short) (tmp_size - len), len);
+                Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, tmpMod.value, (short) 0, tmp_size);
+                rm.unlock(tmpBuffer);
             }
-        }
-        else {
+        } else {
             // real cards should keep whole length of block, just check
             if (len != tmp_size) {
                 ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
             }
         }
-        bnh.fnc_mod_exp_modBN.mod(modulo);
-    	bnh.fnc_mod_exp_modBN.shrink();
-    	this.clone(bnh.fnc_mod_exp_modBN);
-        bnh.fnc_mod_exp_modBN.unlock();
+        tmpMod.mod(modulo);
+        tmpMod.shrink();
+        this.clone(tmpMod);
+        tmpMod.unlock();
     }
-    
- 
+
+
     public void mod_exp2(BigNat modulo) {
-        mod_exp(BigNatHelper.TWO, modulo);
+        mod_exp(ResourceManager.TWO, modulo);
         //this.pow2Mod_RSATrick(modulo);
 /*        
         short tmp_size = (short) (occ.bnHelper.MOD_RSA_LENGTH / 8);
@@ -1780,46 +1800,50 @@ public class BigNat {
         this.setSize(len);
         this.from_byte_array(len, (short) 0, occ.bnHelper.fastResizeArray, startOffset);
         occ.locker.unlock(occ.bnHelper.fastResizeArray);
-*/        
-    }    
+*/
+    }
+
     /**
-     * Calculates {@code res := base ** exp mod mod} using RSA engine. 
+     * Calculates {@code res := base ** exp mod mod} using RSA engine.
      * Requirements:
      * 1. Modulo must be either 521, 1024, 2048 or other lengths supported by RSA (see appendzeros() and mod() method)
      * 2. Base must have the same size as modulo (see prependzeros())
-     * @param baseLen   length of base rounded to size of RSA engine
-     * @param base      value of base (if size is not equal to baseLen then zeroes are appended)
-     * @param exponent  array with exponent
-     * @param exponentLen length of exponent
-     * @param modulo    value of modulo 
-     * @param resultArray array for the computed result
+     *
+     * @param baseLen      length of base rounded to size of RSA engine
+     * @param base         value of base (if size is not equal to baseLen then zeroes are appended)
+     * @param exponent     array with exponent
+     * @param exponentLen  length of exponent
+     * @param modulo       value of modulo
+     * @param resultArray  array for the computed result
      * @param resultOffset start offset of resultArray
      */
     private short n_mod_exp(short baseLen, BigNat base, byte[] exponent, short exponentLen, BigNat modulo, byte[] resultArray, short resultOffset) {
+        byte[] tmpBuffer = rm.helper_BN_array1;
+
         // Verify if pre-allocated engine match the required values
-        if (bnh.fnc_NmodE_pubKey.getSize() < (short) (modulo.length() * 8)) {
+        if (rm.expPK.getSize() < (short) (modulo.length() * 8)) {
             // attempt to perform modulu with higher or smaller than supported length - try change constant MODULO_ENGINE_MAX_LENGTH
             ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
         }
-        if (bnh.fnc_NmodE_pubKey.getSize() < (short) (base.length() * 8)) {
+        if (rm.expPK.getSize() < (short) (base.length() * 8)) {
             ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
         }
         // Potential problem: we are changing key value for publicKey already used before with occ.bnHelper.modCipher. 
         // Simulator and potentially some cards fail to initialize this new value properly (probably assuming that same key object will always have same value)
         // Fix (if problem occure): generate new key object: RSAPublicKey publicKey = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, (short) (baseLen * 8), false);
 
-        if(OperationSupport.getInstance().RSA_KEY_REFRESH) {
-            bnh.fnc_NmodE_pubKey = (RSAPublicKey) KeyBuilder.buildKey(javacard.security.KeyBuilder.TYPE_RSA_PUBLIC, (short) (baseLen * 8), false);
+        if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
+            rm.expPK = (RSAPublicKey) KeyBuilder.buildKey(javacard.security.KeyBuilder.TYPE_RSA_PUBLIC, (short) (baseLen * 8), false);
         }
-        bnh.fnc_NmodE_pubKey.setExponent(exponent, (short) 0, exponentLen);
-        bnh.lock(bnh.fnc_deep_resize_tmp);
-        modulo.append_zeros(baseLen, bnh.fnc_deep_resize_tmp, (short) 0);
-        bnh.fnc_NmodE_pubKey.setModulus(bnh.fnc_deep_resize_tmp, (short) 0, baseLen);
-        bnh.fnc_NmodE_cipher.init(bnh.fnc_NmodE_pubKey, Cipher.MODE_DECRYPT);        
-        base.prepend_zeros(baseLen, bnh.fnc_deep_resize_tmp, (short) 0);
+        rm.expPK.setExponent(exponent, (short) 0, exponentLen);
+        rm.lock(tmpBuffer);
+        modulo.append_zeros(baseLen, tmpBuffer, (short) 0);
+        rm.expPK.setModulus(tmpBuffer, (short) 0, baseLen);
+        rm.expCiph.init(rm.expPK, Cipher.MODE_DECRYPT);
+        base.prepend_zeros(baseLen, tmpBuffer, (short) 0);
         // BUGBUG: Check if input is not all zeroes (causes out-of-bound exception on some cards)
-        short len = bnh.fnc_NmodE_cipher.doFinal(bnh.fnc_deep_resize_tmp, (short) 0, baseLen, resultArray, resultOffset); 
-        bnh.unlock(bnh.fnc_deep_resize_tmp);
+        short len = rm.expCiph.doFinal(tmpBuffer, (short) 0, baseLen, resultArray, resultOffset);
+        rm.unlock(tmpBuffer);
         return len;
     }
 
@@ -1829,58 +1853,60 @@ public class BigNat {
      * @param mod value of modulus
      */
     public void mod_negate(BigNat mod) {
-        bnh.fnc_negate_tmp.lock();
-        bnh.fnc_negate_tmp.set_size(mod.length());
-        bnh.fnc_negate_tmp.copy(mod); //-y=mod-y
+        BigNat tmp = rm.helper_BN_B;
 
-        if (this.lesser(mod)) { // y<mod
-            bnh.fnc_negate_tmp.subtract(this);//-y=mod-y
-            this.copy(bnh.fnc_negate_tmp);
-        } else {// y>=mod
+        tmp.lock();
+        tmp.set_size(mod.length());
+        tmp.copy(mod); //-y=mod-y
+
+        if (!this.lesser(mod)) { // y<mod
             this.mod(mod);//-y=y-mod
-            bnh.fnc_negate_tmp.subtract(this);
-            this.copy(bnh.fnc_negate_tmp);
         }
-        bnh.fnc_negate_tmp.unlock();
+        tmp.subtract(this);
+        this.copy(tmp);
+        tmp.unlock();
     }
 
     /**
      * Shifts stored value to right by specified number of bytes. This operation equals to multiplication by value numBytes * 256.
+     *
      * @param numBytes number of bytes to shift
      */
     public void shift_bytes_right(short numBytes) {
+        byte[] tmp = rm.helper_BN_array1;
+
         // Move whole content by numBytes offset
-        bnh.lock(bnh.fnc_shift_bytes_right_tmp);
-        Util.arrayCopyNonAtomic(this.value, (short) 0, bnh.fnc_shift_bytes_right_tmp, (short) 0, (short) (this.value.length));
-        Util.arrayCopyNonAtomic(bnh.fnc_shift_bytes_right_tmp, (short) 0, this.value, numBytes, (short) ((short) (this.value.length) - numBytes));
+        rm.lock(tmp);
+        Util.arrayCopyNonAtomic(this.value, (short) 0, tmp, (short) 0, (short) (this.value.length));
+        Util.arrayCopyNonAtomic(tmp, (short) 0, this.value, numBytes, (short) ((short) (this.value.length) - numBytes));
         Util.arrayFillNonAtomic(this.value, (short) 0, numBytes, (byte) 0);
-        bnh.unlock(bnh.fnc_shift_bytes_right_tmp);
+        rm.unlock(tmp);
     }
-    
+
     /**
      * Allocates required underlying storage array with given maximum size and
      * allocator type (RAM or EEROM). Maximum size can be increased only by
      * future reallocation if allowed by ALLOW_RUNTIME_REALLOCATION flag
      *
-     * @param maxSize maximum size of this Bignat
+     * @param maxSize       maximum size of this Bignat
      * @param allocatorType memory allocator type. If
-     * JCSystem.MEMORY_TYPE_PERSISTENT then memory is allocated in EEPROM. Use
-     * JCSystem.CLEAR_ON_RESET or JCSystem.CLEAR_ON_DESELECT for allocation in
-     * RAM with corresponding clearing behaviour.
+     *                      JCSystem.MEMORY_TYPE_PERSISTENT then memory is allocated in EEPROM. Use
+     *                      JCSystem.CLEAR_ON_RESET or JCSystem.CLEAR_ON_DESELECT for allocation in
+     *                      RAM with corresponding clearing behaviour.
      */
     private void allocate_storage_array(short maxSize, byte allocatorType) {
         this.size = maxSize;
         this.max_size = maxSize;
         this.allocatorType = allocatorType;
-        this.value = bnh.allocateByteArray(this.max_size, allocatorType);
+        this.value = rm.memAlloc.allocateByteArray(this.max_size, allocatorType);
     }
-    
+
     /**
      * Set content of Bignat internal array
      *
      * @param from_array_length available data in {@code from_array}
-     * @param this_offset offset where data should be stored
-     * @param from_array data array to deserialize from
+     * @param this_offset       offset where data should be stored
+     * @param from_array        data array to deserialize from
      * @param from_array_offset offset in {@code from_array}
      * @return the number of shorts actually read, except for the case where
      * deserialization finished by reading precisely {@code len} shorts, in this
@@ -1889,7 +1915,7 @@ public class BigNat {
     public short from_byte_array(short from_array_length, short this_offset, byte[] from_array, short from_array_offset) {
         short max
                 = (short) (this_offset + from_array_length) <= this.size
-                        ? from_array_length : (short) (this.size - this_offset);
+                ? from_array_length : (short) (this.size - this_offset);
         Util.arrayCopyNonAtomic(from_array, from_array_offset, value, this_offset, max);
         if ((short) (this_offset + from_array_length) == this.size) {
             return (short) (from_array_length + 1);
@@ -1901,8 +1927,8 @@ public class BigNat {
     /**
      * Set content of Bignat internal array
      *
-     * @param this_offset offset where data should be stored
-     * @param from_array data array to deserialize from
+     * @param this_offset       offset where data should be stored
+     * @param from_array        data array to deserialize from
      * @param from_array_length available data in {@code from_array}
      * @param from_array_offset offset in {@code from_array}
      * @return the number of shorts actually read, except for the case where
@@ -1911,10 +1937,10 @@ public class BigNat {
      */
     public short set_from_byte_array(short this_offset, byte[] from_array, short from_array_offset, short from_array_length) {
         return from_byte_array(from_array_length, this_offset, from_array, from_array_offset);
-    }    
-    
+    }
+
     /**
-     * Set content of Bignat internal array
+     * Set content of BigNat internal array
      *
      * @param from_array data array to deserialize from
      * @return the number of shorts actually read

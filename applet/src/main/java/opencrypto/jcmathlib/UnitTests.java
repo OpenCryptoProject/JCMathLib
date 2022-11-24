@@ -126,14 +126,14 @@ public class UnitTests extends Applet {
         // Testing BigNat objects used in tests
         memoryInfoOffset = snapshotAvailableMemory((short) 7, memoryInfo, memoryInfoOffset);
         byte memoryType = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
-        bn1 = new BigNat(ecc.MAX_BIGNAT_SIZE, memoryType, ecc.bnh);
+        bn1 = new BigNat(ecc.MAX_BIGNAT_SIZE, memoryType, ecc.rm);
         memoryInfoOffset = snapshotAvailableMemory((short) 8, memoryInfo, memoryInfoOffset);
-        bn2 = new BigNat(ecc.MAX_BIGNAT_SIZE, memoryType, ecc.bnh);
-        bn3 = new BigNat(ecc.MAX_BIGNAT_SIZE, memoryType, ecc.bnh);
+        bn2 = new BigNat(ecc.MAX_BIGNAT_SIZE, memoryType, ecc.rm);
+        bn3 = new BigNat(ecc.MAX_BIGNAT_SIZE, memoryType, ecc.rm);
 
         short intLen = 4;
-        int1 = new Integer(intLen, ecc.bnh);
-        int2 = new Integer(intLen, ecc.bnh);
+        int1 = new Integer(intLen, ecc.rm);
+        int2 = new Integer(intLen, ecc.rm);
         initialized = true;
     }
 

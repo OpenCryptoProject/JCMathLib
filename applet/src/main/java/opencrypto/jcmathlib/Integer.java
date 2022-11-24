@@ -7,7 +7,7 @@ import javacard.framework.Util;
  * @author Vasilios Mavroudis and Petr Svenda
  */
 public class Integer {
-    private BigNatHelper bnh;
+    private ResourceManager rm;
     private BigNat magnitude;
     private byte sign;
 
@@ -17,8 +17,8 @@ public class Integer {
      * @param size
      * @param bnh  Bignat_Helper with all supporting objects
      */
-    public Integer(short size, BigNatHelper bnh) {
-        allocate(size, (byte) 0, null, (byte) -1, bnh);
+    public Integer(short size, ResourceManager rm) {
+        allocate(size, (byte) 0, null, (byte) -1, rm);
     }
 
     /**
@@ -30,8 +30,8 @@ public class Integer {
      * @param length      length of array
      * @param bnh         BignatHelper with all supporting objects
      */
-    public Integer(byte[] value, short valueOffset, short length, BigNatHelper bnh) {
-        allocate(length, (value[valueOffset] == (byte) 0x00) ? (byte) 0 : (byte) 1, value, (short) (valueOffset + 1), bnh);
+    public Integer(byte[] value, short valueOffset, short length, ResourceManager rm) {
+        allocate(length, (value[valueOffset] == (byte) 0x00) ? (byte) 0 : (byte) 1, value, (short) (valueOffset + 1), rm);
     }
 
     /**
@@ -41,8 +41,8 @@ public class Integer {
      * @param value array with initial value
      * @param bnh   Bignat_Helper with all supporting objects
      */
-    public Integer(byte sign, byte[] value, BigNatHelper bnh) {
-        allocate((short) value.length, sign, value, (short) 0, bnh);
+    public Integer(byte sign, byte[] value, ResourceManager rm) {
+        allocate((short) value.length, sign, value, (short) 0, rm);
     }
 
     /**
@@ -51,7 +51,7 @@ public class Integer {
      * @param other integer to copy from
      */
     public Integer(Integer other) {
-        allocate(other.getSize(), other.getSign(), other.getMagnitude_b(), (short) 0, other.bnh);
+        allocate(other.getSize(), other.getSign(), other.getMagnitude_b(), (short) 0, other.rm);
     }
 
     /**
@@ -62,13 +62,13 @@ public class Integer {
      * @param magnitude initial magnitude
      * @param copy      if true, magnitude is directly used (no copy). If false, new storage array is allocated.
      */
-    public Integer(byte sign, BigNat magnitude, boolean copy, BigNatHelper bnh) {
+    public Integer(byte sign, BigNat magnitude, boolean copy, ResourceManager rm) {
         if (copy) {
             // Copy from provided BigNat
-            allocate(magnitude.length(), sign, magnitude.as_byte_array(), (short) 0, bnh);
+            allocate(magnitude.length(), sign, magnitude.as_byte_array(), (short) 0, rm);
         } else {
             // Use directly provided BigNat as storage - no allocation
-            initialize(sign, magnitude, bnh);
+            initialize(sign, magnitude, rm);
         }
     }
 
@@ -79,10 +79,10 @@ public class Integer {
      * @param sign      sign of integer
      * @param bnStorage magnitude (object is directly used, no copy is performed)
      */
-    private void initialize(byte sign, BigNat bnStorage, BigNatHelper bnh) {
+    private void initialize(byte sign, BigNat bnStorage, ResourceManager rm) {
         this.sign = sign;
         this.magnitude = bnStorage;
-        this.bnh = bnh;
+        this.rm = rm;
     }
 
     /**
@@ -94,13 +94,13 @@ public class Integer {
      *                        performed)
      * @param fromArrayOffset start offset within fromArray
      */
-    private void allocate(short size, byte sign, byte[] fromArray, short fromArrayOffset, BigNatHelper bignatHelper) {
-        this.bnh = bignatHelper;
-        BigNat mag = new BigNat(size, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, this.bnh);
+    private void allocate(short size, byte sign, byte[] fromArray, short fromArrayOffset, ResourceManager rm) {
+        this.rm = rm;
+        BigNat mag = new BigNat(size, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, this.rm);
         if (fromArray != null) {
             mag.from_byte_array(size, (short) 0, fromArray, fromArrayOffset);
         }
-        initialize(sign, mag, this.bnh);
+        initialize(sign, mag, this.rm);
     }
 
     /**
@@ -269,7 +269,7 @@ public class Integer {
      * @param other other integer to add
      */
     public void add(Integer other) {
-        BigNat tmp = bnh.rm.helper_BN_A;
+        BigNat tmp = rm.helper_BN_A;
 
         if (this.isPositive() && other.isPositive()) { //this and other are (+)
             this.sign = 0;
@@ -323,8 +323,8 @@ public class Integer {
      * @param other other integer to multiply
      */
     public void multiply(Integer other) {
-        BigNat mod = bnh.rm.helper_BN_A;
-        BigNat tmp = bnh.rm.helper_BN_B;
+        BigNat mod = rm.helper_BN_A;
+        BigNat tmp = rm.helper_BN_B;
 
         if (this.isPositive() && other.isNegative()) {
             this.setSign((byte) 1);
@@ -354,7 +354,7 @@ public class Integer {
      * @param other divisor
      */
     public void divide(Integer other) {
-        BigNat tmp = bnh.rm.helper_BN_A;
+        BigNat tmp = rm.helper_BN_A;
 
         if (this.isPositive() && other.isNegative()) {
             this.setSign((byte) 1);

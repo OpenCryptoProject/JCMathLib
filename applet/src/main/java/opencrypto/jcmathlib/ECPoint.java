@@ -184,7 +184,7 @@ public class ECPoint {
 
         lambda.lock();
         lambda.mod_mult(pX, pX, curve.pBN);
-        lambda.mod_mult(lambda, BigNatHelper.THREE, curve.pBN);
+        lambda.mod_mult(lambda, ResourceManager.THREE, curve.pBN);
         lambda.mod_add(curve.aBN, curve.pBN);
 
         tmp.lock();
@@ -219,7 +219,7 @@ public class ECPoint {
         // doubling via add sometimes causes exception inside KeyAgreement engine
         // this.add(this);
         // Use bit slower, but more robust version via multiplication by 2
-        this.multiplication(BigNatHelper.TWO);
+        this.multiplication(ResourceManager.TWO);
     }
 
     /**
@@ -230,7 +230,7 @@ public class ECPoint {
     public void add(ECPoint other) {
         boolean samePoint = this == other || isEqual(other);
         if (samePoint && OperationSupport.getInstance().EC_HW_XY) {
-            multiplication(BigNatHelper.TWO);
+            multiplication(ResourceManager.TWO);
             return;
         }
 
@@ -266,12 +266,12 @@ public class ECPoint {
             // lambda = (3(x_p^2)+a)/(2y_p)
             // (3(x_p^2)+a)
             nominator.clone(xP);
-            nominator.mod_exp(BigNatHelper.TWO, curve.pBN);
-            nominator.mod_mult(nominator, BigNatHelper.THREE, curve.pBN);
+            nominator.mod_exp(ResourceManager.TWO, curve.pBN);
+            nominator.mod_mult(nominator, ResourceManager.THREE, curve.pBN);
             nominator.mod_add(curve.aBN, curve.pBN);
             // (2y_p)
             denominator.clone(yP);
-            denominator.mod_mult(yP, BigNatHelper.TWO, curve.pBN);
+            denominator.mod_mult(yP, ResourceManager.TWO, curve.pBN);
             denominator.mod_inv(curve.pBN);
 
         } else {
@@ -309,7 +309,7 @@ public class ECPoint {
         // x_r = lambda^2 - x_p - x_q
         xR.lock();
         if (samePoint) {
-            short len = multXKA(BigNatHelper.TWO, xR.as_byte_array(), (short) 0);
+            short len = multXKA(ResourceManager.TWO, xR.as_byte_array(), (short) 0);
             xR.set_size(len);
         } else {
             xR.clone(lambda);
@@ -362,7 +362,7 @@ public class ECPoint {
      * @param scalar value of scalar for multiplication
      */
     public void multiplication(BigNat scalar) {
-        if (OperationSupport.getInstance().EC_SW_DOUBLE && scalar.same_value(BigNatHelper.TWO)) {
+        if (OperationSupport.getInstance().EC_SW_DOUBLE && scalar.same_value(ResourceManager.TWO)) {
             swDouble();
         } else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY) {
             multXY(scalar);
@@ -430,7 +430,7 @@ public class ECPoint {
         //Y^2 = X^3 + XA + B = x(x^2+A)+B
         ySq.lock();
         ySq.clone(x);
-        ySq.mod_exp(BigNatHelper.TWO, curve.pBN);
+        ySq.mod_exp(ResourceManager.TWO, curve.pBN);
         ySq.mod_add(curve.aBN, curve.pBN);
         ySq.mod_mult(ySq, x, curve.pBN);
         ySq.mod_add(curve.bBN, curve.pBN);
@@ -539,7 +539,7 @@ public class ECPoint {
         //Y^2 = X^3 + XA + B = x(x^2+A)+B
         y_sq.lock();
         y_sq.clone(x);
-        y_sq.mod_exp(BigNatHelper.TWO, curve.pBN);
+        y_sq.mod_exp(ResourceManager.TWO, curve.pBN);
         y_sq.mod_add(curve.aBN, curve.pBN);
         y_sq.mod_mult(y_sq, x, curve.pBN);
         y_sq.mod_add(curve.bBN, curve.pBN);
