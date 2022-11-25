@@ -101,7 +101,6 @@ public class JCMathLibTest extends BaseTest {
         statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
-    @Disabled("Sometimes fails - investigate (TODO)")
     @Test
     public void eccMultiplyRandom() throws Exception {
         ECPoint point = randECPoint();

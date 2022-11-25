@@ -40,6 +40,7 @@ public class OperationSupport {
                 RSA_PREPEND_ZEROS = true;
                 RSA_KEY_REFRESH = true;
                 EC_SW_DOUBLE = true;
+                EC_HW_XY = true;
                 EC_HW_ADD = true;
                 break;
             case J2E145G:

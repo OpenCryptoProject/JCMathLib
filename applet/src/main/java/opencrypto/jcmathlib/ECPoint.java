@@ -605,6 +605,7 @@ public class ECPoint {
     static byte[] msg = {(byte) 0x01, (byte) 0x01, (byte) 0x02, (byte) 0x03};
 
     public static boolean SignVerifyECDSA(ECPrivateKey privateKey, ECPublicKey publicKey, Signature signEngine, byte[] tmpSignArray) {
+        // TODO does not work properly in simulator
         signEngine.init(privateKey, Signature.MODE_SIGN);
         short signLen = signEngine.sign(msg, (short) 0, (short) msg.length, tmpSignArray, (short) 0);
         signEngine.init(publicKey, Signature.MODE_VERIFY);
