@@ -42,9 +42,11 @@ repositories {
 
 // Dependencies for your project
 dependencies {
-    jcardsim 'com.klinec:jcardsim:3.0.5.11'
+    //jcardsim 'com.klinec:jcardsim:3.0.5.11'
+    jcardsim name: 'jcardsim-3.0.5.12-SNAPSHOT'
 
-    implementation 'com.klinec:jcardsim:3.0.5.11'
+    //implementation 'com.klinec:jcardsim:3.0.5.11'
+    implementation name: 'jcardsim-3.0.5.12-SNAPSHOT'
     implementation 'org.bouncycastle:bcprov-jdk15on:1.58'
 
     testImplementation 'org.testng:testng:6.1.1'

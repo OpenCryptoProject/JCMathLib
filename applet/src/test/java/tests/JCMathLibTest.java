@@ -180,6 +180,19 @@ public class JCMathLibTest extends BaseTest {
         cardMngr.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
+    public void eccMultRandomAndAdd() throws Exception {
+        ECPoint point1 = randECPoint();
+        ECPoint point2 = randECPoint();
+        BigInteger scalar = randomBigNat(256);
+        ECPoint result = point1.multiply(scalar).add(point2);
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_MUL_ADD, scalar.toByteArray().length, 0, Util.concat(Util.concat(scalar.toByteArray(), point1.getEncoded(false)), point2.getEncoded(false)));
+        ResponseAPDU resp = statefulCard.transmit(cmd);
+
+        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+        Assertions.assertArrayEquals(result.getEncoded(false), resp.getData());
+        statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
+    }
+
     @Test
     public void bigNatStorage() throws Exception {
         BigInteger num = randomBigNat(BIGNAT_BIT_LENGTH);

@@ -60,6 +60,7 @@ public class UnitTests extends Applet {
     public final static byte INS_EC_COMPARE = (byte) 0x46;
     public final static byte INS_EC_FROM_X = (byte) 0x47;
     public final static byte INS_EC_IS_Y_EVEN = (byte) 0x48;
+    public final static byte INS_EC_MUL_ADD = (byte) 0x49;
 
     boolean initialized = false;
 
@@ -224,6 +225,9 @@ public class UnitTests extends Applet {
                     break;
                 case INS_EC_IS_Y_EVEN:
                     testEcIsYEven(apdu);
+                    break;
+                case INS_EC_MUL_ADD:
+                    testEcMulAdd(apdu);
                     break;
 
                 case INS_BN_STR:
@@ -398,6 +402,21 @@ public class UnitTests extends Applet {
         bn1.from_byte_array(p1_len, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
         point1.setW(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1_len), curve.POINT_SIZE);
         point1.multiplication(bn1);
+
+        short len = point1.getW(apduBuffer, (short) 0);
+        apdu.setOutgoingAndSend((short) 0, len);
+    }
+
+    void testEcMulAdd(APDU apdu) {
+        byte[] apduBuffer = apdu.getBuffer();
+        short p1_len = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
+
+        BigNat scalar = bn1;
+        scalar.set_size(p1_len);
+        scalar.from_byte_array(p1_len, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
+        point1.setW(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1_len), curve.POINT_SIZE);
+        point2.setW(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1_len + curve.POINT_SIZE), curve.POINT_SIZE);
+        point1.multAndAdd(scalar, point2);
 
         short len = point1.getW(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);

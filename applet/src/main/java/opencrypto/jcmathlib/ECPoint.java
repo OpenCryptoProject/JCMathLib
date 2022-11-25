@@ -364,13 +364,37 @@ public class ECPoint {
     public void multiplication(BigNat scalar) {
         if (OperationSupport.getInstance().EC_SW_DOUBLE && scalar.same_value(ResourceManager.TWO)) {
             swDouble();
-        } else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY) {
+        // } else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY) {
+        } else if (rm.ecMultKA.getAlgorithm() == (byte) 6) {
             multXY(scalar);
         } else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN) {
             multX(scalar);
         } else {
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
         }
+    }
+
+    public void multAndAdd(BigNat scalar, ECPoint point) {
+        byte[] pointBuffer = rm.POINT_ARRAY_B;
+
+        rm.lock(pointBuffer);
+        setW(pointBuffer, (short) 0, multAndAddKA(scalar, point, pointBuffer, (short) 0));
+        rm.unlock(pointBuffer);
+    }
+
+    public short multAndAddKA(BigNat scalar, ECPoint point, byte[] outBuffer, short outBufferOffset) {
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
+
+        rm.lock(pointBuffer);
+        short len = this.getW(pointBuffer, (short) 0);
+        curve.disposable_priv.setG(pointBuffer, (short) 0, len);
+        curve.disposable_priv.setS(scalar.as_byte_array(), (short) 0, scalar.length());
+        rm.ecAddKA.init(curve.disposable_priv);
+
+        len = point.getW(pointBuffer, (short) 0);
+        len = rm.ecAddKA.generateSecret(pointBuffer, (short) 0, len, outBuffer, outBufferOffset);
+        rm.unlock(pointBuffer);
+        return len;
     }
 
     /**

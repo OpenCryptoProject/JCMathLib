@@ -14,6 +14,7 @@ public class ResourceManager {
 
     MessageDigest hashEngine;
     KeyAgreement ecMultKA;
+    KeyAgreement ecAddKA;
     Signature verifyEcdsa;
     Cipher multCiph;
     RSAPublicKey expPK;
@@ -82,11 +83,14 @@ public class ResourceManager {
 
         // ECC Helpers
         if (OperationSupport.getInstance().EC_HW_XY) {
-            ecMultKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY, false);
+            // ecMultKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY, false);
+            ecMultKA = KeyAgreement.getInstance((byte) 6, false);
         } else if (OperationSupport.getInstance().EC_HW_X) {
             ecMultKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN, false);
         }
         verifyEcdsa = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
+        // ecAddKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_PACE_GM, false);
+        ecAddKA = KeyAgreement.getInstance((byte) 5, false);
 
         // RSA Mult Helpers
         KeyPair multKP = new KeyPair(KeyPair.ALG_RSA_CRT, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
