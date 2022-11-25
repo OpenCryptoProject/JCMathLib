@@ -21,6 +21,7 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.Security;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -153,6 +154,30 @@ public class JCMathLibTest extends BaseTest {
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
         Assertions.assertArrayEquals(doubled.getEncoded(false), resp.getData());
         statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
+    }
+
+    @Test
+    public void eccFromX() throws Exception {
+        CardManager cardMngr = connect();
+        ECPoint point = randECPoint();
+        ECPoint negated = point.negate();
+        byte[] xCoord = point.getXCoord().getEncoded();
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_FROM_X, xCoord.length, 0, xCoord);
+        ResponseAPDU resp = cardMngr.transmit(cmd);
+        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+        Assertions.assertTrue(Arrays.equals(point.getEncoded(false), resp.getData()) || Arrays.equals(negated.getEncoded(false), resp.getData()));
+        cardMngr.transmit(new CommandAPDU(APDU_CLEANUP));
+    }
+
+    @Test
+    public void eccIsYEven() throws Exception {
+        CardManager cardMngr = connect();
+        ECPoint point = randECPoint();
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_IS_Y_EVEN, point.getEncoded(false).length, 0, point.getEncoded(false));
+        ResponseAPDU resp = cardMngr.transmit(cmd);
+        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+        Assertions.assertEquals(point.getYCoord().toBigInteger().mod(BigInteger.valueOf(2)).intValue() == 0 ? 1 : 0, resp.getData()[0]);
+        cardMngr.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
     @Test
