@@ -560,9 +560,9 @@ public class Bignat {
     * @param y          array with second bignat
     * @param yOffset    start offset in array of {@code y}
     * @param yLength    length of {@code y}
-    * @return true if carry of most significant byte occurs, false otherwise  
+    * @return 0x01 if carry of most significant byte occurs, 0x00 otherwise
     */
-    public static boolean add(byte[] x, short xOffset, short xLength, byte[] y,
+    public static byte add(byte[] x, short xOffset, short xLength, byte[] y,
                     short yOffset, short yLength) {
         short result = 0;
         short i = (short) (xLength + xOffset - 1);
@@ -581,7 +581,12 @@ public class Bignat {
             i--;
         }
 
-        return result != 0;
+        // 1. result != 0 => result | -result will have the sign bit set
+        // 2. casting magic to overcome the absence of int
+        // 3. move the sign bit to the rightmost position
+        // 4. discard the sign bit which is present due to the unavoidable casts
+        //    and return the value of the rightmost bit
+        return (byte) ((byte) (((short)(result | -result) & (short)0xFFFF) >>> 15) & 0x01);
     }
 
     /**
@@ -1417,18 +1422,20 @@ public class Bignat {
             // Copy x to the end of mult_resultArray
             xOffset = (short) (bnh.fnc_mult_resultArray1.length - x.length());
             Util.arrayCopyNonAtomic(x.value, (short) 0, bnh.fnc_mult_resultArray1, xOffset, x.length());
-            if (add(bnh.fnc_mult_resultArray1, xOffset, x.size, y.value, (short) 0, y.size)) {
-                xOffset--;
-                bnh.fnc_mult_resultArray1[xOffset] = 0x01;
-            }
+
+            // modified for CT
+            byte carry = add(bnh.fnc_mult_resultArray1, xOffset, x.size, y.value, (short) 0, y.size);
+            xOffset--;
+            bnh.fnc_mult_resultArray1[xOffset] = carry; // add carry if occured
         } else {
             // Copy x to the end of mult_resultArray
             yOffset = (short) (bnh.fnc_mult_resultArray1.length - y.length());
             Util.arrayCopyNonAtomic(y.value, (short) 0, bnh.fnc_mult_resultArray1, yOffset, y.length());
-            if (add(bnh.fnc_mult_resultArray1, yOffset, y.size, x.value, (short) 0, x.size)) {
-                yOffset--;
-                bnh.fnc_mult_resultArray1[yOffset] = 0x01; // add carry if occured
-            }
+
+            // modified for CT
+            byte carry = add(bnh.fnc_mult_resultArray1, yOffset, y.size, x.value, (short) 0, x.size);
+            yOffset--;
+            bnh.fnc_mult_resultArray1[yOffset] = carry; // add carry if occured
         }
 
         // ((x+y)^2)
