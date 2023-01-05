@@ -556,19 +556,18 @@ public class BigNat {
 
 
     /**
-     * Addition of big integers x and y stored in byte arrays with specified offset and length.
-     * The result is stored into x array argument.
-     *
-     * @param x       array with first bignat
-     * @param xOffset start offset in array of {@code x}
-     * @param xLength length of {@code x}
-     * @param y       array with second bignat
-     * @param yOffset start offset in array of {@code y}
-     * @param yLength length of {@code y}
-     * @return true if carry of most significant byte occurs, false otherwise
-     */
-    public static boolean add(byte[] x, short xOffset, short xLength, byte[] y,
-                              short yOffset, short yLength) {
+    * Addition of big integers x and y stored in byte arrays with specified offset and length.
+    * The result is stored into x array argument. 
+    * @param x          array with first bignat
+    * @param xOffset    start offset in array of {@code x}
+    * @param xLength    length of {@code x}
+    * @param y          array with second bignat
+    * @param yOffset    start offset in array of {@code y}
+    * @param yLength    length of {@code y}
+    * @return 0x01 if carry of most significant byte occurs, 0x00 otherwise
+    */
+    public static byte add(byte[] x, short xOffset, short xLength, byte[] y,
+                    short yOffset, short yLength) {
         short result = 0;
         short i = (short) (xLength + xOffset - 1);
         short j = (short) (yLength + yOffset - 1);
@@ -586,7 +585,12 @@ public class BigNat {
             i--;
         }
 
-        return result != 0;
+        // 1. result != 0 => result | -result will have the sign bit set
+        // 2. casting magic to overcome the absence of int
+        // 3. move the sign bit to the rightmost position
+        // 4. discard the sign bit which is present due to the unavoidable casts
+        //    and return the value of the rightmost bit
+        return (byte) ((byte) (((short)(result | -result) & (short)0xFFFF) >>> 15) & 0x01);
     }
 
     /**
@@ -1420,18 +1424,20 @@ public class BigNat {
             // Copy x to the end of mult_resultArray
             xOffset = (short) (resultBuffer1.length - x.length());
             Util.arrayCopyNonAtomic(x.value, (short) 0, resultBuffer1, xOffset, x.length());
-            if (add(resultBuffer1, xOffset, x.size, y.value, (short) 0, y.size)) {
-                xOffset--;
-                resultBuffer1[xOffset] = 0x01;
-            }
+
+            // modified for CT
+            byte carry = add(resultBuffer1, xOffset, x.size, y.value, (short) 0, y.size);
+            xOffset--;
+            resultBuffer1[xOffset] = carry; // add carry if occured
         } else {
             // Copy x to the end of mult_resultArray
             yOffset = (short) (resultBuffer1.length - y.length());
             Util.arrayCopyNonAtomic(y.value, (short) 0, resultBuffer1, yOffset, y.length());
-            if (add(resultBuffer1, yOffset, y.size, x.value, (short) 0, x.size)) {
-                yOffset--;
-                resultBuffer1[yOffset] = 0x01; // add carry if occured
-            }
+
+            // modified for CT
+            byte carry = add(resultBuffer1, yOffset, y.size, x.value, (short) 0, x.size);
+            yOffset--;
+            resultBuffer1[yOffset] = carry; // add carry if occured
         }
 
         // ((x+y)^2)
