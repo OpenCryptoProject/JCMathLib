@@ -42,7 +42,9 @@ public class ECExample extends Applet {
     }
 
     public boolean select() {
-        ecc.refreshAfterReset();
+        if (initialized) {
+            ecc.refreshAfterReset();
+        }
         return true;
     }
 
