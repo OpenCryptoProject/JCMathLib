@@ -215,7 +215,6 @@ public class JCMathLibTest extends BaseTest {
         statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
-    @Disabled("Does not work in simulator")
     @Test
     public void bigNatMultiplication() throws Exception {
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
@@ -268,16 +267,20 @@ public class JCMathLibTest extends BaseTest {
         statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
-    @Disabled("Needs fix")
     @Test
     public void bigNatModSqrt() throws Exception {
         BigInteger num = randomBigNat(BIGNAT_BIT_LENGTH);
-        BigInteger result = tonelliShanks(num, new BigInteger(1, SecP256r1.p));
-        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQRT, (num.toByteArray()).length, 0, num.toByteArray());
+        BigInteger mod = new BigInteger(1, SecP256r1.p);
+        // Sample num until we get a quadratic residue
+        while(!num.modPow(mod.subtract(BigInteger.valueOf(1)).divide(BigInteger.valueOf(2)), mod).equals(BigInteger.valueOf(1))) {
+            num = randomBigNat(BIGNAT_BIT_LENGTH);
+        }
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQRT, Util.trimLeadingZeroes(num.toByteArray()).length, 0, Util.concat(Util.trimLeadingZeroes(num.toByteArray()), Util.trimLeadingZeroes(mod.toByteArray())));
         ResponseAPDU resp = statefulCard.transmit(cmd);
+        BigInteger receivedResult = new BigInteger(1, resp.getData());
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
-        Assertions.assertEquals(result, new BigInteger(1, resp.getData()));
+        Assertions.assertEquals(receivedResult.modPow(BigInteger.valueOf(2), mod), num);
         statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
@@ -457,69 +460,6 @@ public class JCMathLibTest extends BaseTest {
                 // We have proper number
                 return aRandomBigInt;
             }
-        }
-    }
-
-    /* Takes as input an odd prime p and n < p and returns r
-     * such that r * r = n [mod p]. */
-    public static BigInteger tonelliShanks(BigInteger n, BigInteger p) {
-
-        //1. By factoring out powers of 2, find Q and S such that p-1=Q2^S p-1=Q*2^S and Q is odd
-        BigInteger p_1 = p.subtract(BigInteger.ONE);
-        BigInteger S = BigInteger.ZERO;
-        BigInteger Q = p_1;
-
-        BigInteger two = BigInteger.valueOf(2);
-
-        while (Q.mod(two).compareTo(BigInteger.ONE) != 0) { //while Q is not odd
-            Q = Q.divide(two);
-            //Q = p_1.divide(two.modPow(S, p));
-            S = S.add(BigInteger.ONE);
-        }
-
-        //2. Find the first quadratic non-residue z by brute-force search
-        BigInteger z = BigInteger.ONE;
-        while (z.modPow(p_1.divide(BigInteger.valueOf(2)), p).compareTo(p_1) != 0) {
-            z = z.add(BigInteger.ONE);
-        }
-
-        System.out.println("n (y^2)    : " + Util.bytesToHex(n.toByteArray()));
-        System.out.println("Q          : " + Util.bytesToHex(Q.toByteArray()));
-        System.out.println("S          : " + Util.bytesToHex(S.toByteArray()));
-
-        BigInteger R = n.modPow(Q.add(BigInteger.ONE).divide(BigInteger.valueOf(2)), p);
-        BigInteger c = z.modPow(Q, p);
-        BigInteger t = n.modPow(Q, p);
-        BigInteger M = S;
-
-        while (t.compareTo(BigInteger.ONE) != 0) {
-            BigInteger tt = t;
-            BigInteger i = BigInteger.ZERO;
-            while (tt.compareTo(BigInteger.ONE) != 0) {
-                System.out.println("t    : " + tt.toString());
-                tt = tt.multiply(tt).mod(p);
-                i = i.add(BigInteger.ONE);
-                //if (i.compareTo(m)==0) return BigInteger.ZERO;
-            }
-
-            BigInteger M_i_1 = M.subtract(i).subtract(BigInteger.ONE);
-            System.out.println("M    : " + M.toString());
-            System.out.println("i    : " + i.toString());
-            System.out.println("M_i_1: " + M_i_1.toString());
-            System.out.println("===================");
-            BigInteger b = c.modPow(two.modPow(M_i_1, p_1), p);
-            BigInteger b2 = b.multiply(b).mod(p);
-
-            R = R.multiply(b).mod(p);
-            c = b2;
-            t = t.multiply(b2).mod(p);
-            M = i;
-        }
-
-        if (R.multiply(R).mod(p).compareTo(n) == 0) {
-            return R;
-        } else {
-            return BigInteger.ZERO;
         }
     }
 

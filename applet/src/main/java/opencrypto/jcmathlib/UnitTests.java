@@ -499,7 +499,7 @@ public class UnitTests extends Applet {
         bn3.set_size(dataLen);
         bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
         bn2.from_byte_array((short) (dataLen - p1), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
-        bn3.mult_rsa_trick(bn1, bn2, null, null);
+        bn3.mult(bn1, bn2);
         short len = bn3.copy_to_buffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -535,13 +535,14 @@ public class UnitTests extends Applet {
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
-    void testBnSqrt(APDU apdu, short ignoredDataLen) {
+    void testBnSqrt(APDU apdu, short dataLen) {
         byte[] apduBuffer = apdu.getBuffer();
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
         bn1.set_size(p1);
-        bn1.from_byte_array(p1, p1, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.clone(curve.pBN);
+        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
+        bn2.set_size((short) (dataLen - p1));
+        bn2.from_byte_array((short) (dataLen - p1), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
         bn1.sqrt_FP(bn2);
         short len = bn1.copy_to_buffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
