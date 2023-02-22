@@ -58,6 +58,9 @@ public class BaseTest {
         System.setProperty("com.licel.jcardsim.object_deletion_supported", "1");
         System.setProperty("com.licel.jcardsim.sign.dsasigner.computedhash", "1");
 
+        // Otherwise requires modulus to be composite
+        System.setProperty("com.licel.jcardsim.bouncycastle.rsa.allow_unsafe_mod", "true");
+
         // Set to statically seed RandomData in the applet by "02", hexcoded
         // System.setProperty("com.licel.jcardsim.randomdata.seed", "02");
 

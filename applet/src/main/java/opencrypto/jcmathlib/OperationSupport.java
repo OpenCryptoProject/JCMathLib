@@ -17,6 +17,7 @@ public class OperationSupport {
     public boolean RSA_MOD_EXP = false;
     public boolean RSA_PREPEND_ZEROS = false;
     public boolean RSA_KEY_REFRESH = false;
+    public boolean RSA_RESIZE_BASE = true;
     public boolean EC_HW_XY = false;
     public boolean EC_HW_X = true;
     public boolean EC_HW_ADD = false;
@@ -39,6 +40,7 @@ public class OperationSupport {
                 RSA_MOD_EXP = true;
                 RSA_PREPEND_ZEROS = true;
                 RSA_KEY_REFRESH = true;
+                RSA_RESIZE_BASE = true;
                 EC_SW_DOUBLE = true;
                 EC_HW_XY = true;
                 EC_HW_ADD = true;

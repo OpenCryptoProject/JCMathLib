@@ -16,7 +16,7 @@ public class ResourceManager {
     KeyAgreement ecMultKA;
     Signature verifyEcdsa;
     Cipher multCiph;
-    RSAPublicKey expPK;
+    RSAPrivateKey expPK;
     Cipher expCiph;
 
     byte[] ARRAY_A, ARRAY_B, POINT_ARRAY_A, POINT_ARRAY_B, HASH_ARRAY;
@@ -82,11 +82,14 @@ public class ResourceManager {
 
         // ECC Helpers
         if (OperationSupport.getInstance().EC_HW_XY) {
-            ecMultKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY, false);
+            // ecMultKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY, false);
+            ecMultKA = KeyAgreement.getInstance((byte) 6, false);
         } else if (OperationSupport.getInstance().EC_HW_X) {
-            ecMultKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN, false);
+            // ecMultKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN, false);
+            ecMultKA = KeyAgreement.getInstance((byte) 3, false);
         }
-        verifyEcdsa = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
+        // verifyEcdsa = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
+        verifyEcdsa = Signature.getInstance((byte) 33, false);
 
         // RSA Mult Helpers
         KeyPair multKP = new KeyPair(KeyPair.ALG_RSA_CRT, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
@@ -97,7 +100,7 @@ public class ResourceManager {
         multCiph.init(multPK, Cipher.MODE_ENCRYPT);
 
         // RSA Exp Helpers
-        expPK = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
+        expPK = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
         expCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
     }
 

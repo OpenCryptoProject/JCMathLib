@@ -364,9 +364,11 @@ public class ECPoint {
     public void multiplication(BigNat scalar) {
         if (OperationSupport.getInstance().EC_SW_DOUBLE && scalar.same_value(ResourceManager.TWO)) {
             swDouble();
-        } else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY) {
+        //} else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY) {
+        } else if (rm.ecMultKA.getAlgorithm() == (byte) 6) {
             multXY(scalar);
-        } else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN) {
+        //} else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN) {
+        } else if (rm.ecMultKA.getAlgorithm() == (byte) 3) {
             multX(scalar);
         } else {
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);

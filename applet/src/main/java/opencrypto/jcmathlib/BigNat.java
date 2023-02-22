@@ -6,6 +6,7 @@ package opencrypto.jcmathlib;
 import javacard.framework.ISOException;
 import javacard.framework.JCSystem;
 import javacard.framework.Util;
+import javacard.security.RSAPrivateKey;
 import javacardx.crypto.Cipher;
 import javacard.security.KeyBuilder;
 import javacard.security.RSAPublicKey;
@@ -1746,7 +1747,27 @@ public class BigNat {
         tmpMod.lock();
         tmpMod.set_size(tmp_size);
 
-        short len = n_mod_exp(tmp_size, this, exponent.as_byte_array(), exponent.length(), modulo, tmpMod.value, (short) 0);
+        // Verify if pre-allocated engine match the required values
+        if (rm.expPK.getSize() < (short) (modulo.length() * 8) || rm.expPK.getSize() < (short) (this.length() * 8)) {
+            ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
+        }
+        if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
+            // Simulator fails when reusing the original object
+            rm.expPK = (RSAPrivateKey) KeyBuilder.buildKey(javacard.security.KeyBuilder.TYPE_RSA_PRIVATE, rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
+        }
+        rm.expPK.setExponent(exponent.as_byte_array(), (short) 0, exponent.length());
+        rm.lock(tmpBuffer);
+        rm.expPK.setModulus(modulo.as_byte_array(), (short) 0, modulo.length());
+        rm.expCiph.init(rm.expPK, Cipher.MODE_DECRYPT);
+        short len;
+        if (OperationSupport.getInstance().RSA_RESIZE_BASE) {
+            this.prepend_zeros(modulo.length(), tmpBuffer, (short) 0);
+            len = rm.expCiph.doFinal(tmpBuffer, (short) 0, modulo.length(), tmpMod.value, (short) 0);
+        } else {
+            len = rm.expCiph.doFinal(this.as_byte_array(), (short) 0, this.length(), tmpMod.value, (short) 0);
+        }
+        rm.unlock(tmpBuffer);
+
         if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
             // Decrypted length can be either tmp_size or less because of leading zeroes consumed by simulator engine implementation
             // Move obtained value into proper position with zeroes prepended
@@ -1810,50 +1831,6 @@ public class BigNat {
         this.from_byte_array(len, (short) 0, occ.bnHelper.fastResizeArray, startOffset);
         occ.locker.unlock(occ.bnHelper.fastResizeArray);
 */
-    }
-
-    /**
-     * Calculates {@code res := base ** exp mod mod} using RSA engine.
-     * Requirements:
-     * 1. Modulo must be either 521, 1024, 2048 or other lengths supported by RSA (see appendzeros() and mod() method)
-     * 2. Base must have the same size as modulo (see prependzeros())
-     *
-     * @param baseLen      length of base rounded to size of RSA engine
-     * @param base         value of base (if size is not equal to baseLen then zeroes are appended)
-     * @param exponent     array with exponent
-     * @param exponentLen  length of exponent
-     * @param modulo       value of modulo
-     * @param resultArray  array for the computed result
-     * @param resultOffset start offset of resultArray
-     */
-    private short n_mod_exp(short baseLen, BigNat base, byte[] exponent, short exponentLen, BigNat modulo, byte[] resultArray, short resultOffset) {
-        byte[] tmpBuffer = rm.ARRAY_A;
-
-        // Verify if pre-allocated engine match the required values
-        if (rm.expPK.getSize() < (short) (modulo.length() * 8)) {
-            // attempt to perform modulu with higher or smaller than supported length - try change constant MODULO_ENGINE_MAX_LENGTH
-            ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
-        }
-        if (rm.expPK.getSize() < (short) (base.length() * 8)) {
-            ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
-        }
-        // Potential problem: we are changing key value for publicKey already used before with occ.bnHelper.modCipher. 
-        // Simulator and potentially some cards fail to initialize this new value properly (probably assuming that same key object will always have same value)
-        // Fix (if problem occure): generate new key object: RSAPublicKey publicKey = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, (short) (baseLen * 8), false);
-
-        if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
-            rm.expPK = (RSAPublicKey) KeyBuilder.buildKey(javacard.security.KeyBuilder.TYPE_RSA_PUBLIC, (short) (baseLen * 8), false);
-        }
-        rm.expPK.setExponent(exponent, (short) 0, exponentLen);
-        rm.lock(tmpBuffer);
-        modulo.append_zeros(baseLen, tmpBuffer, (short) 0);
-        rm.expPK.setModulus(tmpBuffer, (short) 0, baseLen);
-        rm.expCiph.init(rm.expPK, Cipher.MODE_DECRYPT);
-        base.prepend_zeros(baseLen, tmpBuffer, (short) 0);
-        // BUGBUG: Check if input is not all zeroes (causes out-of-bound exception on some cards)
-        short len = rm.expCiph.doFinal(tmpBuffer, (short) 0, baseLen, resultArray, resultOffset);
-        rm.unlock(tmpBuffer);
-        return len;
     }
 
     /**
