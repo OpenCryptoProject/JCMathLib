@@ -228,6 +228,19 @@ public class ECPoint {
      * @param other point to be added to this.
      */
     public void add(ECPoint other) {
+        if (OperationSupport.getInstance().EC_HW_ADD) {
+            hwAdd(other);
+        } else {
+            swAdd(other);
+        }
+    }
+
+    /**
+     * Implements adding of two points without ALG_EC_PACE_GM.
+     *
+     * @param other point to be added to this.
+     */
+    private void swAdd(ECPoint other) {
         boolean samePoint = this == other || isEqual(other);
         if (samePoint && OperationSupport.getInstance().EC_HW_XY) {
             multiplication(ResourceManager.TWO);
@@ -341,8 +354,20 @@ public class ECPoint {
     }
 
     /**
-     * Multiply value of this point by provided scalar. Stores the result into
-     * this point.
+     * Implements adding of two points via ALG_EC_PACE_GM.
+     *
+     * @param other point to be added to this.
+     */
+    private void hwAdd(ECPoint other) {
+        byte[] pointBuffer = rm.POINT_ARRAY_B;
+
+        rm.lock(pointBuffer);
+        setW(pointBuffer, (short) 0, multAndAddKA(ResourceManager.ONE_COORD, other, pointBuffer, (short) 0));
+        rm.unlock(pointBuffer);
+    }
+
+    /**
+     * Multiply value of this point by provided scalar. Stores the result into this point.
      *
      * @param scalarBytes value of scalar for multiplication
      */
@@ -375,7 +400,16 @@ public class ECPoint {
         }
     }
 
+    /**
+     * Multiply this point by a given scalar and add another point to the result.
+     *
+     * @param scalar value of scalar for multiplication
+     * @param point the other point
+     */
     public void multAndAdd(BigNat scalar, ECPoint point) {
+        if (!OperationSupport.getInstance().EC_HW_ADD) {
+            ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
+        }
         byte[] pointBuffer = rm.POINT_ARRAY_B;
 
         rm.lock(pointBuffer);
@@ -383,7 +417,15 @@ public class ECPoint {
         rm.unlock(pointBuffer);
     }
 
-    public short multAndAddKA(BigNat scalar, ECPoint point, byte[] outBuffer, short outBufferOffset) {
+    /**
+     * Multiply this point by a given scalar and add another point to the result and store the result into outBuffer.
+     *
+     * @param scalar value of scalar for multiplication
+     * @param point the other point
+     * @param outBuffer output buffer
+     * @param outBufferOffset offset in the output buffer
+     */
+    private short multAndAddKA(BigNat scalar, ECPoint point, byte[] outBuffer, short outBufferOffset) {
         byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);

@@ -29,7 +29,7 @@ public class ResourceManager {
 
     BigNat BN_A, BN_B, BN_C, BN_D, BN_E, BN_F;
     BigNat EC_BN_A, EC_BN_B, EC_BN_C, EC_BN_D, EC_BN_E, EC_BN_F;
-    public static BigNat ONE, TWO, THREE;
+    public static BigNat ONE, TWO, THREE, ONE_COORD;
 
     // TODO remove if possible
     public final short MODULO_RSA_ENGINE_MAX_LENGTH_BITS;
@@ -80,6 +80,8 @@ public class ResourceManager {
         TWO.two();
         THREE = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
         THREE.three();
+        ONE_COORD = new BigNat(MAX_COORD_SIZE, JCSystem.MEMORY_TYPE_PERSISTENT, this);
+        ONE_COORD.one();
 
         // ECC Helpers
         if (OperationSupport.getInstance().EC_HW_XY) {
@@ -91,8 +93,10 @@ public class ResourceManager {
         }
         // verifyEcdsa = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
         verifyEcdsa = Signature.getInstance((byte) 33, false);
-        // ecAddKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_PACE_GM, false);
-        ecAddKA = KeyAgreement.getInstance((byte) 5, false);
+        if (OperationSupport.getInstance().EC_HW_ADD) {
+            // ecAddKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_PACE_GM, false);
+            ecAddKA = KeyAgreement.getInstance((byte) 5, false);
+        }
 
         // RSA Mult Helpers
         KeyPair multKP = new KeyPair(KeyPair.ALG_RSA_CRT, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
