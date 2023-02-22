@@ -340,14 +340,13 @@ public class JCMathLibTest extends BaseTest {
         statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
-    @Disabled("Fails with the new simulator")
     @Test
     public void bigNatModSq() throws Exception {
-        BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
-        BigInteger num2 = BigInteger.valueOf(2);
-        BigInteger num3 = randomBigNat(BIGNAT_BIT_LENGTH / 8);
-        BigInteger result = (num1.modPow(num2, num3));
-        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQ_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, Util.trimLeadingZeroes(num3.toByteArray()).length, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num3.toByteArray())));
+        BigInteger base = randomBigNat(256);
+        BigInteger exp = BigInteger.valueOf(2);
+        BigInteger mod = new BigInteger(1, SecP256r1.r);
+        BigInteger result = (base.modPow(exp, mod));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQ_MOD, Util.trimLeadingZeroes(base.toByteArray()).length, (short) 0, Util.concat(Util.trimLeadingZeroes(base.toByteArray()), Util.trimLeadingZeroes(mod.toByteArray())));
         ResponseAPDU resp = statefulCard.transmit(cmd);
 
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
@@ -355,20 +354,16 @@ public class JCMathLibTest extends BaseTest {
         statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
-    @Disabled("Fails with the new simulator")
     @Test
     public void bigNatModInv() throws Exception {
-        BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH / 2 * 3);
-        BigInteger num2 = new BigInteger(1, SecP256r1.p);
-        BigInteger num3 = randomBigNat(BIGNAT_BIT_LENGTH);
-        BigInteger result = num1.modInverse(num2).multiply(num1).mod(num3);
-        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_INV_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, 0, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num2.toByteArray())));
+        BigInteger base = randomBigNat(BIGNAT_BIT_LENGTH);
+        BigInteger mod = new BigInteger(1, SecP256r1.r);
+        BigInteger result = base.modInverse(mod);
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_INV_MOD, Util.trimLeadingZeroes(base.toByteArray()).length, 0, Util.concat(Util.trimLeadingZeroes(base.toByteArray()), Util.trimLeadingZeroes(mod.toByteArray())));
         ResponseAPDU resp = statefulCard.transmit(cmd);
 
-        BigInteger respResult = new BigInteger(1, resp.getData()).multiply(num1).mod(num3);
-
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
-        Assertions.assertEquals(result, respResult);
+        Assertions.assertEquals(result, new BigInteger(1, resp.getData()));
         statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
