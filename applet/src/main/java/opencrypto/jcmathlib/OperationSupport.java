@@ -18,6 +18,7 @@ public class OperationSupport {
     public boolean RSA_PREPEND_ZEROS = false;
     public boolean RSA_KEY_REFRESH = false;
     public boolean RSA_RESIZE_BASE = true;
+    public boolean RSA_RESIZE_MODULUS = true;
     public boolean EC_HW_XY = false;
     public boolean EC_HW_X = true;
     public boolean EC_HW_ADD = false;
@@ -41,6 +42,7 @@ public class OperationSupport {
                 RSA_PREPEND_ZEROS = true;
                 RSA_KEY_REFRESH = true;
                 RSA_RESIZE_BASE = true;
+                RSA_RESIZE_MODULUS = false;
                 EC_SW_DOUBLE = true;
                 EC_HW_XY = true;
                 EC_HW_ADD = true;
@@ -57,7 +59,7 @@ public class OperationSupport {
             case J3R180:
                 DEFERRED_INITIALIZATION = true;
                 RSA_MULT_TRICK = true;
-                RSA_MOD_EXP = false;
+                RSA_MOD_EXP = true;
                 EC_HW_XY = true;
                 EC_HW_ADD = true;
                 break;

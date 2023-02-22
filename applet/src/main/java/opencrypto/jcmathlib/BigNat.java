@@ -1742,10 +1742,11 @@ public class BigNat {
 
         BigNat tmpMod = rm.BN_F;  // mod_exp is called from sqrt_FP => requires helper_BN_F not being locked when mod_exp is called
         byte[] tmpBuffer = rm.ARRAY_A;
-        short tmp_size = (short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
+        short tmpSize = (short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
+        short modLength;
 
         tmpMod.lock();
-        tmpMod.set_size(tmp_size);
+        tmpMod.set_size(tmpSize);
 
         // Verify if pre-allocated engine match the required values
         if (rm.expPK.getSize() < (short) (modulo.length() * 8) || rm.expPK.getSize() < (short) (this.length() * 8)) {
@@ -1757,12 +1758,19 @@ public class BigNat {
         }
         rm.expPK.setExponent(exponent.as_byte_array(), (short) 0, exponent.length());
         rm.lock(tmpBuffer);
-        rm.expPK.setModulus(modulo.as_byte_array(), (short) 0, modulo.length());
+        if (OperationSupport.getInstance().RSA_RESIZE_MODULUS) {
+            modulo.prepend_zeros(tmpSize, tmpBuffer, (short) 0);
+            rm.expPK.setModulus(tmpBuffer, (short) 0, tmpSize);
+            modLength = tmpSize;
+        } else {
+            rm.expPK.setModulus(modulo.as_byte_array(), (short) 0, modulo.length());
+            modLength = modulo.length();
+        }
         rm.expCiph.init(rm.expPK, Cipher.MODE_DECRYPT);
         short len;
         if (OperationSupport.getInstance().RSA_RESIZE_BASE) {
-            this.prepend_zeros(modulo.length(), tmpBuffer, (short) 0);
-            len = rm.expCiph.doFinal(tmpBuffer, (short) 0, modulo.length(), tmpMod.value, (short) 0);
+            this.prepend_zeros(modLength, tmpBuffer, (short) 0);
+            len = rm.expCiph.doFinal(tmpBuffer, (short) 0, modLength, tmpMod.value, (short) 0);
         } else {
             len = rm.expCiph.doFinal(this.as_byte_array(), (short) 0, this.length(), tmpMod.value, (short) 0);
         }
@@ -1771,16 +1779,16 @@ public class BigNat {
         if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
             // Decrypted length can be either tmp_size or less because of leading zeroes consumed by simulator engine implementation
             // Move obtained value into proper position with zeroes prepended
-            if (len != tmp_size) {
+            if (len != tmpSize) {
                 rm.lock(tmpBuffer);
                 Util.arrayFillNonAtomic(tmpBuffer, (short) 0, (short) tmpBuffer.length, (byte) 0);
-                Util.arrayCopyNonAtomic(tmpMod.value, (short) 0, tmpBuffer, (short) (tmp_size - len), len);
-                Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, tmpMod.value, (short) 0, tmp_size);
+                Util.arrayCopyNonAtomic(tmpMod.value, (short) 0, tmpBuffer, (short) (tmpSize - len), len);
+                Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, tmpMod.value, (short) 0, tmpSize);
                 rm.unlock(tmpBuffer);
             }
         } else {
             // real cards should keep whole length of block, just check
-            if (len != tmp_size) {
+            if (len != tmpSize) {
                 ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
             }
         }
