@@ -61,6 +61,7 @@ public class UnitTests extends Applet {
     public final static byte INS_EC_FROM_X = (byte) 0x47;
     public final static byte INS_EC_IS_Y_EVEN = (byte) 0x48;
     public final static byte INS_EC_MUL_ADD = (byte) 0x49;
+    public final static byte INS_EC_ENCODE = (byte) 0x4a;
 
     boolean initialized = false;
 
@@ -228,6 +229,9 @@ public class UnitTests extends Applet {
                     break;
                 case INS_EC_MUL_ADD:
                     testEcMulAdd(apdu);
+                    break;
+                case INS_EC_ENCODE:
+                    testEcEncode(apdu);
                     break;
 
                 case INS_BN_STR:
@@ -466,6 +470,16 @@ public class UnitTests extends Applet {
         point1.setW(apduBuffer, ISO7816.OFFSET_CDATA, p1_len);
         apduBuffer[0] = point1.isYEven() ? (byte) 1 : (byte) 0;
         apdu.setOutgoingAndSend((short) 0, (short) 1);
+    }
+
+
+    void testEcEncode(APDU apdu) {
+        byte[] apduBuffer = apdu.getBuffer();
+        short len = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
+        boolean compressed = apduBuffer[ISO7816.OFFSET_P2] == 0x01;
+
+        point1.decode(apduBuffer, ISO7816.OFFSET_CDATA, len);
+        apdu.setOutgoingAndSend((short) 0, point1.encode(apduBuffer, (short) 0, compressed));
     }
 
 

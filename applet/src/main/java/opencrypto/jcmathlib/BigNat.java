@@ -1919,21 +1919,6 @@ public class BigNat {
     }
 
     /**
-     * Set content of Bignat internal array
-     *
-     * @param this_offset       offset where data should be stored
-     * @param from_array        data array to deserialize from
-     * @param from_array_length available data in {@code from_array}
-     * @param from_array_offset offset in {@code from_array}
-     * @return the number of shorts actually read, except for the case where
-     * deserialization finished by reading precisely {@code len} shorts, in this
-     * case {@code len + 1} is returned.
-     */
-    public short set_from_byte_array(short this_offset, byte[] from_array, short from_array_offset, short from_array_length) {
-        return from_byte_array(from_array_length, this_offset, from_array, from_array_offset);
-    }
-
-    /**
      * Set content of BigNat internal array
      *
      * @param from_array data array to deserialize from

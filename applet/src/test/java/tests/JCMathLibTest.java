@@ -193,6 +193,44 @@ public class JCMathLibTest extends BaseTest {
         statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
     }
 
+
+    @Test
+    public void eccEncode() throws Exception {
+        CardManager cardMngr = connect();
+        ECPoint point = randECPoint();
+
+        for(int i = 0; i < 2; ++i) {
+            // Test both uncompressed
+            CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_ENCODE, point.getEncoded(false).length, 0, point.getEncoded(false));
+            ResponseAPDU resp = cardMngr.transmit(cmd);
+            Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+            Assertions.assertArrayEquals(point.getEncoded(false), resp.getData());
+
+            // Test compressed output
+            cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_ENCODE, point.getEncoded(false).length, 1, point.getEncoded(false));
+            resp = cardMngr.transmit(cmd);
+            Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+            Assertions.assertArrayEquals(point.getEncoded(true), resp.getData());
+
+            // Test compressed input
+            cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_ENCODE, point.getEncoded(true).length, 0, point.getEncoded(true));
+            resp = cardMngr.transmit(cmd);
+            Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+            Assertions.assertArrayEquals(point.getEncoded(false), resp.getData());
+
+            // Test both compressed
+            cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_ENCODE, point.getEncoded(true).length, 1, point.getEncoded(true));
+            resp = cardMngr.transmit(cmd);
+            Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+            Assertions.assertArrayEquals(point.getEncoded(true), resp.getData());
+
+            // Test with negated point
+            point = point.negate();
+        }
+
+        cardMngr.transmit(new CommandAPDU(APDU_CLEANUP));
+    }
+
     @Test
     public void bigNatStorage() throws Exception {
         BigInteger num = randomBigNat(BIGNAT_BIT_LENGTH);
