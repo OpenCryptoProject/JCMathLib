@@ -408,47 +408,14 @@ public class BigNat {
         value[(short) (size - 1)] = 0x02;
     }
 
+    /**
+     * Stores three in this object. Keeps previous size of this Bignat (3 is
+     * prepended with required number of zeroes).
+     */
     public void three() {
         this.zero();
         value[(short) (size - 1)] = 0x03;
     }
-
-    public void four() {
-        this.zero();
-        value[(short) (size - 1)] = 0x04;
-    }
-
-    public void five() {
-        this.zero();
-        value[(short) (size - 1)] = 0x05;
-    }
-
-    public void eight() {
-        this.zero();
-        value[(short) (size - 1)] = 0x08;
-    }
-
-    public void ten() {
-        this.zero();
-        value[(short) (size - 1)] = 0x0A;
-    }
-
-    public void twentyfive() {
-        this.zero();
-        value[(short) (size - 1)] = 0x19;
-    }
-
-    public void twentyseven() {
-        this.zero();
-        value[(short) (size - 1)] = 0x1B;
-    }
-
-    public void athousand() {
-        this.zero();
-        value[(short) (size - 2)] = (byte) 0x03;
-        value[(short) (size - 1)] = (byte) 0xE8;
-    }
-
 
     /**
      * Copies {@code other} into this. No size requirements. If {@code other}
@@ -1610,68 +1577,6 @@ public class BigNat {
     }
 
     /**
-     * Inefficient modular multiplication.
-     * <p>
-     * This bignat is assigned to {@code x * y} modulo {@code mod}. Inefficient,
-     * because it computes the modules with {@link #remainder_divide
-     * remainder_divide} in each multiplication round. To avoid overflow the
-     * first two digits of {@code x} and {@code mod} must be zero (which plays
-     * nicely with the requirements for montgomery multiplication, see
-     * {@link #montgomery_mult montgomery_mult}).
-     * <p>
-     * Asserts that {@code x} and {@code mod} have the same size. Argument
-     * {@code y} can be arbitrary in size.
-     * <p>
-     * Included here to make it possible to compute the squared <a
-     * href="package-summary.html#montgomery_factor">montgomery factor</a>,
-     * which is needed to montgomerize numbers before montgomery multiplication.
-     * Until now this has never been used, because the montgomery factors are
-     * computed on the host and then installed on the card. Or numbers are
-     * montgomerized on the host already.
-     *
-     * @param x   first factor, first two digits must be zero
-     * @param y   second factor
-     * @param mod modulus, first two digits must be zero
-     */
-    public void mod_mult_inefficient(BigNat x, BigNat y, BigNat mod) {
-        BigNat tmp = rm.BN_A;
-        BigNat tmpMod = rm.BN_B;
-        BigNat tmpX = rm.BN_C;
-
-        short len = 0;
-        if (x.length() >= mod.length()) {
-            len = x.length();
-        } else {
-            len = mod.length();
-        }
-
-        short magicAdd = 2;
-        tmpX.lock();
-        tmpX.set_size((short) (len + magicAdd));
-        tmpX.copy(x);
-
-        tmpMod.lock();
-        tmpMod.set_size((short) (len + magicAdd));
-        tmpMod.copy(mod);
-
-        tmp.lock();
-        tmp.set_size((short) (this.length() + magicAdd));
-        tmp.zero();
-        for (short i = 0; i < y.size; i++) {
-            tmp.shift_left();
-            tmp.times_add(tmpX, (short) (y.value[i] & digit_mask));
-            tmp.remainder_divide(tmpMod, null);
-        }
-        tmpX.unlock();
-        tmpMod.unlock();
-
-        tmp.shrink();
-        this.clone(tmp);
-        tmp.unlock();
-    }
-
-
-    /**
      * Computes square root of provided bignat which MUST be prime using Tonelli
      * Shanks Algorithm. The result (one of the two roots) is stored to this.
      *
@@ -1845,44 +1750,6 @@ public class BigNat {
 
     public void mod_exp2(BigNat modulo) {
         mod_exp(ResourceManager.TWO, modulo);
-        //this.pow2Mod_RSATrick(modulo);
-/*
-        short tmp_size = (short) (occ.bnHelper.MOD_RSA_LENGTH / 8);
-
-        // Idea: a = this with prepended zeroes, b = this with appended zeroes, modulo with appended zeroes
-        // Compute mult_RSATrick
-        this.prependzeros(tmp_size, occ.bnHelper.helper_BN_A.as_byte_array(), (short) 0);
-        occ.bnHelper.helper_BN_A.setSize(tmp_size);
-        this.appendzeros(tmp_size, occ.bnHelper.helper_BN_B.as_byte_array(), (short) 0);
-        occ.bnHelper.helper_BN_B.setSize(tmp_size);
-
-        mult_RSATrick(occ.bnHelper.helper_BN_A, occ.bnHelper.helper_BN_B);
-
-        // We will use prepared engine with exponent=2 and very large modulus (instead of provided modulus)
-        // The reason is to avoid need for setting custom modulus and re-init RSA engine
-        // Mod operation is computed later
-        occ.bnHelper.modPublicKey.setExponent(occ.bnHelper.CONST_TWO, (short) 0, (short) 1);
-        occ.locker.lock(occ.bnHelper.fastResizeArray);
-        modulo.appendzeros(tmp_size, occ.bnHelper.fastResizeArray, (short) 0);
-        // NOTE: ideally, we would just set RSA engine modulus to our modulo. But smallest RSA key is 512 bit while
-        // our values are commonly smaller (e.g., 32B for 256b ECC). Prepending leading zeroes will cause 0xf105 (CryptoException.InvalidUse)
-        //modulo.prependzeros(tmp_size, occ.bnHelper.fastResizeArray, (short) 0);
-        occ.bnHelper.modPublicKey.setModulus(occ.bnHelper.fastResizeArray, (short) 0, tmp_size);
-        occ.bnHelper.modCipher.init(occ.bnHelper.modPublicKey, Cipher.MODE_DECRYPT);
-        this.prependzeros(tmp_size, occ.bnHelper.fastResizeArray, (short) 0);
-        occ.bnHelper.modCipher.doFinal(occ.bnHelper.fastResizeArray, (byte) 0, tmp_size, occ.bnHelper.fastResizeArray, (short) 0);
-        occ.locker.unlock(occ.bnHelper.fastResizeArray);
-
-        // We used RSA engine with large modulo => some leading values will be zero (|this^2| <= 2*|this|)
-        short startOffset = 0; // Find first nonzero value in resulting buffer
-        while (occ.bnHelper.fastResizeArray[startOffset] == 0) {
-            startOffset++;
-        }
-        short len = (short) (tmp_size - startOffset);
-        this.setSize(len);
-        this.from_byte_array(len, (short) 0, occ.bnHelper.fastResizeArray, startOffset);
-        occ.locker.unlock(occ.bnHelper.fastResizeArray);
-*/
     }
 
     /**
