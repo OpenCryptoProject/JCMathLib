@@ -323,7 +323,6 @@ public class Integer {
      * @param other other integer to multiply
      */
     public void multiply(Integer other) {
-        BigNat mod = rm.BN_A;
         BigNat tmp = rm.BN_B;
 
         if (this.isPositive() && other.isNegative()) {
@@ -334,17 +333,10 @@ public class Integer {
             this.setSign((byte) 0);
         }
 
-        // Make mod BN as maximum value (positive, leading 0x80)
-        mod.lock();
-        mod.set_size(this.magnitude.length());
-        mod.zero();
-        mod.as_byte_array()[0] = (byte) 0x80;  // Max INT+1 Value
-
         tmp.lock();
         tmp.set_size(this.magnitude.length());
-        tmp.mod_mult(this.getMagnitude(), other.getMagnitude(), mod);
+        tmp.mult(this.getMagnitude(), other.getMagnitude());
         this.magnitude.copy(tmp);
-        mod.unlock();
         tmp.unlock();
     }
 

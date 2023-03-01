@@ -1554,7 +1554,7 @@ public class BigNat {
      * @param modulo value of modulo
      */
     public void mod_mult(BigNat x, BigNat y, BigNat modulo) {
-        BigNat tmp = rm.BN_E; // mod_mult is called from sqrt_FP => requires helper_BN_E not being locked when mod_mult is called
+        BigNat tmp = rm.BN_E; // mod_mult is called from sqrt_FP => requires BN_E not being locked when mod_mult is called
 
         tmp.lock();
         // Perform fast multiplication using RSA trick
@@ -1705,7 +1705,11 @@ public class BigNat {
 
         while (!tmp.same_value(q)) {
             s.increment_one();
-            tmp.mod_mult(s, q, p);
+            // TODO investigate why just mod_mult(s, q, p) does not work (apart from locks)
+            tmp.resize_to_max(false);
+            tmp.mult(s, q);
+            tmp.mod(p);
+            tmp.shrink();
         }
         tmp.unlock();
         s.unlock();
@@ -1781,7 +1785,7 @@ public class BigNat {
         if (!OperationSupport.getInstance().RSA_MOD_EXP)
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
 
-        BigNat tmpMod = rm.BN_F;  // mod_exp is called from sqrt_FP => requires helper_BN_F not being locked when mod_exp is called
+        BigNat tmpMod = rm.BN_F;  // mod_exp is called from sqrt_FP => requires BN_F not being locked when mod_exp is called
         byte[] tmpBuffer = rm.ARRAY_A;
         short tmpSize = (short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
         short modLength;
