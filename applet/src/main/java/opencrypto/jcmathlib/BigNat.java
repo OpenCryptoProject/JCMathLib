@@ -9,7 +9,6 @@ import javacard.framework.Util;
 import javacard.security.RSAPrivateKey;
 import javacardx.crypto.Cipher;
 import javacard.security.KeyBuilder;
-import javacard.security.RSAPublicKey;
 
 /**
  * @author Vasilios Mavroudis and Petr Svenda
@@ -1513,6 +1512,39 @@ public class BigNat {
         rm.unlock(resultBuffer2);
     }
 
+
+    /**
+     * Performs multiplication of two BigNat x and y and stores result into this.
+     * RSA engine is used to speedup operation for large values.
+     *
+     * @param x       first value to multiply
+     * @param y       second value to multiply
+     * @param mod     modulus
+     */
+    public void mod_mult_rsa_trick(BigNat x, BigNat y, BigNat mod) {
+        this.clone(x);
+        this.mod_add(y, mod);
+        this.mod_exp2(mod);
+
+        BigNat tmp = rm.BN_D;
+        tmp.lock();
+        tmp.clone(x);
+        tmp.mod_exp2(mod);
+        this.mod_sub(tmp, mod);
+
+        tmp.clone(y);
+        tmp.mod_exp2(mod);
+        this.mod_sub(tmp, mod);
+        tmp.unlock();
+
+        boolean carry = false;
+        if(this.is_odd()) {
+            carry = this.add_carry(mod);
+        }
+
+        this.divide_by_2(carry ? (short) (1 << 7) : (short) 0);
+    }
+
     /**
      * Multiplication of bignats x and y computed by modulo {@code modulo}.
      * The result is stored to this.
@@ -1525,12 +1557,15 @@ public class BigNat {
         BigNat tmp = rm.BN_E; // mod_mult is called from sqrt_FP => requires helper_BN_E not being locked when mod_mult is called
 
         tmp.lock();
-        tmp.resize_to_max(false);
         // Perform fast multiplication using RSA trick
-        tmp.mult(x, y);
-        // Compute modulo 
-        tmp.mod(modulo);
-        tmp.shrink();
+        if(OperationSupport.getInstance().RSA_MULT_TRICK) {
+            tmp.mod_mult_rsa_trick(x, y, modulo);
+        } else {
+            tmp.resize_to_max(false);
+            tmp.mult(x, y);
+            tmp.mod(modulo);
+            tmp.shrink();
+        }
         this.clone(tmp);
         tmp.unlock();
     }
@@ -1550,12 +1585,13 @@ public class BigNat {
     }
 
     /**
-     * Optimized division by value two
+     * Optimized division by value two with carry
+     *
+     * @param carry XORed into the highest byte
      */
-    private void divide_by_2() {
+    private void divide_by_2(short carry) {
         short tmp = 0;
         short tmp2 = 0;
-        short carry = 0;
         for (short i = 0; i < this.size; i++) {
             tmp = (short) (this.value[i] & 0xff);
             tmp2 = tmp;
@@ -1564,6 +1600,13 @@ public class BigNat {
             carry = (short) (tmp2 & 0x01); // save lowest bit
             carry <<= 7; // shifted to highest position
         }
+    }
+
+    /**
+     * Optimized division by value two
+     */
+    private void divide_by_2() {
+        divide_by_2((short) 0);
     }
 
     /**
@@ -1627,8 +1670,6 @@ public class BigNat {
         tmp.unlock();
     }
 
-
-    //
 
     /**
      * Computes square root of provided bignat which MUST be prime using Tonelli
@@ -1792,7 +1833,6 @@ public class BigNat {
                 ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
             }
         }
-        tmpMod.mod(modulo);
         tmpMod.shrink();
         this.clone(tmpMod);
         tmpMod.unlock();
@@ -1802,9 +1842,9 @@ public class BigNat {
     public void mod_exp2(BigNat modulo) {
         mod_exp(ResourceManager.TWO, modulo);
         //this.pow2Mod_RSATrick(modulo);
-/*        
+/*
         short tmp_size = (short) (occ.bnHelper.MOD_RSA_LENGTH / 8);
-        
+
         // Idea: a = this with prepended zeroes, b = this with appended zeroes, modulo with appended zeroes
         // Compute mult_RSATrick
         this.prependzeros(tmp_size, occ.bnHelper.helper_BN_A.as_byte_array(), (short) 0);
@@ -1813,14 +1853,14 @@ public class BigNat {
         occ.bnHelper.helper_BN_B.setSize(tmp_size);
 
         mult_RSATrick(occ.bnHelper.helper_BN_A, occ.bnHelper.helper_BN_B);
-        
+
         // We will use prepared engine with exponent=2 and very large modulus (instead of provided modulus)
         // The reason is to avoid need for setting custom modulus and re-init RSA engine
-        // Mod operation is computed later 
+        // Mod operation is computed later
         occ.bnHelper.modPublicKey.setExponent(occ.bnHelper.CONST_TWO, (short) 0, (short) 1);
         occ.locker.lock(occ.bnHelper.fastResizeArray);
         modulo.appendzeros(tmp_size, occ.bnHelper.fastResizeArray, (short) 0);
-        // NOTE: ideally, we would just set RSA engine modulus to our modulo. But smallest RSA key is 512 bit while 
+        // NOTE: ideally, we would just set RSA engine modulus to our modulo. But smallest RSA key is 512 bit while
         // our values are commonly smaller (e.g., 32B for 256b ECC). Prepending leading zeroes will cause 0xf105 (CryptoException.InvalidUse)
         //modulo.prependzeros(tmp_size, occ.bnHelper.fastResizeArray, (short) 0);
         occ.bnHelper.modPublicKey.setModulus(occ.bnHelper.fastResizeArray, (short) 0, tmp_size);
