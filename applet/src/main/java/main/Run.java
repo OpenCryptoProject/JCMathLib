@@ -28,8 +28,6 @@ public class Run {
 
         simulator.selectApplet(appletAID);
 
-        simulator.transmitCommand(new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_INITIALIZE, 0, 0));
-
         runBigNat(simulator);
         System.out.println();
         runECC(simulator);

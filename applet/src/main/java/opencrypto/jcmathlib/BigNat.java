@@ -1524,8 +1524,8 @@ public class BigNat {
         BigNat tmp = rm.BN_E; // mod_mult is called from sqrt_FP => requires BN_E not being locked when mod_mult is called
 
         tmp.lock();
-        // Perform fast multiplication using RSA trick
-        if(OperationSupport.getInstance().RSA_MULT_TRICK) {
+
+        if(OperationSupport.getInstance().RSA_MOD_MULT_TRICK) {
             tmp.mod_mult_rsa_trick(x, y, modulo);
         } else {
             tmp.resize_to_max(false);
@@ -1704,7 +1704,7 @@ public class BigNat {
         }
         if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
             // Simulator fails when reusing the original object
-            rm.expPK = (RSAPrivateKey) KeyBuilder.buildKey(javacard.security.KeyBuilder.TYPE_RSA_PRIVATE, rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
+            rm.expPK = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
         }
         rm.expPK.setExponent(exponent.as_byte_array(), (short) 0, exponent.length());
         rm.lock(tmpBuffer);

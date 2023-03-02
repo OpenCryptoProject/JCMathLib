@@ -22,7 +22,6 @@ public class UnitTests extends Applet {
     static boolean TEST_P512 = false;
 
     public final static byte CLA_OC_UT = (byte) 0xB0;
-    public final static byte INS_INITIALIZE = (byte) 0x01;
     public final static byte INS_CLEANUP = (byte) 0x03;
     public final static byte INS_FREE_MEMORY = (byte) 0x06;
     public final static byte INS_GET_ALLOCATOR_STATS = (byte) 0x07;
@@ -163,17 +162,14 @@ public class UnitTests extends Applet {
             ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
         }
 
-        if (apduBuffer[ISO7816.OFFSET_INS] == INS_INITIALIZE) {
-            initialize();
-            return;
-        } else if (!initialized) {
-            ISOException.throwIt(ReturnCodes.SW_NOT_INITIALIZED);
-        }
-
         // Process Input
         short dataLen = apdu.setIncomingAndReceive(); // returns length of data field
 
         try {
+            if(!initialized) {
+                initialize();
+            }
+
             switch (apduBuffer[ISO7816.OFFSET_INS]) {
                 case INS_CLEANUP:
                     ecc.unlockAll();

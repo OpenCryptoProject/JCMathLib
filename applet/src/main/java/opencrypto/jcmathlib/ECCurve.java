@@ -16,16 +16,9 @@ public class ECCurve {
     public final short COORD_SIZE; //Bytes
 
     //Parameters
-    public byte[] p;
-    public byte[] a;
-    public byte[] b;
-    public byte[] G;
-    public byte[] r;
-    
-    public BigNat pBN;
-    public BigNat aBN;
-    public BigNat bBN;
-    
+    public byte[] p, a, b, G, r;
+    public BigNat pBN, aBN, bBN, rBN;
+
     public KeyPair disposable_pair;
     public ECPrivateKey disposable_priv;
 
@@ -71,11 +64,12 @@ public class ECCurve {
             this.r = r_arr;
         }
 
-        // We will not modify values of p/a/b during the lifetime of curve => allocate helper bignats directly from the array
+        // We will not modify values of p/a/b/r during the lifetime of curve => allocate helper bignats directly from the array
         // Additionally, these Bignats will be only read from so Bignat_Helper can be null (saving need to pass as argument to ECCurve)
         this.pBN = new BigNat(this.p, null);
         this.aBN = new BigNat(this.a, null);
         this.bBN = new BigNat(this.b, null);
+        this.rBN = new BigNat(this.r, null);
 
         this.disposable_pair = this.newKeyPair(null);
         this.disposable_priv = (ECPrivateKey) this.disposable_pair.getPrivate();
@@ -88,6 +82,7 @@ public class ECCurve {
         this.pBN.from_byte_array(this.p);
         this.aBN.from_byte_array(this.a);
         this.bBN.from_byte_array(this.b);
+        this.rBN.from_byte_array(this.r);
     }
     
     /**

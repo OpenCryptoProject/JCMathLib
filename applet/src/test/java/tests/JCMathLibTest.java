@@ -38,7 +38,6 @@ public class JCMathLibTest extends BaseTest {
         this.setCardType(CardType.JCARDSIMLOCAL);
         this.setSimulateStateful(true);
         statefulCard = connect();
-        statefulCard.transmit(new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_INITIALIZE, 0, 0));
     }
 
     @Test

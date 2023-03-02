@@ -14,6 +14,7 @@ public class OperationSupport {
     public static final short J3R180 = 0x0003;
 
     public boolean RSA_MULT_TRICK = false;
+    public boolean RSA_MOD_MULT_TRICK = false;
     public boolean RSA_MOD_EXP = false;
     public boolean RSA_PREPEND_ZEROS = false;
     public boolean RSA_KEY_REFRESH = false;
@@ -52,12 +53,17 @@ public class OperationSupport {
                 RSA_MOD_EXP = true;
                 break;
             case J3H145:
+                // This card can only compute RSA with max-sized modulus.
+                DEFERRED_INITIALIZATION = true;
+                RSA_MOD_MULT_TRICK = false;
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = false;
                 EC_HW_XY = true;
+                EC_HW_ADD = true;
                 break;
             case J3R180:
                 DEFERRED_INITIALIZATION = true;
+                RSA_MOD_MULT_TRICK = true;
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = true;
                 EC_HW_XY = true;
