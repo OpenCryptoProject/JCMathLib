@@ -17,7 +17,8 @@ public class ResourceManager {
     KeyAgreement ecAddKA;
     Signature verifyEcdsa;
     Cipher multCiph;
-    RSAPrivateKey expPK;
+    RSAPublicKey expPub;
+    RSAPrivateKey expPriv;
     Cipher expCiph;
 
     byte[] ARRAY_A, ARRAY_B, POINT_ARRAY_A, POINT_ARRAY_B, HASH_ARRAY;
@@ -107,7 +108,8 @@ public class ResourceManager {
         multCiph.init(multPK, Cipher.MODE_ENCRYPT);
 
         // RSA Exp Helpers
-        expPK = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
+        expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
+        expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
         expCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
     }
 

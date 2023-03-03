@@ -16,10 +16,13 @@ public class OperationSupport {
     public boolean RSA_MULT_TRICK = false;
     public boolean RSA_MOD_MULT_TRICK = false;
     public boolean RSA_MOD_EXP = false;
+    public boolean RSA_MOD_EXP_EXTRA_MOD = false;
+    public boolean RSA_MOD_EXP_PUB = false;
     public boolean RSA_PREPEND_ZEROS = false;
     public boolean RSA_KEY_REFRESH = false;
     public boolean RSA_RESIZE_BASE = true;
     public boolean RSA_RESIZE_MODULUS = true;
+    public boolean RSA_RESIZE_MODULUS_APPEND = false;
     public boolean EC_HW_XY = false;
     public boolean EC_HW_X = true;
     public boolean EC_HW_ADD = false;
@@ -49,8 +52,15 @@ public class OperationSupport {
                 EC_HW_ADD = true;
                 break;
             case J2E145G:
+                RSA_MOD_MULT_TRICK = false;
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = true;
+                RSA_MOD_EXP_EXTRA_MOD = true;
+                RSA_MOD_EXP_PUB = true;
+                RSA_RESIZE_BASE = true;
+                RSA_RESIZE_MODULUS = true;
+                RSA_RESIZE_MODULUS_APPEND = true;
+                EC_HW_X = true;
                 break;
             case J3H145:
                 // This card can only compute RSA with max-sized modulus.
