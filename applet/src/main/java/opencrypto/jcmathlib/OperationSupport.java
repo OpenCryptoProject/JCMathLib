@@ -63,11 +63,11 @@ public class OperationSupport {
                 EC_HW_X = true;
                 break;
             case J3H145:
-                // This card can only compute RSA with max-sized modulus.
                 DEFERRED_INITIALIZATION = true;
-                RSA_MOD_MULT_TRICK = false;
+                RSA_MOD_MULT_TRICK = true;
                 RSA_MULT_TRICK = true;
-                RSA_MOD_EXP = false;
+                RSA_MOD_EXP = true;
+                RSA_MOD_EXP_PUB = true;
                 EC_HW_XY = true;
                 EC_HW_ADD = true;
                 break;
