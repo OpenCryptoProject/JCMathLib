@@ -407,14 +407,16 @@ public class ECPoint {
      * @param point the other point
      */
     public void multAndAdd(BigNat scalar, ECPoint point) {
-        if (!OperationSupport.getInstance().EC_HW_ADD) {
-            ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
-        }
-        byte[] pointBuffer = rm.POINT_ARRAY_B;
+        if (OperationSupport.getInstance().EC_HW_ADD) {
+            byte[] pointBuffer = rm.POINT_ARRAY_B;
 
-        rm.lock(pointBuffer);
-        setW(pointBuffer, (short) 0, multAndAddKA(scalar, point, pointBuffer, (short) 0));
-        rm.unlock(pointBuffer);
+            rm.lock(pointBuffer);
+            setW(pointBuffer, (short) 0, multAndAddKA(scalar, point, pointBuffer, (short) 0));
+            rm.unlock(pointBuffer);
+        } else {
+            multiplication(scalar);
+            add(point);
+        }
     }
 
     /**

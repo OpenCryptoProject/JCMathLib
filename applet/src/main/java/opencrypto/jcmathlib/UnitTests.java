@@ -18,8 +18,6 @@ import javacard.security.CryptoException;
  */
 public class UnitTests extends Applet {
     public final static short CARD_TYPE = OperationSupport.SIMULATOR; // TODO set your card
-    static boolean TEST_P256 = true;
-    static boolean TEST_P512 = false;
 
     public final static byte CLA_OC_UT = (byte) 0xB0;
     public final static byte INS_CLEANUP = (byte) 0x03;
@@ -96,29 +94,16 @@ public class UnitTests extends Applet {
         }
         memoryInfo = new short[(short) (7 * 3)]; // Contains RAM and EEPROM memory required for basic library objects
         memoryInfoOffset = snapshotAvailableMemory((short) 1, memoryInfo, memoryInfoOffset);
-        if (TEST_P256) {
-            ecc = new ECConfig((short) 256);
-        }
-        if (TEST_P512) {
-            ecc = new ECConfig((short) 512);
-        }
+        ecc = new ECConfig((short) 256);
         memoryInfoOffset = snapshotAvailableMemory((short) 2, memoryInfo, memoryInfoOffset);
 
 
         // Pre-allocate test objects (no new allocation for every tested operation)
-        if (TEST_P256) {
-            curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r);
-            memoryInfoOffset = snapshotAvailableMemory((short) 3, memoryInfo, memoryInfoOffset);
-            customG = new byte[(short) SecP256r1.G.length];
-            Util.arrayCopyNonAtomic(SecP256r1.G, (short) 0, customG, (short) 0, (short) SecP256r1.G.length);
-            customCurve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, customG, SecP256r1.r);
-        }
-        if (TEST_P512) {
-            curve = new ECCurve(false, P512r1.p, P512r1.a, P512r1.b, P512r1.G, P512r1.r);
-            customG = new byte[(short) P512r1.G.length];
-            Util.arrayCopyNonAtomic(P512r1.G, (short) 0, customG, (short) 0, (short) P512r1.G.length);
-            customCurve = new ECCurve(false, P512r1.p, P512r1.a, P512r1.b, customG, P512r1.r);
-        }
+        curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r);
+        memoryInfoOffset = snapshotAvailableMemory((short) 3, memoryInfo, memoryInfoOffset);
+        customG = new byte[(short) SecP256r1.G.length];
+        Util.arrayCopyNonAtomic(SecP256r1.G, (short) 0, customG, (short) 0, (short) SecP256r1.G.length);
+        customCurve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, customG, SecP256r1.r);
 
         memoryInfoOffset = snapshotAvailableMemory((short) 5, memoryInfo, memoryInfoOffset);
         point1 = new ECPoint(curve, ecc.rm);
