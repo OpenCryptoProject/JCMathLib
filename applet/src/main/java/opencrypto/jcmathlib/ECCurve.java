@@ -21,6 +21,7 @@ public class ECCurve {
 
     public KeyPair disposable_pair;
     public ECPrivateKey disposable_priv;
+    public ECPublicKey disposable_pub;
 
     
 
@@ -73,6 +74,7 @@ public class ECCurve {
 
         this.disposable_pair = this.newKeyPair(null);
         this.disposable_priv = (ECPrivateKey) this.disposable_pair.getPrivate();
+        this.disposable_pub = (ECPublicKey) this.disposable_pair.getPublic();
     }    
     
     /**

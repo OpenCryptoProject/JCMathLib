@@ -508,17 +508,23 @@ public class ECPoint {
         ySq.unlock();
         y1.sqrt_FP(curve.pBN);
 
-        // Construct public key with <x, y_1>
+        // Prepare for SignVerify
         rm.lock(pointBuffer);
+        getW(pointBuffer, (short) 0);
+        curve.disposable_priv.setG(pointBuffer, (short) 0, curve.POINT_SIZE);
+        curve.disposable_pub.setG(pointBuffer, (short) 0, curve.POINT_SIZE);
+
+        // Construct public key with <x, y_1>
         pointBuffer[0] = 0x04;
         x.prepend_zeros(curve.COORD_SIZE, pointBuffer, (short) 1);
         x.unlock();
         y1.prepend_zeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
-        setW(pointBuffer, (short) 0, curve.POINT_SIZE); //So that we can convert to pub key
 
         // Check if public point <x, y_1> corresponds to the "secret" (i.e., our scalar)
+        curve.disposable_priv.setS(scalar.as_byte_array(), (short) 0, scalar.length());
+        curve.disposable_pub.setW(pointBuffer, (short) 0, curve.POINT_SIZE);
         rm.lock(resultBuffer);
-        if (!SignVerifyECDSA(curve.bignatAsPrivateKey(scalar), asPublicKey(), rm.verifyEcdsa, resultBuffer)) { // If verification fails, then pick the <x, y_2>
+        if (!SignVerifyECDSA(curve.disposable_priv, curve.disposable_pub, rm.verifyEcdsa, resultBuffer)) { // If verification fails, then pick the <x, y_2>
             y2.lock();
             y2.clone(curve.pBN); // y_2 = p - y_1
             y2.mod_sub(y1, curve.pBN);
