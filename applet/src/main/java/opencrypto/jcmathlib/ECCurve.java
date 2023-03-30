@@ -165,19 +165,7 @@ public class ECCurve {
 
         return existingKeyPair;
     }
-    
-    
-    /**
-     * Converts provided Bignat into temporary EC private key object. No new 
-     * allocation is performed, returned ECPrivateKey is overwritten by next call.
-     * @param bn Bignat with new value
-     * @return ECPrivateKey initialized with provided Bignat
-     */
-    public ECPrivateKey bignatAsPrivateKey(BigNat bn) {
-        disposable_priv.setS(bn.as_byte_array(), (short) 0, bn.length());
-        return disposable_priv;
-    }
-    
+
     /**
      * Set new G for this curve. Also updates all dependent key values.
      * @param newG buffer with new G
@@ -188,6 +176,8 @@ public class ECCurve {
         Util.arrayCopyNonAtomic(newG, newGOffset, G, (short) 0, newGLen);
         this.disposable_pair = this.newKeyPair(this.disposable_pair);
         this.disposable_priv = (ECPrivateKey) this.disposable_pair.getPrivate();
-        this.disposable_priv.setG(newG, newGOffset, newGLen);  
+        this.disposable_priv.setG(newG, newGOffset, newGLen);
+        this.disposable_pub = (ECPublicKey) this.disposable_pair.getPublic();
+        this.disposable_pub.setG(newG, newGOffset, newGLen);
     }
 }
