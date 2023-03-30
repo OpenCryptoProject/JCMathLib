@@ -12,6 +12,7 @@ public class OperationSupport {
     public static final short J2E145G = 0x0001;
     public static final short J3H145 = 0x0002;
     public static final short J3R180 = 0x0003;
+    public static final short GD60 = 0x0004;
 
     public boolean RSA_MULT_TRICK = false;
     public boolean RSA_MOD_MULT_TRICK = false;
@@ -52,6 +53,8 @@ public class OperationSupport {
                 EC_HW_ADD = true;
                 break;
             case J2E145G:
+                EC_SW_DOUBLE = true;
+            case GD60:
                 RSA_MOD_MULT_TRICK = false;
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = true;
