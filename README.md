@@ -166,6 +166,8 @@ public class ECExample extends Applet {
 * Support for other curves like Ed25519
 * Long-term vision: support for easy transfer of the Bouncy Castle-enabled crypto code to Java Card environment
 
-### Happy users so far
+### Happy users
 (If you can't find yourself here, please let us know via [Issues](https://github.com/OpenCryptoProject/JCMathLib/issues))
   * [Myst](https://github.com/OpenCryptoProject/Myst): Secure Multiparty Key Generation, Signature and Decryption JavaCard applet and host application 
+  * [BioID](https://eprint.iacr.org/2019/894.pdf): a Privacy-Friendly Identity Document
+
