@@ -55,7 +55,7 @@ public class OperationSupport {
             case J2E145G:
                 EC_SW_DOUBLE = true;
             case GD60:
-                RSA_MOD_MULT_TRICK = false;
+                RSA_MOD_MULT_TRICK = true;
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = true;
                 RSA_MOD_EXP_EXTRA_MOD = true;
