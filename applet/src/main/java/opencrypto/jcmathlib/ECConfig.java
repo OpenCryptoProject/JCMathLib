@@ -54,12 +54,6 @@ public class ECConfig {
 
         rm = new ResourceManager(MAX_POINT_SIZE, MAX_COORD_SIZE, MAX_BIGNAT_SIZE, MULT_RSA_ENGINE_MAX_LENGTH_BITS, MODULO_RSA_ENGINE_MAX_LENGTH_BITS);
     }
-    
-    public void refreshAfterReset() {
-        if (rm.locker != null) { 
-            rm.locker.refreshAfterReset();
-        }        
-    }
 
     public void setECC256Config() {
         MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 512;
@@ -85,6 +79,7 @@ public class ECConfig {
         MAX_COORD_SIZE = (short) (MAX_POINT_SIZE / 2);
     }
 
+    /// [DependencyBegin:ObjectLocker]
     /**
      * Unlocks all logically locked arrays and objects. Useful as recovery after premature end of some operation (e.g., due to exception)
      * when some objects remains locked.
@@ -92,4 +87,11 @@ public class ECConfig {
     void unlockAll() {
         rm.unlockAll();
     }
+
+    public void refreshAfterReset() {
+        if (rm.locker != null) {
+            rm.locker.refreshAfterReset();
+        }
+    }
+    /// [DependencyEnd:ObjectLocker]
 }

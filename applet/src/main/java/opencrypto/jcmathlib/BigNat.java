@@ -1,6 +1,3 @@
-/**
- * Credits: Based on Bignat library from OV-chip project https://ovchip.cs.ru.nl/OV-chip_2.0 by Radboud University Nijmegen
- */
 package opencrypto.jcmathlib;
 
 import javacard.framework.ISOException;
@@ -12,6 +9,7 @@ import javacardx.crypto.Cipher;
 import javacard.security.KeyBuilder;
 
 /**
+ * Credits: Based on Bignat library from OV-chip project https://ovchip.cs.ru.nl/OV-chip_2.0 by Radboud University Nijmegen
  * @author Vasilios Mavroudis and Petr Svenda
  */
 public class BigNat {
@@ -24,18 +22,6 @@ public class BigNat {
      * operation if required (keep false to prevent slow reallocations)
      */
     boolean ALLOW_RUNTIME_REALLOCATION = false;
-
-    /**
-     * Configuration flag controlling clearing of shared BigNats on lock as prevention of unwanted leak of sensitive information from previous operation.
-     * If true, internal storage array is erased once BigNat is locked for use
-     */
-    boolean ERASE_ON_LOCK = false;
-    /**
-     * Configuration flag controlling clearing of shared Bignats on unlock as
-     * prevention of unwanted leak of sensitive information to next operation.
-     * If true, internal storage array is erased once Bignat is unlocked from use
-     */
-    boolean ERASE_ON_UNLOCK = false;
 
     /**
      * Factor for converting digit size into short length. 1 for the short/short
@@ -119,8 +105,6 @@ public class BigNat {
     private short max_size = -1; // Maximum size of this Bignat. Corresponds to value.length
     private byte allocatorType = JCSystem.MEMORY_TYPE_PERSISTENT; // Memory storage type for value buffer
 
-    private boolean locked = false;    // Logical flag to store info if this Bignat is currently used for some operation. Used as a prevention of unintentional parallel use of same temporary pre-allocated Bignats.
-
     /**
      * Construct a Bignat of size {@code size} in shorts. Allocated in EEPROM or RAM based on
      * {@code allocatorType}. JCSystem.MEMORY_TYPE_PERSISTENT, in RAM otherwise.
@@ -130,7 +114,6 @@ public class BigNat {
      *                      JCSystem.MEMORY_TYPE_PERSISTENT => EEPROM (slower writes, but RAM is saved)
      *                      JCSystem.MEMORY_TYPE_TRANSIENT_RESET => RAM
      *                      JCSystem.MEMORY_TYPE_TRANSIENT_DESELECT => RAM
-     * @param bignatHelper  {@code Bignat_Helper} class with helper objects
      */
     public BigNat(short size, byte allocatorType, ResourceManager rm) {
         this.rm = rm;
@@ -143,7 +126,6 @@ public class BigNat {
      * content of provided array is changed.
      *
      * @param valueBuffer  internal storage
-     * @param bignatHelper {@code Bignat_Helper} class with all relevant settings and helper objects
      */
     public BigNat(byte[] valueBuffer, ResourceManager rm) {
         this.rm = rm;
@@ -151,53 +133,6 @@ public class BigNat {
         this.max_size = (short) valueBuffer.length;
         this.allocatorType = -1; // no allocator
         this.value = valueBuffer;
-    }
-
-    /**
-     * Lock/reserve this bignat for subsequent use.
-     * Used to protect corruption of pre-allocated temporary Bignats used in different,
-     * potentially nested operations. Must be unlocked by {@code unlock()} later on.
-     *
-     * @throws SW_LOCK_ALREADYLOCKED if already locked (is already in use by other operation)
-     */
-    public void lock() {
-        if (!locked) {
-            locked = true;
-            if (ERASE_ON_LOCK) {
-                erase();
-            }
-        } else {
-            // this Bignat is already locked, raise exception (incorrect sequence of locking and unlocking)
-            ISOException.throwIt(ReturnCodes.SW_LOCK_ALREADYLOCKED);
-        }
-    }
-
-    /**
-     * Unlock/release this bignat from use. Used to protect corruption
-     * of pre-allocated temporary Bignats used in different nested operations.
-     * Must be locked before.
-     *
-     * @throws SW_LOCK_NOTLOCKED if was not locked before (inconsistence in lock/unlock sequence)
-     */
-    public void unlock() {
-        if (locked) {
-            locked = false;
-            if (ERASE_ON_UNLOCK) {
-                erase();
-            }
-        } else {
-            // this Bignat is not locked, raise exception (incorrect sequence of locking and unlocking)
-            ISOException.throwIt(ReturnCodes.SW_LOCK_NOTLOCKED);
-        }
-    }
-
-    /**
-     * Return current state of logical lock of this object
-     *
-     * @return true if object is logically locked (reserved), false otherwise
-     */
-    public boolean isLocked() {
-        return locked;
     }
 
     /**
@@ -1874,4 +1809,57 @@ public class BigNat {
     public short from_byte_array(byte[] from_array) {
         return this.from_byte_array((short) from_array.length, (short) (this.value.length - from_array.length), from_array, (short) 0);
     }
+
+    /// [DependencyBegin:ObjectLocker]
+    boolean ERASE_ON_LOCK = false;
+    boolean ERASE_ON_UNLOCK = false;
+    private boolean locked = false;    // Logical flag to store info if this Bignat is currently used for some operation. Used as a prevention of unintentional parallel use of same temporary pre-allocated Bignats.
+
+    /**
+     * Lock/reserve this bignat for subsequent use.
+     * Used to protect corruption of pre-allocated temporary Bignats used in different,
+     * potentially nested operations. Must be unlocked by {@code unlock()} later on.
+     *
+     * @throws SW_LOCK_ALREADYLOCKED if already locked (is already in use by other operation)
+     */
+    public void lock() {
+        if (!locked) {
+            locked = true;
+            if (ERASE_ON_LOCK) {
+                erase();
+            }
+        } else {
+            // this Bignat is already locked, raise exception (incorrect sequence of locking and unlocking)
+            ISOException.throwIt(ReturnCodes.SW_LOCK_ALREADYLOCKED);
+        }
+    }
+
+    /**
+     * Unlock/release this bignat from use. Used to protect corruption
+     * of pre-allocated temporary Bignats used in different nested operations.
+     * Must be locked before.
+     *
+     * @throws SW_LOCK_NOTLOCKED if was not locked before (inconsistence in lock/unlock sequence)
+     */
+    public void unlock() {
+        if (locked) {
+            locked = false;
+            if (ERASE_ON_UNLOCK) {
+                erase();
+            }
+        } else {
+            // this Bignat is not locked, raise exception (incorrect sequence of locking and unlocking)
+            ISOException.throwIt(ReturnCodes.SW_LOCK_NOTLOCKED);
+        }
+    }
+
+    /**
+     * Return current state of logical lock of this object
+     *
+     * @return true if object is logically locked (reserved), false otherwise
+     */
+    public boolean isLocked() {
+        return locked;
+    }
+    /// [DependencyEnd:ObjectLocker]
 }

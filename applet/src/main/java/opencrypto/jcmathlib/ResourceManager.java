@@ -9,7 +9,6 @@ import javacardx.crypto.Cipher;
  * @author Petr Svenda
  */
 public class ResourceManager {
-    public ObjectLocker locker;
     public ObjectAllocator memAlloc;
 
     MessageDigest hashEngine;
@@ -22,11 +21,9 @@ public class ResourceManager {
     Cipher expCiph;
 
     byte[] ARRAY_A, ARRAY_B, POINT_ARRAY_A, POINT_ARRAY_B, HASH_ARRAY;
-    public static final byte LOCKER_ARRAYS = 5;
-    byte[] RAM_WORD; // Without lock
+    byte[] RAM_WORD;
 
     static byte[] CONST_TWO = {0x02};
-    public static final byte LOCKER_OBJECTS = 1;
 
     BigNat BN_A, BN_B, BN_C, BN_D, BN_E, BN_F;
     BigNat EC_BN_A, EC_BN_B, EC_BN_C, EC_BN_D, EC_BN_E, EC_BN_F;
@@ -37,9 +34,6 @@ public class ResourceManager {
 
     public ResourceManager(short MAX_POINT_SIZE, short MAX_COORD_SIZE, short MAX_BIGNAT_SIZE, short MULT_RSA_ENGINE_MAX_LENGTH_BITS, short MODULO_RSA_ENGINE_MAX_LENGTH_BITS) {
         this.MODULO_RSA_ENGINE_MAX_LENGTH_BITS = MODULO_RSA_ENGINE_MAX_LENGTH_BITS;
-        // Allocate long-term helper values
-        locker = new ObjectLocker((short) (LOCKER_ARRAYS + LOCKER_OBJECTS));
-        // locker.setLockingActive(false); // if required, locking can be disabled
         memAlloc = new ObjectAllocator();
         memAlloc.setAllAllocatorsRAM();
         // if required, memory for helper objects and arrays can be in persistent memory to save RAM (or some tradeoff)
@@ -137,6 +131,10 @@ public class ResourceManager {
         Util.arrayFillNonAtomic(RAM_WORD, (short) 0, (short) RAM_WORD.length, (byte) 0);
     }
 
+    /// [DependencyBegin:ObjectLocker]
+    public static final byte LOCKER_ARRAYS = 5;
+    public static final byte LOCKER_OBJECTS = 1;
+    public ObjectLocker locker = new ObjectLocker((short) (LOCKER_ARRAYS + LOCKER_OBJECTS));
     /**
      * Lock a byte array
      *
@@ -199,4 +197,5 @@ public class ResourceManager {
 
         locker.unlockAll();
     }
+    /// [DependencyEnd:ObjectLocker]
 }
