@@ -76,7 +76,7 @@ def main():
         filtered_files = filtered_files.union({"ObjectLocker"})
     filtered_files = set(map(lambda x: x + ".java", filtered_files))
     included_files = sorted(map(
-        lambda x: DIR + x, filter(lambda x: x not in filtered_files, os.listdir(DIR))))
+        lambda x: args.dir + x, filter(lambda x: x not in filtered_files, os.listdir(args.dir))))
 
     imports = load_imports(included_files)
 
