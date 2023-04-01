@@ -19,62 +19,61 @@ public class ECCurve {
     public byte[] p, a, b, G, r;
     public BigNat pBN, aBN, bBN, rBN;
 
-    public KeyPair disposable_pair;
-    public ECPrivateKey disposable_priv;
-    public ECPublicKey disposable_pub;
+    public KeyPair disposablePair;
+    public ECPrivateKey disposablePriv;
+    public ECPublicKey disposablePub;
 
     
 
     /**
      * Creates new curve object from provided parameters. Either copy of provided
-     * arrays is performed (bCopyArgs == true, input arrays can be reused later for other
-     * purposes) or arguments are directly stored (bCopyArgs == false, usable for fixed static arrays) .
-     * @param bCopyArgs if true, copy of arguments is created, otherwise reference is directly stored
-     * @param p_arr array with p
-     * @param a_arr array with a
-     * @param b_arr array with b
-     * @param G_arr array with base point G
-     * @param r_arr array with r
+     * arrays is performed (copyArgs == true, input arrays can be reused later for other
+     * purposes) or arguments are directly stored (copyArgs == false, usable for fixed static arrays) .
+     * @param copyArgs if true, copy of arguments is created, otherwise reference is directly stored
+     * @param p array with p
+     * @param a array with a
+     * @param b array with b
+     * @param G array with base point G
+     * @param r array with r
      */
-    public ECCurve(boolean bCopyArgs, byte[] p_arr, byte[] a_arr, byte[] b_arr, byte[] G_arr, byte[] r_arr) {
-        //ECCurve_initialize(p_arr, a_arr, b_arr, G_arr, r_arr);
-        this.KEY_LENGTH = (short) (p_arr.length * 8);
-        this.POINT_SIZE = (short) G_arr.length;
-        this.COORD_SIZE = (short) ((short) (G_arr.length - 1) / 2);
+    public ECCurve(boolean copyArgs, byte[] p, byte[] a, byte[] b, byte[] G, byte[] r) {
+        this.KEY_LENGTH = (short) (p.length * 8);
+        this.POINT_SIZE = (short) G.length;
+        this.COORD_SIZE = (short) ((short) (G.length - 1) / 2);
 
-        if (bCopyArgs) {
+        if (copyArgs) {
             // Copy curve parameters into newly allocated arrays in EEPROM (will be only read, not written later => good performance even when in EEPROM)
-            this.p = new byte[(short) p_arr.length];
-            this.a = new byte[(short) a_arr.length];
-            this.b = new byte[(short) b_arr.length];
-            this.G = new byte[(short) G_arr.length];
-            this.r = new byte[(short) r_arr.length];
+            this.p = new byte[(short) p.length];
+            this.a = new byte[(short) a.length];
+            this.b = new byte[(short) b.length];
+            this.G = new byte[(short) G.length];
+            this.r = new byte[(short) r.length];
 
-            Util.arrayCopyNonAtomic(p_arr, (short) 0, p, (short) 0, (short) p.length);
-            Util.arrayCopyNonAtomic(a_arr, (short) 0, a, (short) 0, (short) a.length);
-            Util.arrayCopyNonAtomic(b_arr, (short) 0, b, (short) 0, (short) b.length);
-            Util.arrayCopyNonAtomic(G_arr, (short) 0, G, (short) 0, (short) G.length);
-            Util.arrayCopyNonAtomic(r_arr, (short) 0, r, (short) 0, (short) r.length);
+            Util.arrayCopyNonAtomic(p, (short) 0, this.p, (short) 0, (short) this.p.length);
+            Util.arrayCopyNonAtomic(a, (short) 0, this.a, (short) 0, (short) this.a.length);
+            Util.arrayCopyNonAtomic(b, (short) 0, this.b, (short) 0, (short) this.b.length);
+            Util.arrayCopyNonAtomic(G, (short) 0, this.G, (short) 0, (short) this.G.length);
+            Util.arrayCopyNonAtomic(r, (short) 0, this.r, (short) 0, (short) this.r.length);
         }
         else {
             // No allocation, store directly provided arrays 
-            this.p = p_arr;
-            this.a = a_arr;
-            this.b = b_arr;
-            this.G = G_arr;
-            this.r = r_arr;
+            this.p = p;
+            this.a = a;
+            this.b = b;
+            this.G = G;
+            this.r = r;
         }
 
-        // We will not modify values of p/a/b/r during the lifetime of curve => allocate helper bignats directly from the array
-        // Additionally, these Bignats will be only read from so Bignat_Helper can be null (saving need to pass as argument to ECCurve)
+        // We will not modify values of p/a/b/r during the lifetime of curve => allocate helper BigNats directly from the array
+        // Additionally, these BigNats will be only read from so ResourceManager can be null (saving need to pass as argument to ECCurve)
         this.pBN = new BigNat(this.p, null);
         this.aBN = new BigNat(this.a, null);
         this.bBN = new BigNat(this.b, null);
         this.rBN = new BigNat(this.r, null);
 
-        this.disposable_pair = this.newKeyPair(null);
-        this.disposable_priv = (ECPrivateKey) this.disposable_pair.getPrivate();
-        this.disposable_pub = (ECPublicKey) this.disposable_pair.getPublic();
+        this.disposablePair = this.newKeyPair(null);
+        this.disposablePriv = (ECPrivateKey) this.disposablePair.getPrivate();
+        this.disposablePub = (ECPublicKey) this.disposablePair.getPublic();
     }    
     
     /**
@@ -130,54 +129,5 @@ public class ECCurve {
         existingKeyPair.genKeyPair();
 
         return existingKeyPair;
-    }
-    
-    public KeyPair newKeyPair_legacy(KeyPair existingKeyPair) {
-        ECPrivateKey privKey;
-        ECPublicKey pubKey;
-        if (existingKeyPair == null) {
-            // We need to create required objects
-            privKey = (ECPrivateKey)KeyBuilder.buildKey(KeyBuilder.TYPE_EC_FP_PRIVATE, KEY_LENGTH, false);
-            pubKey = (ECPublicKey)KeyBuilder.buildKey(KeyBuilder.TYPE_EC_FP_PUBLIC, KEY_LENGTH, false);
-        }
-        else {
-            // Obtain from object
-            privKey = (ECPrivateKey) existingKeyPair.getPrivate();
-            pubKey = (ECPublicKey) existingKeyPair.getPublic();
-        }
-        // Set required values
-        privKey.setFieldFP(p, (short) 0, (short) p.length);
-        privKey.setA(a, (short) 0, (short) a.length);
-        privKey.setB(b, (short) 0, (short) b.length);
-        privKey.setG(G, (short) 0, (short) G.length);
-        privKey.setR(r, (short) 0, (short) r.length);
-
-        pubKey.setFieldFP(p, (short) 0, (short) p.length);
-        pubKey.setA(a, (short) 0, (short) a.length);
-        pubKey.setB(b, (short) 0, (short) b.length);
-        pubKey.setG(G, (short) 0, (short) G.length);
-        pubKey.setR(r, (short) 0, (short) r.length);
-
-        if (existingKeyPair == null) { // Allocate if not supplied
-            existingKeyPair = new KeyPair(pubKey, privKey);
-        }
-        existingKeyPair.genKeyPair();
-
-        return existingKeyPair;
-    }
-
-    /**
-     * Set new G for this curve. Also updates all dependent key values.
-     * @param newG buffer with new G
-     * @param newGOffset start offset within newG
-     * @param newGLen length of new G
-     */
-    public void setG(byte[] newG, short newGOffset, short newGLen) {
-        Util.arrayCopyNonAtomic(newG, newGOffset, G, (short) 0, newGLen);
-        this.disposable_pair = this.newKeyPair(this.disposable_pair);
-        this.disposable_priv = (ECPrivateKey) this.disposable_pair.getPrivate();
-        this.disposable_priv.setG(newG, newGOffset, newGLen);
-        this.disposable_pub = (ECPublicKey) this.disposable_pair.getPublic();
-        this.disposable_pub.setG(newG, newGOffset, newGLen);
     }
 }

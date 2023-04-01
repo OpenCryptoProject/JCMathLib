@@ -105,9 +105,6 @@ public class JCMathLibTest extends BaseTest {
         ECPoint point = randECPoint();
         BigInteger scalar = randomBigNat(256);
         ECPoint result = point.multiply(scalar);
-        // Set modified parameter G of the curve (our random point)
-        int rc = statefulCard.transmit(new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_SET_CURVE_G, point.getEncoded(false).length, 0, point.getEncoded(false))).getSW();
-        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, rc);
         CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_MUL, scalar.toByteArray().length, 0, Util.concat(scalar.toByteArray(), point.getEncoded(false)));
         ResponseAPDU resp = statefulCard.transmit(cmd);
 
@@ -143,9 +140,6 @@ public class JCMathLibTest extends BaseTest {
     public void eccDoubleRandom() throws Exception {
         ECPoint point = randECPoint();
         ECPoint doubled = point.add(point);
-        // Set modified parameter G of the curve (our random point)
-        int rc = statefulCard.transmit(new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_SET_CURVE_G, point.getEncoded(false).length, 0, point.getEncoded(false))).getSW();
-        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, rc);
         CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_DBL, 0, 0, point.getEncoded(false));
         ResponseAPDU resp = statefulCard.transmit(cmd);
 

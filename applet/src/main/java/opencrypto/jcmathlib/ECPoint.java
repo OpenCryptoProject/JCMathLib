@@ -264,7 +264,7 @@ public class ECPoint {
         xP.fromByteArray(pointBuffer, (short) 1, (short) 0, curve.COORD_SIZE);
         yP.lock();
         yP.setSize(curve.COORD_SIZE);
-        yP.fromByteArray(pointBuffer, (short) 1, (short) 0, (short) (1 + curve.COORD_SIZE));
+        yP.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), (short) 0, curve.COORD_SIZE);
         rm.unlock(pointBuffer);
 
 
@@ -432,9 +432,9 @@ public class ECPoint {
 
         rm.lock(pointBuffer);
         short len = this.getW(pointBuffer, (short) 0);
-        curve.disposable_priv.setG(pointBuffer, (short) 0, len);
-        curve.disposable_priv.setS(scalar.asByteArray(), (short) 0, scalar.length());
-        rm.ecAddKA.init(curve.disposable_priv);
+        curve.disposablePriv.setG(pointBuffer, (short) 0, len);
+        curve.disposablePriv.setS(scalar.asByteArray(), (short) 0, scalar.length());
+        rm.ecAddKA.init(curve.disposablePriv);
 
         len = point.getW(pointBuffer, (short) 0);
         len = rm.ecAddKA.generateSecret(pointBuffer, (short) 0, len, outBuffer, outBufferOffset);
@@ -469,8 +469,8 @@ public class ECPoint {
     public short multXYKA(BigNat scalar, byte[] outBuffer, short outBufferOffset) {
         byte[] pointBuffer = rm.POINT_ARRAY_A;
 
-        curve.disposable_priv.setS(scalar.asByteArray(), (short) 0, scalar.length());
-        rm.ecMultKA.init(curve.disposable_priv);
+        curve.disposablePriv.setS(scalar.asByteArray(), (short) 0, scalar.length());
+        rm.ecMultKA.init(curve.disposablePriv);
 
         rm.lock(pointBuffer);
         short len = getW(pointBuffer, (short) 0);
@@ -511,8 +511,8 @@ public class ECPoint {
         // Prepare for SignVerify
         rm.lock(pointBuffer);
         getW(pointBuffer, (short) 0);
-        curve.disposable_priv.setG(pointBuffer, (short) 0, curve.POINT_SIZE);
-        curve.disposable_pub.setG(pointBuffer, (short) 0, curve.POINT_SIZE);
+        curve.disposablePriv.setG(pointBuffer, (short) 0, curve.POINT_SIZE);
+        curve.disposablePub.setG(pointBuffer, (short) 0, curve.POINT_SIZE);
 
         // Construct public key with <x, y_1>
         pointBuffer[0] = 0x04;
@@ -521,10 +521,10 @@ public class ECPoint {
         y1.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
 
         // Check if public point <x, y_1> corresponds to the "secret" (i.e., our scalar)
-        curve.disposable_priv.setS(scalar.asByteArray(), (short) 0, scalar.length());
-        curve.disposable_pub.setW(pointBuffer, (short) 0, curve.POINT_SIZE);
+        curve.disposablePriv.setS(scalar.asByteArray(), (short) 0, scalar.length());
+        curve.disposablePub.setW(pointBuffer, (short) 0, curve.POINT_SIZE);
         rm.lock(resultBuffer);
-        if (!SignVerifyECDSA(curve.disposable_priv, curve.disposable_pub, rm.verifyEcdsa, resultBuffer)) { // If verification fails, then pick the <x, y_2>
+        if (!SignVerifyECDSA(curve.disposablePriv, curve.disposablePub, rm.verifyEcdsa, resultBuffer)) { // If verification fails, then pick the <x, y_2>
             y2.lock();
             y2.clone(curve.pBN); // y_2 = p - y_1
             y2.modSub(y1, curve.pBN);
@@ -552,9 +552,9 @@ public class ECPoint {
     private short multXKA(BigNat scalar, byte[] outBuffer, short outBufferOffset) {
         byte[] pointBuffer = rm.POINT_ARRAY_A;
         // NOTE: potential problem on real cards (j2e) - when small scalar is used (e.g., BigNat.TWO), operation sometimes freezes
-        curve.disposable_priv.setS(scalar.asByteArray(), (short) 0, scalar.length());
+        curve.disposablePriv.setS(scalar.asByteArray(), (short) 0, scalar.length());
 
-        rm.ecMultKA.init(curve.disposable_priv);
+        rm.ecMultKA.init(curve.disposablePriv);
 
         rm.lock(pointBuffer);
         short len = getW(pointBuffer, (short) 0);

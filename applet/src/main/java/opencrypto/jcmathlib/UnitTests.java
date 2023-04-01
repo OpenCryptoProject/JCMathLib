@@ -54,7 +54,6 @@ public class UnitTests extends Applet {
     public final static byte INS_EC_ADD = (byte) 0x42;
     public final static byte INS_EC_MUL = (byte) 0x43;
     public final static byte INS_EC_NEG = (byte) 0x44;
-    public final static byte INS_EC_SET_CURVE_G = (byte) 0x45;
     public final static byte INS_EC_COMPARE = (byte) 0x46;
     public final static byte INS_EC_FROM_X = (byte) 0x47;
     public final static byte INS_EC_IS_Y_EVEN = (byte) 0x48;
@@ -184,9 +183,6 @@ public class UnitTests extends Applet {
 
                 case INS_EC_GEN:
                     testEcGen(apdu);
-                    break;
-                case INS_EC_SET_CURVE_G:
-                    testEcSetCurveG(apdu, dataLen);
                     break;
                 case INS_EC_DBL:
                     testEcDbl(apdu);
@@ -336,25 +332,6 @@ public class UnitTests extends Applet {
         if (ecc != null) {
             ecc.refreshAfterReset();
             ecc.unlockAll();
-        }
-    }
-
-    void testEcSetCurveG(APDU apdu, short dataLen) {
-        byte[] apduBuffer = apdu.getBuffer();
-
-        Util.arrayCopyNonAtomic(apduBuffer, ISO7816.OFFSET_CDATA, customG, (short) 0, dataLen);
-
-        if (apduBuffer[ISO7816.OFFSET_P2] == 1) { // If required, complete new custom curve and point is allocated
-            customCurve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, customG, SecP256r1.r);
-            customPoint = new ECPoint(customCurve, ecc.rm);
-            // Release unused previous objects
-            if (CARD_TYPE != OperationSupport.SIMULATOR) {
-                JCSystem.requestObjectDeletion();
-            }
-        } else {
-            // Otherwise, only G is set and relevant objects are updated
-            customCurve.setG(apduBuffer, ISO7816.OFFSET_CDATA, customCurve.POINT_SIZE);
-            customPoint.updatePointObjects(); // After changing curve parameters, internal objects needs to be actualized
         }
     }
 
