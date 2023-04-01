@@ -1,4 +1,4 @@
-package opencrypto.jcmathlib.curves;
+package opencrypto.jcmathlib;
 
 public class SecP256r1 {
     public final static short KEY_BIT_LENGTH = 256;

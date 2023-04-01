@@ -9,7 +9,7 @@ import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
 import opencrypto.jcmathlib.UnitTests;
-import opencrypto.jcmathlib.curves.SecP256r1;
+import opencrypto.jcmathlib.SecP256r1;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
