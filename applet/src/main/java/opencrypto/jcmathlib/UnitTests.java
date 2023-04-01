@@ -12,6 +12,7 @@ import javacard.framework.SystemException;
 import javacard.framework.TransactionException;
 import javacard.framework.Util;
 import javacard.security.CryptoException;
+import opencrypto.jcmathlib.SecP256r1;
 
 /**
  * @author Vasilios Mavroudis and Petr Svenda and Antonin Dufka
@@ -383,8 +384,8 @@ public class UnitTests extends Applet {
         byte[] apduBuffer = apdu.getBuffer();
         short p1_len = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
-        bn1.set_size(p1_len);
-        bn1.from_byte_array(p1_len, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
+        bn1.setSize(p1_len);
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1_len);
         point1.setW(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1_len), curve.POINT_SIZE);
         point1.multiplication(bn1);
 
@@ -397,8 +398,8 @@ public class UnitTests extends Applet {
         short p1_len = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
         BigNat scalar = bn1;
-        scalar.set_size(p1_len);
-        scalar.from_byte_array(p1_len, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
+        scalar.setSize(p1_len);
+        scalar.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1_len);
         point1.setW(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1_len), curve.POINT_SIZE);
         point2.setW(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1_len + curve.POINT_SIZE), curve.POINT_SIZE);
         point1.multAndAdd(scalar, point2);
@@ -467,9 +468,9 @@ public class UnitTests extends Applet {
     void testBnStr(APDU apdu, short dataLen) {
         byte[] apduBuffer = apdu.getBuffer();
 
-        bn1.set_size(dataLen);
-        bn1.from_byte_array(dataLen, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        short len = bn1.copy_to_buffer(apduBuffer, (short) 0);
+        bn1.setSize(dataLen);
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, dataLen);
+        short len = bn1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -477,15 +478,15 @@ public class UnitTests extends Applet {
         byte[] apduBuffer = apdu.getBuffer();
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn2.set_size((short) (dataLen - p1));
-        bn3.set_size((short) (p1 + 1));
+        bn1.setSize(p1);
+        bn2.setSize((short) (dataLen - p1));
+        bn3.setSize((short) (p1 + 1));
 
-        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.from_byte_array((short) (dataLen - p1), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, (short) (dataLen - p1));
         bn3.copy(bn1);
         bn3.add(bn2);
-        short len = bn3.copy_to_buffer(apduBuffer, (short) 0);
+        short len = bn3.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -493,14 +494,14 @@ public class UnitTests extends Applet {
         byte[] apduBuffer = apdu.getBuffer();
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn2.set_size((short) (dataLen - p1));
-        bn3.set_size((short) (p1 + 1));
-        bn1.from_byte_array(dataLen, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.from_byte_array(dataLen, (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
+        bn1.setSize(p1);
+        bn2.setSize((short) (dataLen - p1));
+        bn3.setSize((short) (p1 + 1));
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, (short) (dataLen - p1));
         bn3.copy(bn1);
         bn3.subtract(bn2);
-        short len = bn3.copy_to_buffer(apduBuffer, (short) 0);
+        short len = bn3.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -508,13 +509,13 @@ public class UnitTests extends Applet {
         byte[] apduBuffer = apdu.getBuffer();
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn2.set_size((short) (dataLen - p1));
-        bn3.set_size(dataLen);
-        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.from_byte_array((short) (dataLen - p1), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
+        bn1.setSize(p1);
+        bn2.setSize((short) (dataLen - p1));
+        bn3.setSize(dataLen);
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, (short) (dataLen - p1));
         bn3.mult(bn1, bn2);
-        short len = bn3.copy_to_buffer(apduBuffer, (short) 0);
+        short len = bn3.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -523,15 +524,15 @@ public class UnitTests extends Applet {
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
         BigNat mul1 = bn1;
-        mul1.set_size(p1);
+        mul1.setSize(p1);
         BigNat mul2 = bn2;
-        mul2.set_size((short) (dataLen - p1));
+        mul2.setSize((short) (dataLen - p1));
         BigNat product = bn3;
-        product.set_size(dataLen);
-        mul1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        mul2.from_byte_array((short) (dataLen - p1), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
-        product.mult_schoolbook(mul1, mul2);
-        short len = product.copy_to_buffer(apduBuffer, (short) 0);
+        product.setSize(dataLen);
+        mul1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        mul2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, (short) (dataLen - p1));
+        product.multSchoolbook(mul1, mul2);
+        short len = product.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -539,13 +540,13 @@ public class UnitTests extends Applet {
         byte[] apduBuffer = apdu.getBuffer();
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn2.set_size((short) (dataLen - p1));
-        bn3.set_size((short) (ecc.MAX_BIGNAT_SIZE / 2));
-        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.from_byte_array((short) (dataLen - p1), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
+        bn1.setSize(p1);
+        bn2.setSize((short) (dataLen - p1));
+        bn3.setSize((short) (ecc.MAX_BIGNAT_SIZE / 2));
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, (short) (dataLen - p1));
         bn3.exponentiation(bn1, bn2);
-        short len = bn3.copy_to_buffer(apduBuffer, (short) 0);
+        short len = bn3.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -553,12 +554,12 @@ public class UnitTests extends Applet {
         byte[] apduBuffer = apdu.getBuffer();
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.set_size((short) (dataLen - p1));
-        bn2.from_byte_array((short) (dataLen - p1), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
-        bn1.sqrt_FP(bn2);
-        short len = bn1.copy_to_buffer(apduBuffer, (short) 0);
+        bn1.setSize(p1);
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.setSize((short) (dataLen - p1));
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, (short) (dataLen - p1));
+        bn1.modSqrt(bn2);
+        short len = bn1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -567,12 +568,12 @@ public class UnitTests extends Applet {
         byte[] apduBuffer = apdu.getBuffer();
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn2.set_size((short) (dataLen - p1));
-        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.from_byte_array((short) (dataLen - p1), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
+        bn1.setSize(p1);
+        bn2.setSize((short) (dataLen - p1));
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, (short) (dataLen - p1));
         bn1.mod(bn2);
-        short len = bn1.copy_to_buffer(apduBuffer, (short) 0);
+        short len = bn1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -581,14 +582,14 @@ public class UnitTests extends Applet {
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
         short p2 = (short) (apduBuffer[ISO7816.OFFSET_P2] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn2.set_size(p2);
-        bn3.set_size((short) (dataLen - p1 - p2));
-        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.from_byte_array(p2, (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
-        bn3.from_byte_array((short) (dataLen - p1 - p2), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1 + p2));
-        bn1.mod_add(bn2, bn3);
-        short len = bn1.copy_to_buffer(apduBuffer, (short) 0);
+        bn1.setSize(p1);
+        bn2.setSize(p2);
+        bn3.setSize((short) (dataLen - p1 - p2));
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, p2);
+        bn3.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1 + p2), (short) 0, (short) (dataLen - p1 - p2));
+        bn1.modAdd(bn2, bn3);
+        short len = bn1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -597,14 +598,14 @@ public class UnitTests extends Applet {
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
         short p2 = (short) (apduBuffer[ISO7816.OFFSET_P2] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn2.set_size(p2);
-        bn3.set_size((short) (dataLen - p1 - p2));
-        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.from_byte_array(p2, (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
-        bn3.from_byte_array((short) (dataLen - p1 - p2), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1 + p2));
-        bn1.mod_sub(bn2, bn3);
-        short len = bn1.copy_to_buffer(apduBuffer, (short) 0);
+        bn1.setSize(p1);
+        bn2.setSize(p2);
+        bn3.setSize((short) (dataLen - p1 - p2));
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, p2);
+        bn3.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1 + p2), (short) 0, (short) (dataLen - p1 - p2));
+        bn1.modSub(bn2, bn3);
+        short len = bn1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -613,14 +614,14 @@ public class UnitTests extends Applet {
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
         short p2 = (short) (apduBuffer[ISO7816.OFFSET_P2] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn2.set_size(p2);
-        bn3.set_size((short) (dataLen - p1 - p2));
-        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.from_byte_array(p2, (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
-        bn3.from_byte_array((short) (dataLen - p1 - p2), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1 + p2));
-        bn1.mod_mult(bn1, bn2, bn3);
-        short len = bn1.copy_to_buffer(apduBuffer, (short) 0);
+        bn1.setSize(p1);
+        bn2.setSize(p2);
+        bn3.setSize((short) (dataLen - p1 - p2));
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, p2);
+        bn3.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1 + p2), (short) 0, (short) (dataLen - p1 - p2));
+        bn1.modMult(bn1, bn2, bn3);
+        short len = bn1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -629,14 +630,14 @@ public class UnitTests extends Applet {
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
         short p2 = (short) (apduBuffer[ISO7816.OFFSET_P2] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn2.set_size(p2);
-        bn3.set_size((short) (dataLen - p1 - p2));
-        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.from_byte_array(p2, (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
-        bn3.from_byte_array((short) (dataLen - p1 - p2), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1 + p2));
-        bn1.mod_exp(bn2, bn3);
-        short len = bn1.copy_to_buffer(apduBuffer, (short) 0);
+        bn1.setSize(p1);
+        bn2.setSize(p2);
+        bn3.setSize((short) (dataLen - p1 - p2));
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, p2);
+        bn3.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1 + p2), (short) 0, (short) (dataLen - p1 - p2));
+        bn1.modExp(bn2, bn3);
+        short len = bn1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -644,12 +645,12 @@ public class UnitTests extends Applet {
         byte[] apduBuffer = apdu.getBuffer();
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
-        bn1.set_size(p1);
-        bn2.set_size((short) (dataLen - p1));
-        bn1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        bn2.from_byte_array((short) (dataLen - p1), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
-        bn1.mod_exp2(bn2);
-        short len = bn1.copy_to_buffer(apduBuffer, (short) 0);
+        bn1.setSize(p1);
+        bn2.setSize((short) (dataLen - p1));
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, (short) (dataLen - p1));
+        bn1.modSq(bn2);
+        short len = bn1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -658,13 +659,13 @@ public class UnitTests extends Applet {
         short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
 
         BigNat num1 = bn1;
-        num1.set_size(p1);
+        num1.setSize(p1);
         BigNat mod = bn2;
-        mod.set_size((short) (dataLen - p1));
-        num1.from_byte_array(p1, (short) 0, apduBuffer, ISO7816.OFFSET_CDATA);
-        mod.from_byte_array((short) (dataLen - p1), (short) 0, apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1));
-        num1.mod_inv(mod);
-        short len = num1.copy_to_buffer(apduBuffer, (short) 0);
+        mod.setSize((short) (dataLen - p1));
+        num1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 0, p1);
+        mod.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) 0, (short) (dataLen - p1));
+        num1.modInv(mod);
+        short len = num1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 

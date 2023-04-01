@@ -70,13 +70,13 @@ public class ResourceManager {
 
         // Allocate BN constants always in EEPROM (only reading)
         ONE = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
-        ONE.one();
+        ONE.setValue((byte) 1);
         TWO = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
-        TWO.two();
+        TWO.setValue((byte) 2);
         THREE = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
-        THREE.three();
+        THREE.setValue((byte) 3);
         ONE_COORD = new BigNat(MAX_COORD_SIZE, JCSystem.MEMORY_TYPE_PERSISTENT, this);
-        ONE_COORD.one();
+        ONE_COORD.setValue((byte) 1);
 
         // ECC Helpers
         if (OperationSupport.getInstance().EC_HW_XY) {

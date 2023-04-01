@@ -81,10 +81,10 @@ public class ECCurve {
      * Refresh critical information stored in RAM for performance reasons after a card reset (RAM was cleared).
      */
     public void updateAfterReset() {
-        this.pBN.from_byte_array(this.p);
-        this.aBN.from_byte_array(this.a);
-        this.bBN.from_byte_array(this.b);
-        this.rBN.from_byte_array(this.r);
+        this.pBN.fromByteArray(this.p);
+        this.aBN.fromByteArray(this.a);
+        this.bBN.fromByteArray(this.b);
+        this.rBN.fromByteArray(this.r);
     }
     
     /**

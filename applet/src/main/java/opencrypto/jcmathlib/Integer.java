@@ -14,8 +14,8 @@ public class Integer {
     /**
      * Allocates integer with provided length and sets to zero.
      *
-     * @param size
-     * @param bnh  Bignat_Helper with all supporting objects
+     * @param size Integer size
+     * @param rm ResourceManager with all supporting objects
      */
     public Integer(short size, ResourceManager rm) {
         allocate(size, (byte) 0, null, (byte) -1, rm);
@@ -28,7 +28,7 @@ public class Integer {
      * @param value       array with initial value
      * @param valueOffset start offset within   value
      * @param length      length of array
-     * @param bnh         BignatHelper with all supporting objects
+     * @param rm          ResourceManager with all supporting objects
      */
     public Integer(byte[] value, short valueOffset, short length, ResourceManager rm) {
         allocate(length, (value[valueOffset] == (byte) 0x00) ? (byte) 0 : (byte) 1, value, (short) (valueOffset + 1), rm);
@@ -39,7 +39,7 @@ public class Integer {
      *
      * @param sign  sign of integer
      * @param value array with initial value
-     * @param bnh   Bignat_Helper with all supporting objects
+     * @param rm    ResourceManager with all supporting objects
      */
     public Integer(byte sign, byte[] value, ResourceManager rm) {
         allocate((short) value.length, sign, value, (short) 0, rm);
@@ -65,7 +65,7 @@ public class Integer {
     public Integer(byte sign, BigNat magnitude, boolean copy, ResourceManager rm) {
         if (copy) {
             // Copy from provided BigNat
-            allocate(magnitude.length(), sign, magnitude.as_byte_array(), (short) 0, rm);
+            allocate(magnitude.length(), sign, magnitude.asByteArray(), (short) 0, rm);
         } else {
             // Use directly provided BigNat as storage - no allocation
             initialize(sign, magnitude, rm);
@@ -98,7 +98,7 @@ public class Integer {
         this.rm = rm;
         BigNat mag = new BigNat(size, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, this.rm);
         if (fromArray != null) {
-            mag.from_byte_array(size, (short) 0, fromArray, fromArrayOffset);
+            mag.fromByteArray(fromArray, fromArrayOffset, (short) 0, size);
         }
         initialize(sign, mag, this.rm);
     }
@@ -154,7 +154,7 @@ public class Integer {
      * @param newSize new length
      */
     public void setSize(short newSize) {
-        this.magnitude.set_size(newSize);
+        this.magnitude.setSize(newSize);
     }
 
     /**
@@ -175,7 +175,7 @@ public class Integer {
      * @return byte array with magnitude
      */
     public byte[] getMagnitude_b() {
-        return this.magnitude.as_byte_array();
+        return this.magnitude.asByteArray();
     }
 
     /**
@@ -224,7 +224,7 @@ public class Integer {
         //Store sign
         this.sign = value[valueOffset];
         //Store magnitude
-        this.magnitude.from_byte_array((short) (valueLength - 1), (short) 0, value, (short) (valueOffset + 1));
+        this.magnitude.fromByteArray(value, (short) (valueOffset + 1), (short) 0, (short) (valueLength - 1));
     }
 
     /**
@@ -298,7 +298,7 @@ public class Integer {
                 tmp.subtract(this.magnitude);
                 this.magnitude.copy(tmp);
                 tmp.unlock();
-            } else if (this.getMagnitude().same_value(other.getMagnitude())) {  //this has opposite sign than other, and the same magnitude
+            } else if (this.getMagnitude().equals(other.getMagnitude())) {  //this has opposite sign than other, and the same magnitude
                 this.sign = 0;
                 this.zero();
             }
@@ -334,7 +334,7 @@ public class Integer {
         }
 
         tmp.lock();
-        tmp.set_size(this.magnitude.length());
+        tmp.setSize(this.magnitude.length());
         tmp.mult(this.getMagnitude(), other.getMagnitude());
         this.magnitude.copy(tmp);
         tmp.unlock();
@@ -358,7 +358,7 @@ public class Integer {
 
         tmp.lock();
         tmp.clone(this.magnitude);
-        tmp.remainder_divide(other.getMagnitude(), this.magnitude);
+        tmp.remainderDivide(other.getMagnitude(), this.magnitude);
         tmp.unlock();
     }
 
