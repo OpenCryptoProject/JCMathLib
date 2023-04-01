@@ -12,6 +12,7 @@ import javacard.framework.SystemException;
 import javacard.framework.TransactionException;
 import javacard.framework.Util;
 import javacard.security.CryptoException;
+import opencrypto.jcmathlib.curves.SecP256r1;
 
 /**
  * @author Vasilios Mavroudis and Petr Svenda and Antonin Dufka

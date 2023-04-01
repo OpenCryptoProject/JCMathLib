@@ -5,8 +5,8 @@ from argparse import ArgumentParser
 
 DIR = "./applet/src/main/java/opencrypto/jcmathlib/"
 
-CURVES = {"SecP256r1", "SecP256k1", "P512r1"}
-FILTER = {"UnitTests", "ECExample", "Integer"}
+CURVES = {"SecP256r1", "SecP256k1", "SecP512r1"}
+FILTERED_FILES = {"UnitTests.java", "ECExample.java", "Integer.java"}
 
 
 def load_imports(files):
@@ -70,13 +70,12 @@ def main():
                         default="jcmathlib.java")
     args = parser.parse_args()
 
-    filtered_files = FILTER.copy()
-    filtered_files.update(CURVES.difference(args.curves))
+    filtered_files = FILTERED_FILES.copy()
     if not args.keep_locks:
-        filtered_files = filtered_files.union({"ObjectLocker"})
-    filtered_files = set(map(lambda x: x + ".java", filtered_files))
+        filtered_files = filtered_files.union({"ObjectLocker.java"})
     included_files = sorted(map(
-        lambda x: args.dir + x, filter(lambda x: x not in filtered_files, os.listdir(args.dir))))
+        lambda x: args.dir + x, filter(lambda x: x.endswith(".java") and x not in filtered_files, os.listdir(args.dir))))
+    included_files += list(map(lambda x: f"{args.dir}curves/{x}.java", args.curves))
 
     imports = load_imports(included_files)
 

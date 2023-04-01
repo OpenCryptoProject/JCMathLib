@@ -2,6 +2,7 @@ package opencrypto.jcmathlib;
 
 import javacard.framework.APDU;
 import javacard.framework.Applet;
+import opencrypto.jcmathlib.curves.SecP256r1;
 
 /**
  * @author Petr Svenda
