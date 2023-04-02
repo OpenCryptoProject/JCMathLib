@@ -14,52 +14,48 @@ import javacard.security.KeyBuilder;
  * @author Vasilios Mavroudis and Petr Svenda
  */
 public class BigNat {
-    public static final short FAST_MULT_VIA_RSA_THRESHOLD_LENGTH = (short) 16;
-
     private final ResourceManager rm;
-    boolean ALLOW_RUNTIME_REALLOCATION = false;
-    public static final short DIGIT_MASK = 0xff;
-    public static final short DIGIT_LEN = 8;
-    private static final short DOUBLE_DIGIT_LEN = 16;
-    private static final short POSITIVE_DOUBLE_DIGIT_MASK = 0x7fff;
+    private final boolean ALLOW_RUNTIME_REALLOCATION = false;
+    private static final short DIGIT_MASK = 0xff, DIGIT_LEN = 8, DOUBLE_DIGIT_LEN = 16, POSITIVE_DOUBLE_DIGIT_MASK = 0x7fff;
 
-    /**
-     * Internal storage array for this BigNat. The current version uses byte array with
-     * intermediate values stored which can be quickly processed with
-     */
     private byte[] value;
-    private short size = -1;     // Current size of stored BigNat. Current number is encoded in first {@code size} of value array, starting from value[0]
-    private short maxSize = -1; // Maximum size of this BigNat. Corresponds to value.length
-    private byte allocatorType = JCSystem.MEMORY_TYPE_PERSISTENT; // Memory storage type for value buffer
+    private short size = -1; // Current size of this representation in value array; left-aligned.
+    private byte allocatorType;
 
     /**
-     * Construct a BigNat of size {@code size} in shorts. Allocated in EEPROM or RAM based on
-     * {@code allocatorType}. JCSystem.MEMORY_TYPE_PERSISTENT, in RAM otherwise.
+     * Construct a BigNat of given size.
      *
-     * @param size          the size of the new BigNat in bytes
+     * @param size the size of the new BigNat in bytes
      * @param allocatorType type of allocator storage
-     *                      JCSystem.MEMORY_TYPE_PERSISTENT => EEPROM (slower writes, but RAM is saved)
-     *                      JCSystem.MEMORY_TYPE_TRANSIENT_RESET => RAM
-     *                      JCSystem.MEMORY_TYPE_TRANSIENT_DESELECT => RAM
      */
     public BigNat(short size, byte allocatorType, ResourceManager rm) {
         this.rm = rm;
+        this.allocatorType = allocatorType;
         allocateStorageArray(size, allocatorType);
     }
 
     /**
      * Construct a BigNat with provided array used as internal storage as well as initial value.
-     * No copy of array is made. If this BigNat is used in operation which modifies the BigNat value,
-     * content of provided array is changed.
      *
      * @param valueBuffer internal storage
      */
     public BigNat(byte[] valueBuffer, ResourceManager rm) {
         this.rm = rm;
         this.size = (short) valueBuffer.length;
-        this.maxSize = (short) valueBuffer.length;
         this.allocatorType = -1; // no allocator
         this.value = valueBuffer;
+    }
+
+    /**
+     * Allocates required underlying storage array.
+     *
+     * @param maxSize maximum size of this BigNat
+     * @param allocatorType type of allocator storage
+     */
+    private void allocateStorageArray(short maxSize, byte allocatorType) {
+        this.size = maxSize;
+        this.allocatorType = allocatorType;
+        this.value = rm.memAlloc.allocateByteArray(maxSize, allocatorType);
     }
 
     /**
@@ -74,7 +70,7 @@ public class BigNat {
     /**
      * Serialize this BigNat value into a provided buffer.
      *
-     * @param buffer       target buffer
+     * @param buffer target buffer
      * @param bufferOffset start offset in buffer
      * @return number of bytes copied
      */
@@ -83,11 +79,10 @@ public class BigNat {
         return size;
     }
 
-
     /**
-     * Get size of this BigNat in number of digits.
+     * Get size of this BigNat in bytes.
      *
-     * @return size in digits
+     * @return size in bytes
      */
     public short length() {
         return size;
@@ -95,40 +90,39 @@ public class BigNat {
 
     /**
      * Sets internal size of BigNat. Previous value are kept so value is either non-destructively trimmed or enlarged.
-     * The new size must be smaller than the max size set in this object's constructor.
      *
      * @param newSize the new size
      */
     public void setSize(short newSize) {
-        if (newSize < 0 || newSize > maxSize) {
+        if (newSize < 0 || newSize > value.length) {
             ISOException.throwIt(ReturnCodes.SW_BIGNAT_RESIZETOLONGER);
         }
-        this.size = newSize;
+        size = newSize;
     }
 
     /**
      * Resize internal length of this BigNat to the maximum size given during object
      * creation. If required, object is also set to zero.
      *
-     * @param erase if true, the internal array is erased. If false, previous value is kept.
+     * @param erase if true, the internal array is erased. If false, the previous value is kept.
      */
     public void resizeToMax(boolean erase) {
-        setSize(maxSize);
+        setSize((short) value.length);
         if (erase) {
             erase();
         }
     }
 
     /**
-     * Create BigNat with different number of bytes used. Will cause longer number
-     * to shrink (loss of the more significant bytes) and shorter to be prepended with zeroes
+     * Create BigNat with different number of bytes. Will cause the longer number to shrink (loss of the more significant
+     * bytes) and shorter to be prepended with zeroes.
      *
      * @param newSize new size in bytes
      */
-    void deepResize(short newSize) {
-        if (newSize > this.maxSize) {
+    public void deepResize(short newSize) {
+        if (newSize > (short) value.length) {
             if (ALLOW_RUNTIME_REALLOCATION) {
-                allocateStorageArray(newSize, this.allocatorType);
+                allocateStorageArray(newSize, allocatorType);
             } else {
                 ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED); // Reallocation to longer size not permitted
             }
@@ -150,7 +144,7 @@ public class BigNat {
             Util.arrayCopyNonAtomic(value, thisStart, tmpBuffer, (short) 0, len);
             Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, value, (short) 0, len); // Move bytes in item array towards beginning
             // Erase rest of allocated array with zeroes (just as sanitization)
-            short toErase = (short) (this.maxSize - newSize);
+            short toErase = (short) ((short) value.length - newSize);
             if (toErase > 0) {
                 Util.arrayFillNonAtomic(value, newSize, toErase, (byte) 0);
             }
@@ -171,7 +165,6 @@ public class BigNat {
 
         setSize(newSize);
     }
-
 
     /**
      * Append zeros to reach the defined byte length and store the result in an output buffer.
@@ -280,7 +273,7 @@ public class BigNat {
      */
     public void clone(BigNat other) {
         // Reallocate array only if current array cannot store the other value and reallocation is enabled by ALLOW_RUNTIME_REALLOCATION
-        if (this.maxSize < other.length()) {
+        if ((short) value.length < other.length()) {
             // Reallocation necessary
             if (ALLOW_RUNTIME_REALLOCATION) {
                 allocateStorageArray(other.length(), this.allocatorType);
@@ -290,9 +283,9 @@ public class BigNat {
         }
 
         // copy value from other into proper place in this (this can be longer than other so rest of bytes wil be filled with 0)
-        other.copyToBuffer(this.value, (short) 0);
-        if (this.maxSize > other.length()) {
-            Util.arrayFillNonAtomic(this.value, other.length(), (short) (this.maxSize - other.length()), (byte) 0);
+        other.copyToBuffer(value, (short) 0);
+        if ((short) value.length > other.length()) {
+            Util.arrayFillNonAtomic(this.value, other.length(), (short) ((short) value.length - other.length()), (byte) 0);
         }
         this.size = other.length();
     }
@@ -920,7 +913,6 @@ public class BigNat {
         return addCarry(other.value, (short) 0, other.size);
     }
 
-
     /**
      * Addition. Adds other to this number.
      * <p>
@@ -1098,14 +1090,14 @@ public class BigNat {
     }
 
     /**
-     * Decides whether the arguments are coprime or not.
+     * Decides whether the arguments are co-prime or not.
      *
      * @param a BigNat value
      * @param b BigNat value
      * @return true if coprime, false otherwise
      */
-    public boolean is_coprime(BigNat a, BigNat b) {
-        BigNat tmp = rm.BN_C; // is_coprime calls gcd internally
+    public boolean isCoprime(BigNat a, BigNat b) {
+        BigNat tmp = rm.BN_C;
 
         tmp.lock();
         tmp.clone(a);
@@ -1139,16 +1131,13 @@ public class BigNat {
     }
 
     /**
-     * Multiplication. Automatically selects fastest available algorithm.
-     * Stores {@code x * y} in this. To ensure this is big
-     * enough for the result it is asserted that the size of this is greater
-     * than or equal to the sum of the sizes of {@code x} and {@code y}.
+     * Computes x * y and stores the result into this. Chooses computation approach based on operation support and operand size.
      *
-     * @param x first factor
-     * @param y second factor
+     * @param x left operand
+     * @param y right operand
      */
     public void mult(BigNat x, BigNat y) {
-        if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() < FAST_MULT_VIA_RSA_THRESHOLD_LENGTH) {
+        if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() < (short) 16) {
             // If simulator or not supported, use slow multiplication
             // Use slow multiplication also when numbers are small => faster to do in software
             multSchoolbook(x, y);
@@ -1158,12 +1147,12 @@ public class BigNat {
     }
 
     /**
-     * Slow schoolbook algorithm for multiplication
+     * Slow schoolbook algorithm for multiplication.
      *
-     * @param x first number to multiply
-     * @param y second number to multiply
+     * @param x left operand
+     * @param y right operand
      */
-    public void multSchoolbook(BigNat x, BigNat y) {
+    private void multSchoolbook(BigNat x, BigNat y) {
         this.zero(); // important to keep, used in exponentiation()
         for (short i = (short) (y.size - 1); i >= 0; i--) {
             this.timesAddShift(x, (short) (y.size - 1 - i), (short) (y.value[i] & DIGIT_MASK));
@@ -1171,20 +1160,10 @@ public class BigNat {
     }
 
     /**
-     * Performs multiplication of two BigNats x and y and stores result into this.
-     * RSA engine is used to speedup operation for large values.
-     * Idea of speedup:
-     * We need to mutiply x.y where both x and y are 32B
-     * (x + y)^2 == x^2 + y^2 + 2xy
-     * Fast RSA engine is available (a^b mod n)
-     * n can be set bigger than 64B => a^b mod n == a^b
-     * [(x + y)^2 mod n] - [x^2 mod n] - [y^2 mod n] => 2xy where [] means single RSA operation
-     * 2xy / 2 => result of mult(x,y)
-     * Note: if multiplication is used with either x or y argument same repeatedly,
-     * [x^2 mod n] or [y^2 mod n] can be precomputed and passed as arguments xSq or ySq
+     * Multiplies x and y using RSA exponentiation and store result into this.
      *
-     * @param x       first value to multiply
-     * @param y       second value to multiply
+     * @param x left operand
+     * @param y right operand
      * @param xSq if not null, array with precomputed value x^2 is expected
      * @param ySq if not null, array with precomputed value y^2 is expected
      */
@@ -1407,7 +1386,7 @@ public class BigNat {
         q.clone(p1);
         q.divideByTwo(); // Q /= 2
 
-        //Compute S
+        // Compute S
         s.lock();
         s.setSize(p.length());
         s.zero();
@@ -1459,21 +1438,19 @@ public class BigNat {
 
 
     /**
-     * Computes and stores modulo of this BigNat.
+     * Computes modulo and stores it in this.
      *
      * @param modulo value of modulo
      */
     public void mod(BigNat modulo) {
-        this.remainderDivide(modulo, null);
-        // NOTE: attempt made to utilize crypto coprocessor in pow2Mod_RSATrick_worksOnlyAbout30pp, but doesn't work for all inputs
+        remainderDivide(modulo, null);
     }
 
 
     /**
-     * Computes inversion of this BigNat taken modulo {@code modulo}.
-     * The result is stored into this.
+     * Computes modular inversion. The result is stored into this.
      *
-     * @param modulo value of modulo
+     * @param modulo modulo
      */
     public void modInv(BigNat modulo) {
         BigNat tmp = rm.BN_B;
@@ -1487,17 +1464,16 @@ public class BigNat {
     }
 
     /**
-     * Computes {@code res := this ** exponent mod modulo} and store results into this.
-     * Uses RSA engine to quickly compute this^exponent % modulo
+     * Computes (this ^ exponent % modulo) using RSA algorithm and store results into this.
      *
-     * @param exponent value of exponent
-     * @param modulo   value of modulo
+     * @param exponent exponent
+     * @param modulo modulo
      */
     public void modExp(BigNat exponent, BigNat modulo) {
         if (!OperationSupport.getInstance().RSA_MOD_EXP)
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
 
-        BigNat tmpMod = rm.BN_F;  // mod_exp is called from sqrt_FP => requires BN_F not being locked when mod_exp is called
+        BigNat tmpMod = rm.BN_F; // modExp is called from modSqrt => requires BN_F not being locked when modExp is called
         byte[] tmpBuffer = rm.ARRAY_A;
         short tmpSize = (short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
         short modLength;
@@ -1595,19 +1571,19 @@ public class BigNat {
     }
 
     /**
-     * Negate current BigNat modulo provided modulus
+     * Negate current BigNat modulo provided modulus.
      *
-     * @param mod value of modulus
+     * @param mod modulus
      */
     public void modNegate(BigNat mod) {
         BigNat tmp = rm.BN_B;
 
         tmp.lock();
         tmp.setSize(mod.length());
-        tmp.copy(mod); //-y=mod-y
+        tmp.copy(mod);
 
-        if (!this.lesser(mod)) { // y<mod
-            this.mod(mod);//-y=y-mod
+        if (!this.lesser(mod)) {
+            this.mod(mod);
         }
         tmp.subtract(this);
         this.copy(tmp);
@@ -1615,7 +1591,7 @@ public class BigNat {
     }
 
     /**
-     * Shifts stored value to right by specified number of bytes. This operation equals to multiplication by value numBytes * 256.
+     * Shifts stored value to right by specified number of bytes.
      *
      * @param numBytes number of bytes to shift
      */
@@ -1631,73 +1607,36 @@ public class BigNat {
     }
 
     /**
-     * Allocates required underlying storage array with given maximum size and
-     * allocator type (RAM or EEPROM). Maximum size can be increased only by
-     * future reallocation if allowed by ALLOW_RUNTIME_REALLOCATION flag
-     *
-     * @param maxSize       maximum size of this BigNat
-     * @param allocatorType memory allocator type. If
-     *                      JCSystem.MEMORY_TYPE_PERSISTENT then memory is allocated in EEPROM. Use
-     *                      JCSystem.CLEAR_ON_RESET or JCSystem.CLEAR_ON_DESELECT for allocation in
-     *                      RAM with corresponding clearing behaviour.
-     */
-    private void allocateStorageArray(short maxSize, byte allocatorType) {
-        this.size = maxSize;
-        this.maxSize = maxSize;
-        this.allocatorType = allocatorType;
-        this.value = rm.memAlloc.allocateByteArray(this.maxSize, allocatorType);
-    }
-
-    /**
      * Set value of this from a byte array representation.
      *
      * @param source the byte array
      * @param sourceOffset offset in the byte array
-     * @param offset offset in this BigNat internal array
      * @param length length of the value representation
      * @return the number of bytes actually read
      */
-    public short fromByteArray(byte[] source, short sourceOffset, short offset, short length) {
-        short max
-                = (short) (offset + length) <= this.size
-                ? length : (short) (this.size - offset);
-        Util.arrayCopyNonAtomic(source, sourceOffset, value, offset, max);
-        if ((short) (offset + length) == this.size) {
-            return (short) (length + 1);
-        } else {
-            return max;
-        }
-    }
-
-    /**
-     * Set value of this from a byte array representation.
-     *
-     * @param source the byte array
-     * @return the number of bytes actually read
-     */
-    public short fromByteArray(byte[] source) {
-        return this.fromByteArray(source, (short) (this.value.length - source.length), (short) 0, (short) source.length);
+    public short fromByteArray(byte[] source, short sourceOffset, short length) {
+        short max = length <= this.size ? length : this.size;
+        Util.arrayCopyNonAtomic(source, sourceOffset, value, (short) 0, max);
+        return length == this.size ? (short) (length + 1) : max;
     }
 
     /// [DependencyBegin:ObjectLocker]
-    boolean ERASE_ON_LOCK = false;
-    boolean ERASE_ON_UNLOCK = false;
-    private boolean locked = false;    // Logical flag to store info if this BigNat is currently used for some operation. Used as a prevention of unintentional parallel use of same temporary pre-allocated BigNat.
+    private boolean ERASE_ON_LOCK = false;
+    private boolean ERASE_ON_UNLOCK = false;
+    private boolean locked = false; // Logical flag to store info if this BigNat is currently used for some operation. Used as a prevention of unintentional parallel use of same temporary pre-allocated BigNat.
 
     /**
      * Lock/reserve this BigNat for subsequent use.
      * Used to protect corruption of pre-allocated temporary BigNat used in different,
-     * potentially nested operations. Must be unlocked by {@code unlock()} later on.
+     * potentially nested operations. Must be unlocked by unlock() later on.
      */
     public void lock() {
-        if (!locked) {
-            locked = true;
-            if (ERASE_ON_LOCK) {
-                erase();
-            }
-        } else {
-            // this BigNat is already locked, raise exception (incorrect sequence of locking and unlocking)
+        if (locked) {
             ISOException.throwIt(ReturnCodes.SW_LOCK_ALREADYLOCKED);
+        }
+        locked = true;
+        if (ERASE_ON_LOCK) {
+            erase();
         }
     }
 
@@ -1707,14 +1646,12 @@ public class BigNat {
      * Must be locked before.
      */
     public void unlock() {
-        if (locked) {
-            locked = false;
-            if (ERASE_ON_UNLOCK) {
-                erase();
-            }
-        } else {
-            // this BigNat is not locked, raise exception (incorrect sequence of locking and unlocking)
+        if (!locked) {
             ISOException.throwIt(ReturnCodes.SW_LOCK_NOTLOCKED);
+        }
+        locked = false;
+        if (ERASE_ON_UNLOCK) {
+            erase();
         }
     }
 

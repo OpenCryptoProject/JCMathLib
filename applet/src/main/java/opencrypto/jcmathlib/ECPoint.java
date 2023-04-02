@@ -177,10 +177,10 @@ public class ECPoint {
         getW(pointBuffer, (short) 0);
 
         pX.lock();
-        pX.fromByteArray(pointBuffer, (short) 1, (short) 0, curve.COORD_SIZE);
+        pX.fromByteArray(pointBuffer, (short) 1, curve.COORD_SIZE);
 
         pY.lock();
-        pY.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), (short) 0, curve.COORD_SIZE);
+        pY.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
 
         lambda.lock();
         lambda.modMult(pX, pX, curve.pBN);
@@ -261,10 +261,10 @@ public class ECPoint {
         point.getW(pointBuffer, (short) 0);
         xP.lock();
         xP.setSize(curve.COORD_SIZE);
-        xP.fromByteArray(pointBuffer, (short) 1, (short) 0, curve.COORD_SIZE);
+        xP.fromByteArray(pointBuffer, (short) 1, curve.COORD_SIZE);
         yP.lock();
         yP.setSize(curve.COORD_SIZE);
-        yP.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), (short) 0, curve.COORD_SIZE);
+        yP.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
         rm.unlock(pointBuffer);
 
 
@@ -293,9 +293,9 @@ public class ECPoint {
             other.point.getW(pointBuffer, (short) 0);
             xQ.lock();
             xQ.setSize(curve.COORD_SIZE);
-            xQ.fromByteArray(pointBuffer, (short) 1, (short) 0, other.curve.COORD_SIZE);
+            xQ.fromByteArray(pointBuffer, (short) 1, other.curve.COORD_SIZE);
             nominator.setSize(curve.COORD_SIZE);
-            nominator.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), (short) 0, curve.COORD_SIZE);
+            nominator.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
             rm.unlock(pointBuffer);
 
             nominator.mod(curve.pBN);
@@ -376,7 +376,7 @@ public class ECPoint {
 
         scalar.lock();
         scalar.setSize(scalarLen);
-        scalar.fromByteArray(scalarBytes, scalarOffset, (short) 0, scalarLen);
+        scalar.fromByteArray(scalarBytes, scalarOffset, scalarLen);
         multiplication(scalar);
         scalar.unlock();
     }
@@ -576,7 +576,7 @@ public class ECPoint {
         rm.lock(pointBuffer);
         point.getW(pointBuffer, (short) 0);
         y.setSize(curve.COORD_SIZE);
-        y.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), (short) 0, curve.COORD_SIZE);
+        y.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
         y.modNegate(curve.pBN);
         y.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
         y.unlock();
@@ -596,7 +596,7 @@ public class ECPoint {
 
         x.lock();
         x.setSize(xLen);
-        x.fromByteArray(xCoord, xOffset, (short) 0, xLen);
+        x.fromByteArray(xCoord, xOffset, xLen);
         fromX(x);
         x.unlock();
     }
@@ -707,7 +707,7 @@ public class ECPoint {
             byte[] pointBuffer = rm.POINT_ARRAY_A;
 
             x.lock();
-            x.fromByteArray(point, (short) (offset + 1), (short) 0, curve.COORD_SIZE);
+            x.fromByteArray(point, (short) (offset + 1), curve.COORD_SIZE);
 
             //Y^2 = X^3 + XA + B = x(x^2+A)+B
             y.lock();
@@ -726,7 +726,7 @@ public class ECPoint {
             p.lock();
             byte parity = (byte) ((y.asByteArray()[(short) (curve.COORD_SIZE - 1)] & 0xff) % 2);
             if ((parity == 0 && point[offset] != (byte) 0x02) || (parity == 1 && point[offset] != (byte) 0x03)) {
-                p.fromByteArray(curve.p);
+                p.clone(curve.pBN);
                 p.subtract(y);
                 p.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (curve.COORD_SIZE + 1));
             } else {
@@ -765,7 +765,7 @@ public class ECPoint {
             BigNat x = rm.EC_BN_D;
             BigNat p = rm.EC_BN_E;
             x.lock();
-            x.fromByteArray(output, (short) (offset + 1), (short) 0, curve.COORD_SIZE);
+            x.fromByteArray(output, (short) (offset + 1), curve.COORD_SIZE);
 
             //Y^2 = X^3 + XA + B = x(x^2+A)+B
             y.lock();
@@ -779,7 +779,7 @@ public class ECPoint {
             p.lock();
             byte parity = (byte) ((y.asByteArray()[(short) (curve.COORD_SIZE - 1)] & 0xff) % 2);
             if ((parity == 0 && output[offset] != (byte) 0x02) || (parity == 1 && output[offset] != (byte) 0x03)) {
-                p.fromByteArray(curve.p);
+                p.clone(curve.pBN);
                 p.subtract(y);
                 p.prependZeros(curve.COORD_SIZE, output, (short) (offset + curve.COORD_SIZE + 1));
             } else {

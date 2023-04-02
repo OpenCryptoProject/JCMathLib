@@ -11,9 +11,7 @@ import javacard.security.KeyPair;
  * @author Vasilios Mavroudis and Petr Svenda
  */
 public class ECCurve {
-    public final short KEY_LENGTH; //Bits
-    public final short POINT_SIZE; //Bytes
-    public final short COORD_SIZE; //Bytes
+    public final short KEY_BIT_LENGTH, POINT_SIZE, COORD_SIZE;
 
     //Parameters
     public byte[] p, a, b, G, r;
@@ -37,9 +35,9 @@ public class ECCurve {
      * @param r array with r
      */
     public ECCurve(boolean copyArgs, byte[] p, byte[] a, byte[] b, byte[] G, byte[] r) {
-        this.KEY_LENGTH = (short) (p.length * 8);
-        this.POINT_SIZE = (short) G.length;
-        this.COORD_SIZE = (short) ((short) (G.length - 1) / 2);
+        KEY_BIT_LENGTH = (short) (p.length * 8);
+        POINT_SIZE = (short) G.length;
+        COORD_SIZE = (short) ((short) (G.length - 1) / 2);
 
         if (copyArgs) {
             // Copy curve parameters into newly allocated arrays in EEPROM (will be only read, not written later => good performance even when in EEPROM)
@@ -66,24 +64,24 @@ public class ECCurve {
 
         // We will not modify values of p/a/b/r during the lifetime of curve => allocate helper BigNats directly from the array
         // Additionally, these BigNats will be only read from so ResourceManager can be null (saving need to pass as argument to ECCurve)
-        this.pBN = new BigNat(this.p, null);
-        this.aBN = new BigNat(this.a, null);
-        this.bBN = new BigNat(this.b, null);
-        this.rBN = new BigNat(this.r, null);
+        pBN = new BigNat(this.p, null);
+        aBN = new BigNat(this.a, null);
+        bBN = new BigNat(this.b, null);
+        rBN = new BigNat(this.r, null);
 
-        this.disposablePair = this.newKeyPair(null);
-        this.disposablePriv = (ECPrivateKey) this.disposablePair.getPrivate();
-        this.disposablePub = (ECPublicKey) this.disposablePair.getPublic();
+        disposablePair = newKeyPair(null);
+        disposablePriv = (ECPrivateKey) disposablePair.getPrivate();
+        disposablePub = (ECPublicKey) disposablePair.getPublic();
     }    
     
     /**
      * Refresh critical information stored in RAM for performance reasons after a card reset (RAM was cleared).
      */
     public void updateAfterReset() {
-        this.pBN.fromByteArray(this.p);
-        this.aBN.fromByteArray(this.a);
-        this.bBN.fromByteArray(this.b);
-        this.rBN.fromByteArray(this.r);
+        pBN.fromByteArray(p, (short) 0, (short) p.length);
+        aBN.fromByteArray(a, (short) 0, (short) a.length);
+        bBN.fromByteArray(b, (short) 0, (short) b.length);
+        rBN.fromByteArray(r, (short) 0, (short) r.length);
     }
     
     /**
@@ -95,7 +93,7 @@ public class ECCurve {
         ECPrivateKey privKey;
         ECPublicKey pubKey;
         if (existingKeyPair == null) { // Allocate if not supplied
-            existingKeyPair = new KeyPair(KeyPair.ALG_EC_FP, KEY_LENGTH);
+            existingKeyPair = new KeyPair(KeyPair.ALG_EC_FP, KEY_BIT_LENGTH);
         }
         
         // Some implementation will not return valid pub key until ecKeyPair.genKeyPair() is called

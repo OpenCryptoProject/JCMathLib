@@ -98,7 +98,7 @@ public class Integer {
         this.rm = rm;
         BigNat mag = new BigNat(size, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, this.rm);
         if (fromArray != null) {
-            mag.fromByteArray(fromArray, fromArrayOffset, (short) 0, size);
+            mag.fromByteArray(fromArray, fromArrayOffset, size);
         }
         initialize(sign, mag, this.rm);
     }
@@ -224,7 +224,7 @@ public class Integer {
         //Store sign
         this.sign = value[valueOffset];
         //Store magnitude
-        this.magnitude.fromByteArray(value, (short) (valueOffset + 1), (short) 0, (short) (valueLength - 1));
+        this.magnitude.fromByteArray(value, (short) (valueOffset + 1), (short) (valueLength - 1));
     }
 
     /**
