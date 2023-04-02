@@ -1,10 +1,6 @@
 package opencrypto.jcmathlib;
 
 public class SecP256k1 {
-    public final static short KEY_BIT_LENGTH = 256;
-    public final static short POINT_SIZE = 65;
-    public final static short COORD_SIZE = 32;
-
     public final static byte[] p = {
             (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
             (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
