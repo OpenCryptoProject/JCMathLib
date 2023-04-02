@@ -165,7 +165,7 @@ public class BigNat extends BigNatInternal {
      *
      * @param a BigNat value
      * @param b BigNat value
-     * @return true if coprime, false otherwise
+     * @return true if co-prime, false otherwise
      */
     public boolean isCoprime(BigNat a, BigNat b) {
         BigNat tmp = rm.BN_C;
@@ -239,12 +239,12 @@ public class BigNat extends BigNatInternal {
         this.modSub(tmp, mod);
         tmp.unlock();
 
-        boolean carry = false;
+        byte carry = (byte) 0;
         if (this.isOdd()) {
-            carry = this.addCarry(mod);
+            carry = this.add(mod);
         }
 
-        this.divideByTwo(carry ? (short) (1 << 7) : (short) 0);
+        this.divideByTwo(carry != 0 ? (short) (1 << 7) : (short) 0);
     }
 
     /**

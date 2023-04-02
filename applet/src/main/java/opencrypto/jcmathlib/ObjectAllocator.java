@@ -19,22 +19,23 @@ public class ObjectAllocator {
     
     public static final byte ARRAY_A = 0;
     public static final byte ARRAY_B = 1;
-    public static final byte BN_A = 2;
-    public static final byte BN_B = 3;
-    public static final byte BN_C = 4;
-    public static final byte BN_D = 5;
-    public static final byte BN_E = 6;
-    public static final byte BN_F = 7;
+    public static final byte BN_WORD = 2;
+    public static final byte BN_A = 3;
+    public static final byte BN_B = 4;
+    public static final byte BN_C = 5;
+    public static final byte BN_D = 6;
+    public static final byte BN_E = 7;
+    public static final byte BN_F = 8;
     
-    public static final byte EC_BN_A = 8;
-    public static final byte EC_BN_B = 9;
-    public static final byte EC_BN_C = 10;
-    public static final byte EC_BN_D = 11;
-    public static final byte EC_BN_E = 12;
-    public static final byte EC_BN_F = 13;
-    public static final byte POINT_ARRAY_A = 14;
-    public static final byte POINT_ARRAY_B = 15;
-    public static final byte HASH_ARRAY = 16;
+    public static final byte EC_BN_A = 9;
+    public static final byte EC_BN_B = 10;
+    public static final byte EC_BN_C = 11;
+    public static final byte EC_BN_D = 12;
+    public static final byte EC_BN_E = 13;
+    public static final byte EC_BN_F = 14;
+    public static final byte POINT_ARRAY_A = 15;
+    public static final byte POINT_ARRAY_B = 16;
+    public static final byte HASH_ARRAY = 17;
     
     public static final short ALLOCATOR_TYPE_ARRAY_LENGTH = (short) (HASH_ARRAY + 1);
     
@@ -69,6 +70,7 @@ public class ObjectAllocator {
         // Put only the most perfromance relevant ones into RAM
         ALLOCATOR_TYPE_ARRAY[ARRAY_A] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[ARRAY_B] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
+        ALLOCATOR_TYPE_ARRAY[BN_WORD] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[BN_A] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[BN_B] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[BN_C] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;

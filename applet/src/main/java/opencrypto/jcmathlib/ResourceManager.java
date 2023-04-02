@@ -22,10 +22,10 @@ public class ResourceManager {
     Cipher expCiph;
 
     byte[] ARRAY_A, ARRAY_B, POINT_ARRAY_A, POINT_ARRAY_B, HASH_ARRAY;
-    byte[] RAM_WORD;
 
     static byte[] CONST_TWO = {0x02};
 
+    BigNat BN_WORD;
     BigNat BN_A, BN_B, BN_C, BN_D, BN_E, BN_F;
     BigNat EC_BN_A, EC_BN_B, EC_BN_C, EC_BN_D, EC_BN_E, EC_BN_F;
     public static BigNat ONE, TWO, THREE, ONE_COORD;
@@ -79,7 +79,8 @@ public class ResourceManager {
         hashEngine = MessageDigest.getInstance(MessageDigest.ALG_SHA_256, false);
         HASH_ARRAY = memAlloc.allocateByteArray(hashEngine.getLength(), memAlloc.getAllocatorType(ObjectAllocator.HASH_ARRAY));
         locker.registerLock(HASH_ARRAY);
-        RAM_WORD = memAlloc.allocateByteArray((short) 2, JCSystem.MEMORY_TYPE_TRANSIENT_RESET); // only 2b RAM for faster add(short)
+
+        BN_WORD = new BigNat((short) 2, memAlloc.getAllocatorType(ObjectAllocator.BN_WORD), this);
 
         BN_A = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_A), this);
         BN_B = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_B), this);
@@ -138,6 +139,8 @@ public class ResourceManager {
      * Erase all values stored in helper objects
      */
     void erase() {
+        BN_WORD.erase();
+
         BN_A.erase();
         BN_B.erase();
         BN_C.erase();
@@ -155,7 +158,6 @@ public class ResourceManager {
         Util.arrayFillNonAtomic(ARRAY_A, (short) 0, (short) ARRAY_A.length, (byte) 0);
         Util.arrayFillNonAtomic(ARRAY_B, (short) 0, (short) ARRAY_B.length, (byte) 0);
         Util.arrayFillNonAtomic(POINT_ARRAY_A, (short) 0, (short) POINT_ARRAY_A.length, (byte) 0);
-        Util.arrayFillNonAtomic(RAM_WORD, (short) 0, (short) RAM_WORD.length, (byte) 0);
     }
 
     /// [DependencyBegin:ObjectLocker]

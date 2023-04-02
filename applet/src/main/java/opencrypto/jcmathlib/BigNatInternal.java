@@ -218,6 +218,17 @@ public class BigNatInternal {
     }
 
     /**
+     * Sets new value. Keeps previous size of this BigNat.
+     *
+     * @param newValue new value to set
+     */
+    public void setValue(short newValue) {
+        zero();
+        value[(short) (size - 1)] = (byte) (newValue & DIGIT_MASK);
+        value[(short) (size - 2)] = (byte) (newValue & (DIGIT_MASK << 8));
+    }
+
+    /**
      * Copies a BigNat into this without changing size.
      *
      * @param other BigNat to copy into this object.
@@ -782,24 +793,25 @@ public class BigNatInternal {
      *
      * @param other short value to add
      */
-    public void add(short other) {
-        Util.setShort(rm.RAM_WORD, (short) 0, other);
-        addCarry(rm.RAM_WORD, (short) 0, (short) 2);
+    public byte add(short other) {
+        rm.BN_WORD.lock();
+        rm.BN_WORD.setValue(other);
+        byte carry = add(rm.BN_WORD);
+        rm.BN_WORD.unlock();
+        return carry;
     }
 
     /**
      * Adds other to this. Outputs carry bit.
      *
-     * @param other byte array representing BigNat to add
-     * @param otherOffset start offset within other buffer
-     * @param otherLen length of other
+     * @param other BigNat to add
      * @return true if carry occurs, false otherwise
      */
-    private boolean addCarry(byte[] other, short otherOffset, short otherLen) {
+    public byte add(BigNatInternal other) {
         short akku = 0;
         short j = (short) (this.size - 1);
-        for (short i = (short) (otherLen - 1); i >= 0 && j >= 0; i--, j--) {
-            akku = (short) (akku + (short) (this.value[j] & DIGIT_MASK) + (short) (other[(short) (i + otherOffset)] & DIGIT_MASK));
+        for (short i = (short) (other.size - 1); i >= 0 && j >= 0; i--, j--) {
+            akku = (short) (akku + (short) (this.value[j] & DIGIT_MASK) + (short) (other.value[i] & DIGIT_MASK));
 
             this.value[j] = (byte) (akku & DIGIT_MASK);
             akku = (short) ((akku >> DIGIT_LEN) & DIGIT_MASK);
@@ -812,26 +824,12 @@ public class BigNatInternal {
             j--;
         }
 
-        return akku != 0;
-    }
-
-    /**
-     * Adds other to this. Outputs carry bit.
-     *
-     * @param other value to be added
-     * @return true if carry happens, false otherwise
-     */
-    public boolean addCarry(BigNatInternal other) {
-        return addCarry(other.value, (short) 0, other.size);
-    }
-
-    /**
-     * Adds other to this.
-     *
-     * @param other BigNat to add
-     */
-    public void add(BigNatInternal other) {
-        addCarry(other);
+        // 1. result != 0 => result | -result will have the sign bit set
+        // 2. casting magic to overcome the absence of int
+        // 3. move the sign bit to the rightmost position
+        // 4. discard the sign bit which is present due to the unavoidable casts
+        //    and return the value of the rightmost bit
+        return (byte) ((byte) (((short) (akku | -akku) & (short) 0xFFFF) >>> 15) & 0x01);
     }
 
     /**
