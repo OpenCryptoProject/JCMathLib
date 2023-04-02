@@ -1,5 +1,6 @@
 package opencrypto.jcmathlib;
 
+import javacard.framework.ISOException;
 import javacard.framework.JCSystem;
 import javacard.framework.Util;
 import javacard.security.*;
@@ -29,11 +30,37 @@ public class ResourceManager {
     BigNat EC_BN_A, EC_BN_B, EC_BN_C, EC_BN_D, EC_BN_E, EC_BN_F;
     public static BigNat ONE, TWO, THREE, ONE_COORD;
 
-    // TODO remove if possible
     public final short MODULO_RSA_ENGINE_MAX_LENGTH_BITS;
+    public final short MULT_RSA_ENGINE_MAX_LENGTH_BITS;
+    public final short MAX_BIGNAT_SIZE;
+    public final short MAX_POINT_SIZE;
+    public final short MAX_COORD_SIZE;
 
-    public ResourceManager(short MAX_POINT_SIZE, short MAX_COORD_SIZE, short MAX_BIGNAT_SIZE, short MULT_RSA_ENGINE_MAX_LENGTH_BITS, short MODULO_RSA_ENGINE_MAX_LENGTH_BITS) {
-        this.MODULO_RSA_ENGINE_MAX_LENGTH_BITS = MODULO_RSA_ENGINE_MAX_LENGTH_BITS;
+    public ResourceManager(short maxEcLength) {
+        if (maxEcLength <= (short) 256) {
+            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 512;
+            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768;
+            MAX_POINT_SIZE = (short) 64;
+        }
+        else if (maxEcLength <= (short) 384) {
+            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768;
+            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1024;
+            MAX_POINT_SIZE = (short) 96;
+        }
+        else if (maxEcLength <= (short) 512) {
+            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1024;
+            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1280;
+            MAX_POINT_SIZE = (short) 128;
+        }
+        else {
+            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 0;
+            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 0;
+            MAX_POINT_SIZE = (short) 0;
+            ISOException.throwIt(ReturnCodes.SW_ECPOINT_INVALIDLENGTH);
+        }
+        MAX_BIGNAT_SIZE = (short) ((short) (MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8) + 1);
+        MAX_COORD_SIZE = (short) (MAX_POINT_SIZE / 2);
+
         memAlloc = new ObjectAllocator();
         memAlloc.setAllAllocatorsRAM();
         // if required, memory for helper objects and arrays can be in persistent memory to save RAM (or some tradeoff)
@@ -135,6 +162,15 @@ public class ResourceManager {
     public static final byte LOCKER_ARRAYS = 5;
     public static final byte LOCKER_OBJECTS = 1;
     public ObjectLocker locker = new ObjectLocker((short) (LOCKER_ARRAYS + LOCKER_OBJECTS));
+
+    /**
+     * Refresh RAM objects after reset.
+     */
+    public void refreshAfterReset() {
+        if (locker != null) {
+            locker.refreshAfterReset();
+        }
+    }
     /**
      * Lock a byte array
      *

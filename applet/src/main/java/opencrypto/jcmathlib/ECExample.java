@@ -7,7 +7,7 @@ import javacard.framework.Applet;
  * @author Petr Svenda
  */
 public class ECExample extends Applet {
-    ECConfig ecc;
+    ResourceManager rm;
     ECCurve curve;
     ECPoint point1;
     ECPoint point2;
@@ -28,9 +28,9 @@ public class ECExample extends Applet {
             return;
         }
         // Pre-allocate all helper structures
-        ecc = new ECConfig((short) 256);
+        rm = new ResourceManager((short) 256);
         // Pre-allocate standard SecP256r1 curve and two EC points on this curve
-        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, ecc.rm);
+        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, rm);
         point1 = new ECPoint(curve);
         point2 = new ECPoint(curve);
 
@@ -43,7 +43,7 @@ public class ECExample extends Applet {
 
     public boolean select() {
         if (initialized) {
-            ecc.refreshAfterReset();
+            rm.refreshAfterReset();
         }
         return true;
     }

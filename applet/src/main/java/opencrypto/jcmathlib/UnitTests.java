@@ -65,7 +65,7 @@ public class UnitTests extends Applet {
     short[] memoryInfo;
     short memoryInfoOffset = 0;
 
-    ECConfig ecc;
+    ResourceManager rm;
     ECCurve curve;
     ECPoint point1;
     ECPoint point2;
@@ -94,16 +94,16 @@ public class UnitTests extends Applet {
         }
         memoryInfo = new short[(short) (7 * 3)]; // Contains RAM and EEPROM memory required for basic library objects
         memoryInfoOffset = snapshotAvailableMemory((short) 1, memoryInfo, memoryInfoOffset);
-        ecc = new ECConfig((short) 256);
+        rm = new ResourceManager((short) 256);
         memoryInfoOffset = snapshotAvailableMemory((short) 2, memoryInfo, memoryInfoOffset);
 
 
         // Pre-allocate test objects (no new allocation for every tested operation)
-        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, ecc.rm);
+        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, rm);
         memoryInfoOffset = snapshotAvailableMemory((short) 3, memoryInfo, memoryInfoOffset);
         customG = new byte[(short) SecP256r1.G.length];
         Util.arrayCopyNonAtomic(SecP256r1.G, (short) 0, customG, (short) 0, (short) SecP256r1.G.length);
-        customCurve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, customG, SecP256r1.r, ecc.rm);
+        customCurve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, customG, SecP256r1.r, rm);
 
         memoryInfoOffset = snapshotAvailableMemory((short) 5, memoryInfo, memoryInfoOffset);
         point1 = new ECPoint(curve);
@@ -114,14 +114,14 @@ public class UnitTests extends Applet {
         // Testing BigNat objects used in tests
         memoryInfoOffset = snapshotAvailableMemory((short) 7, memoryInfo, memoryInfoOffset);
         byte memoryType = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
-        bn1 = new BigNat(ecc.MAX_BIGNAT_SIZE, memoryType, ecc.rm);
+        bn1 = new BigNat(rm.MAX_BIGNAT_SIZE, memoryType, rm);
         memoryInfoOffset = snapshotAvailableMemory((short) 8, memoryInfo, memoryInfoOffset);
-        bn2 = new BigNat(ecc.MAX_BIGNAT_SIZE, memoryType, ecc.rm);
-        bn3 = new BigNat(ecc.MAX_BIGNAT_SIZE, memoryType, ecc.rm);
+        bn2 = new BigNat(rm.MAX_BIGNAT_SIZE, memoryType, rm);
+        bn3 = new BigNat(rm.MAX_BIGNAT_SIZE, memoryType, rm);
 
         short intLen = 4;
-        int1 = new Integer(intLen, ecc.rm);
-        int2 = new Integer(intLen, ecc.rm);
+        int1 = new Integer(intLen, rm);
+        int2 = new Integer(intLen, rm);
         initialized = true;
     }
 
@@ -157,7 +157,7 @@ public class UnitTests extends Applet {
 
             switch (apduBuffer[ISO7816.OFFSET_INS]) {
                 case INS_CLEANUP:
-                    ecc.unlockAll();
+                    rm.unlockAll();
                     break;
                 case INS_FREE_MEMORY:
                     if (CARD_TYPE != OperationSupport.SIMULATOR) {
@@ -166,9 +166,9 @@ public class UnitTests extends Applet {
                     break;
                 case INS_GET_ALLOCATOR_STATS:
                     short offset = 0;
-                    Util.setShort(apduBuffer, offset, ecc.rm.memAlloc.getAllocatedInRAM());
+                    Util.setShort(apduBuffer, offset, rm.memAlloc.getAllocatedInRAM());
                     offset += 2;
-                    Util.setShort(apduBuffer, offset, ecc.rm.memAlloc.getAllocatedInEEPROM());
+                    Util.setShort(apduBuffer, offset, rm.memAlloc.getAllocatedInEEPROM());
                     offset += 2;
                     for (short i = 0; i < (short) memoryInfo.length; i++) {
                         Util.setShort(apduBuffer, offset, memoryInfo[i]);
@@ -177,8 +177,8 @@ public class UnitTests extends Applet {
                     apdu.setOutgoingAndSend((short) 0, offset);
                     break;
                 case INS_GET_PROFILE_LOCKS:
-                    Util.arrayCopyNonAtomic(ecc.rm.locker.profileLockedObjects, (short) 0, apduBuffer, (short) 0, (short) ecc.rm.locker.profileLockedObjects.length);
-                    apdu.setOutgoingAndSend((short) 0, (short) ecc.rm.locker.profileLockedObjects.length);
+                    Util.arrayCopyNonAtomic(rm.locker.profileLockedObjects, (short) 0, apduBuffer, (short) 0, (short) rm.locker.profileLockedObjects.length);
+                    apdu.setOutgoingAndSend((short) 0, (short) rm.locker.profileLockedObjects.length);
                     break;
 
                 case INS_EC_GEN:
@@ -329,9 +329,9 @@ public class UnitTests extends Applet {
         if (customCurve != null) {
             customCurve.updateAfterReset();
         }
-        if (ecc != null) {
-            ecc.refreshAfterReset();
-            ecc.unlockAll();
+        if (rm != null) {
+            rm.refreshAfterReset();
+            rm.unlockAll();
         }
     }
 
@@ -522,7 +522,7 @@ public class UnitTests extends Applet {
 
         bn1.setSize(p1);
         bn2.setSize((short) (dataLen - p1));
-        bn3.setSize((short) (ecc.MAX_BIGNAT_SIZE / 2));
+        bn3.setSize((short) (rm.MAX_BIGNAT_SIZE / 2));
         bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, p1);
         bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) (dataLen - p1));
         bn3.exponentiation(bn1, bn2);
