@@ -8,9 +8,7 @@ import javacardx.crypto.Cipher;
 import javacard.security.KeyBuilder;
 
 /**
- * Credits: Based on BigNat library from <a href="https://ovchip.cs.ru.nl/OV-chip_2.0">OV-chip project.</a> by Radboud University Nijmegen
- *
- * @author Vasilios Mavroudis and Petr Svenda
+ * @author Vasilios Mavroudis and Petr Svenda and Antonin Dufka
  */
 public class BigNat extends BigNatInternal {
 
@@ -246,6 +244,106 @@ public class BigNat extends BigNatInternal {
         this.clone(tmp);
         tmp.unlock();
     }
+
+    /**
+     * Computes (this ^ exponent % modulo) using RSA algorithm and store results into this.
+     *
+     * @param exponent exponent
+     * @param modulo modulo
+     */
+    public void modExp(BigNat exponent, BigNat modulo) {
+        if (!OperationSupport.getInstance().RSA_MOD_EXP)
+            ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
+
+        BigNat tmpMod = rm.BN_F; // modExp is called from modSqrt => requires BN_F not being locked when modExp is called
+        byte[] tmpBuffer = rm.ARRAY_A;
+        short tmpSize = (short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
+        short modLength;
+
+        tmpMod.lock();
+        tmpMod.setSize(tmpSize);
+
+        if (OperationSupport.getInstance().RSA_MOD_EXP_PUB) {
+            // Verify if pre-allocated engine match the required values
+            if (rm.expPub.getSize() < (short) (modulo.length() * 8) || rm.expPub.getSize() < (short) (this.length() * 8)) {
+                ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
+            }
+            if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
+                // Simulator fails when reusing the original object
+                rm.expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
+            }
+            rm.expPub.setExponent(exponent.asByteArray(), (short) 0, exponent.length());
+            rm.lock(tmpBuffer);
+            if (OperationSupport.getInstance().RSA_RESIZE_MODULUS) {
+                if (OperationSupport.getInstance().RSA_RESIZE_MODULUS_APPEND) {
+                    modulo.appendZeros(tmpSize, tmpBuffer, (short) 0);
+                } else {
+                    modulo.prependZeros(tmpSize, tmpBuffer, (short) 0);
+
+                }
+                rm.expPub.setModulus(tmpBuffer, (short) 0, tmpSize);
+                modLength = tmpSize;
+            } else {
+                rm.expPub.setModulus(modulo.asByteArray(), (short) 0, modulo.length());
+                modLength = modulo.length();
+            }
+            rm.expCiph.init(rm.expPub, Cipher.MODE_DECRYPT);
+        } else {
+            // Verify if pre-allocated engine match the required values
+            if (rm.expPriv.getSize() < (short) (modulo.length() * 8) || rm.expPriv.getSize() < (short) (this.length() * 8)) {
+                ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
+            }
+            if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
+                // Simulator fails when reusing the original object
+                rm.expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
+            }
+            rm.expPriv.setExponent(exponent.asByteArray(), (short) 0, exponent.length());
+            rm.lock(tmpBuffer);
+            if (OperationSupport.getInstance().RSA_RESIZE_MODULUS) {
+                if (OperationSupport.getInstance().RSA_RESIZE_MODULUS_APPEND) {
+                    modulo.appendZeros(tmpSize, tmpBuffer, (short) 0);
+                } else {
+                    modulo.prependZeros(tmpSize, tmpBuffer, (short) 0);
+
+                }
+                rm.expPriv.setModulus(tmpBuffer, (short) 0, tmpSize);
+                modLength = tmpSize;
+            } else {
+                rm.expPriv.setModulus(modulo.asByteArray(), (short) 0, modulo.length());
+                modLength = modulo.length();
+            }
+            rm.expCiph.init(rm.expPriv, Cipher.MODE_DECRYPT);
+        }
+        short len;
+        if (OperationSupport.getInstance().RSA_RESIZE_BASE) {
+            this.prependZeros(modLength, tmpBuffer, (short) 0);
+            len = rm.expCiph.doFinal(tmpBuffer, (short) 0, modLength, tmpBuffer, (short) 0);
+        } else {
+            len = rm.expCiph.doFinal(this.asByteArray(), (short) 0, this.length(), tmpBuffer, (short) 0);
+        }
+
+        if (len != tmpSize) {
+            if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
+                // Decrypted length can be either tmp_size or less because of leading zeroes consumed by simulator engine implementation
+                // Move obtained value into proper position with zeroes prepended
+                Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, tmpBuffer, (short) (tmpSize - len), len);
+                Util.arrayFillNonAtomic(tmpBuffer, (short) 0, (short) (tmpSize - len), (byte) 0);
+            } else {
+                // real cards should keep whole length of block
+                ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
+            }
+        }
+        tmpMod.fromByteArray(tmpBuffer, (short) 0, tmpSize);
+        rm.unlock(tmpBuffer);
+
+        if (OperationSupport.getInstance().RSA_MOD_EXP_EXTRA_MOD) {
+            tmpMod.mod(modulo);
+        }
+        tmpMod.shrink();
+        this.clone(tmpMod);
+        tmpMod.unlock();
+    }
+
 
     /**
      * Computes square root of provided BigNat which MUST be prime using Tonelli

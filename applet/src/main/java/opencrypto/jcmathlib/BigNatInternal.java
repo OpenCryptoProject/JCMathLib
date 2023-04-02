@@ -2,13 +2,9 @@ package opencrypto.jcmathlib;
 
 import javacard.framework.ISOException;
 import javacard.framework.Util;
-import javacard.security.KeyBuilder;
-import javacard.security.RSAPrivateKey;
-import javacard.security.RSAPublicKey;
-import javacardx.crypto.Cipher;
 
 /**
- * Credits: Based on BigNat library from <a href="https://ovchip.cs.ru.nl/OV-chip_2.0">OV-chip project.</a> by Radboud University Nijmegen
+ * Based on BigNat library from <a href="https://ovchip.cs.ru.nl/OV-chip_2.0">OV-chip project.</a> by Radboud University Nijmegen
  *
  * @author Vasilios Mavroudis and Petr Svenda
  */
@@ -853,8 +849,8 @@ public class BigNatInternal {
      * @param other short value to add
      */
     public void add(short other) {
-        Util.setShort(rm.RAM_WORD, (short) 0, other); // serialize other into array
-        this.addCarry(rm.RAM_WORD, (short) 0, (short) 2); // add as array
+        Util.setShort(rm.RAM_WORD, (short) 0, other);
+        addCarry(rm.RAM_WORD, (short) 0, (short) 2);
     }
 
     /**
@@ -901,7 +897,7 @@ public class BigNatInternal {
     }
 
     /**
-     * Add with carry. See {@code add_cary()} for full description
+     * Add with carry. See {@code add_carry()} for full description
      *
      * @param other value to be added
      * @return true if carry happens, false otherwise
@@ -983,31 +979,15 @@ public class BigNatInternal {
     }
 
     /**
-     * Computes x * y and stores the result into this. Chooses computation approach based on operation support and operand size.
-     *
-     * @param x left operand
-     * @param y right operand
-     */
-    public void mult(BigNatInternal x, BigNatInternal y) {
-        if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() < (short) 16) {
-            // If simulator or not supported, use slow multiplication
-            // Use slow multiplication also when numbers are small => faster to do in software
-            multSchoolbook(x, y);
-        } else {
-            multRsaTrick(x, y, null, null);
-        }
-    }
-
-    /**
      * Slow schoolbook algorithm for multiplication.
      *
      * @param x left operand
      * @param y right operand
      */
     protected void multSchoolbook(BigNatInternal x, BigNatInternal y) {
-        this.zero(); // important to keep, used in exponentiation()
+        zero(); // important to keep, used in exponentiation()
         for (short i = (short) (y.size - 1); i >= 0; i--) {
-            this.timesAddShift(x, (short) (y.size - 1 - i), (short) (y.value[i] & DIGIT_MASK));
+            timesAddShift(x, (short) (y.size - 1 - i), (short) (y.value[i] & DIGIT_MASK));
         }
     }
 
@@ -1142,117 +1122,6 @@ public class BigNatInternal {
      */
     public void divideByTwo() {
         divideByTwo((short) 0);
-    }
-
-    /**
-     * Computes modulo and stores it in this.
-     *
-     * @param modulo value of modulo
-     */
-    public void mod(BigNatInternal modulo) {
-        remainderDivide(modulo, null);
-    }
-
-    /**
-     * Computes (this ^ exponent % modulo) using RSA algorithm and store results into this.
-     *
-     * @param exponent exponent
-     * @param modulo modulo
-     */
-    public void modExp(BigNatInternal exponent, BigNatInternal modulo) {
-        if (!OperationSupport.getInstance().RSA_MOD_EXP)
-            ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
-
-        BigNatInternal tmpMod = rm.BN_F; // modExp is called from modSqrt => requires BN_F not being locked when modExp is called
-        byte[] tmpBuffer = rm.ARRAY_A;
-        short tmpSize = (short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
-        short modLength;
-
-        tmpMod.lock();
-        tmpMod.setSize(tmpSize);
-
-        if (OperationSupport.getInstance().RSA_MOD_EXP_PUB) {
-            // Verify if pre-allocated engine match the required values
-            if (rm.expPub.getSize() < (short) (modulo.length() * 8) || rm.expPub.getSize() < (short) (this.length() * 8)) {
-                ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
-            }
-            if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
-                // Simulator fails when reusing the original object
-                rm.expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
-            }
-            rm.expPub.setExponent(exponent.asByteArray(), (short) 0, exponent.length());
-            rm.lock(tmpBuffer);
-            if (OperationSupport.getInstance().RSA_RESIZE_MODULUS) {
-                if (OperationSupport.getInstance().RSA_RESIZE_MODULUS_APPEND) {
-                    modulo.appendZeros(tmpSize, tmpBuffer, (short) 0);
-                } else {
-                    modulo.prependZeros(tmpSize, tmpBuffer, (short) 0);
-
-                }
-                rm.expPub.setModulus(tmpBuffer, (short) 0, tmpSize);
-                modLength = tmpSize;
-            } else {
-                rm.expPub.setModulus(modulo.asByteArray(), (short) 0, modulo.length());
-                modLength = modulo.length();
-            }
-            rm.expCiph.init(rm.expPub, Cipher.MODE_DECRYPT);
-        } else {
-            // Verify if pre-allocated engine match the required values
-            if (rm.expPriv.getSize() < (short) (modulo.length() * 8) || rm.expPriv.getSize() < (short) (this.length() * 8)) {
-                ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
-            }
-            if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
-                // Simulator fails when reusing the original object
-                rm.expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
-            }
-            rm.expPriv.setExponent(exponent.asByteArray(), (short) 0, exponent.length());
-            rm.lock(tmpBuffer);
-            if (OperationSupport.getInstance().RSA_RESIZE_MODULUS) {
-                if (OperationSupport.getInstance().RSA_RESIZE_MODULUS_APPEND) {
-                    modulo.appendZeros(tmpSize, tmpBuffer, (short) 0);
-                } else {
-                    modulo.prependZeros(tmpSize, tmpBuffer, (short) 0);
-
-                }
-                rm.expPriv.setModulus(tmpBuffer, (short) 0, tmpSize);
-                modLength = tmpSize;
-            } else {
-                rm.expPriv.setModulus(modulo.asByteArray(), (short) 0, modulo.length());
-                modLength = modulo.length();
-            }
-            rm.expCiph.init(rm.expPriv, Cipher.MODE_DECRYPT);
-        }
-        short len;
-        if (OperationSupport.getInstance().RSA_RESIZE_BASE) {
-            this.prependZeros(modLength, tmpBuffer, (short) 0);
-            len = rm.expCiph.doFinal(tmpBuffer, (short) 0, modLength, tmpMod.value, (short) 0);
-        } else {
-            len = rm.expCiph.doFinal(this.asByteArray(), (short) 0, this.length(), tmpMod.value, (short) 0);
-        }
-        rm.unlock(tmpBuffer);
-
-        if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
-            // Decrypted length can be either tmp_size or less because of leading zeroes consumed by simulator engine implementation
-            // Move obtained value into proper position with zeroes prepended
-            if (len != tmpSize) {
-                rm.lock(tmpBuffer);
-                Util.arrayFillNonAtomic(tmpBuffer, (short) 0, (short) tmpBuffer.length, (byte) 0);
-                Util.arrayCopyNonAtomic(tmpMod.value, (short) 0, tmpBuffer, (short) (tmpSize - len), len);
-                Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, tmpMod.value, (short) 0, tmpSize);
-                rm.unlock(tmpBuffer);
-            }
-        } else {
-            // real cards should keep whole length of block, just check
-            if (len != tmpSize) {
-                ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
-            }
-        }
-        if (OperationSupport.getInstance().RSA_MOD_EXP_EXTRA_MOD) {
-            tmpMod.mod(modulo);
-        }
-        tmpMod.shrink();
-        this.clone(tmpMod);
-        tmpMod.unlock();
     }
 
     /**
