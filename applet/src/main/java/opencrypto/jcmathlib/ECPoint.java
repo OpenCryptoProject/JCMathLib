@@ -16,14 +16,12 @@ public class ECPoint {
 
     /**
      * Creates new ECPoint object for provided {@code curve}. Random initial point value is generated.
-     * The point will use helper structures from provided ECPoint_Helper object.
      *
      * @param curve point's elliptic curve
-     * @param rm resource manager with prealocated objects and memory arrays
      */
-    public ECPoint(ECCurve curve, ResourceManager rm) {
+    public ECPoint(ECCurve curve) {
         this.curve = curve;
-        this.rm = rm;
+        this.rm = curve.rm;
         updatePointObjects();
     }
 

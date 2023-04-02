@@ -99,17 +99,17 @@ public class UnitTests extends Applet {
 
 
         // Pre-allocate test objects (no new allocation for every tested operation)
-        curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r);
+        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, ecc.rm);
         memoryInfoOffset = snapshotAvailableMemory((short) 3, memoryInfo, memoryInfoOffset);
         customG = new byte[(short) SecP256r1.G.length];
         Util.arrayCopyNonAtomic(SecP256r1.G, (short) 0, customG, (short) 0, (short) SecP256r1.G.length);
-        customCurve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, customG, SecP256r1.r);
+        customCurve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, customG, SecP256r1.r, ecc.rm);
 
         memoryInfoOffset = snapshotAvailableMemory((short) 5, memoryInfo, memoryInfoOffset);
-        point1 = new ECPoint(curve, ecc.rm);
+        point1 = new ECPoint(curve);
         memoryInfoOffset = snapshotAvailableMemory((short) 6, memoryInfo, memoryInfoOffset);
-        point2 = new ECPoint(curve, ecc.rm);
-        customPoint = new ECPoint(customCurve, ecc.rm);
+        point2 = new ECPoint(curve);
+        customPoint = new ECPoint(customCurve);
 
         // Testing BigNat objects used in tests
         memoryInfoOffset = snapshotAvailableMemory((short) 7, memoryInfo, memoryInfoOffset);

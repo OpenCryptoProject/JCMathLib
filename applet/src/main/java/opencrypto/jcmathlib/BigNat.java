@@ -23,15 +23,6 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
-     * Construct a BigNat with provided array used as internal storage as well as initial value.
-     *
-     * @param valueBuffer internal storage
-     */
-    public BigNat(byte[] valueBuffer, ResourceManager rm) {
-        super(valueBuffer, rm);
-    }
-
-    /**
      * Equality check using hash values.
      *
      * @param other BigNat to compare

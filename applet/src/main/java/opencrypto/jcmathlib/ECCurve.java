@@ -1,73 +1,56 @@
 package opencrypto.jcmathlib;
 
+import javacard.framework.JCSystem;
 import javacard.framework.Util;
 import javacard.security.ECPrivateKey;
 import javacard.security.ECPublicKey;
-import javacard.security.KeyBuilder;
 import javacard.security.KeyPair;
 
 /**
- * 
  * @author Vasilios Mavroudis and Petr Svenda
  */
 public class ECCurve {
     public final short KEY_BIT_LENGTH, POINT_SIZE, COORD_SIZE;
+    public ResourceManager rm;
 
-    //Parameters
     public byte[] p, a, b, G, r;
     public BigNat pBN, aBN, bBN, rBN;
+
 
     public KeyPair disposablePair;
     public ECPrivateKey disposablePriv;
     public ECPublicKey disposablePub;
 
-    
-
     /**
-     * Creates new curve object from provided parameters. Either copy of provided
-     * arrays is performed (copyArgs == true, input arrays can be reused later for other
-     * purposes) or arguments are directly stored (copyArgs == false, usable for fixed static arrays) .
-     * @param copyArgs if true, copy of arguments is created, otherwise reference is directly stored
+     * Creates new curve object from provided parameters. Parameters are not copied, the
+     * arrays must not be changed.
+     *
      * @param p array with p
      * @param a array with a
      * @param b array with b
      * @param G array with base point G
      * @param r array with r
      */
-    public ECCurve(boolean copyArgs, byte[] p, byte[] a, byte[] b, byte[] G, byte[] r) {
+    public ECCurve(byte[] p, byte[] a, byte[] b, byte[] G, byte[] r, ResourceManager rm) {
         KEY_BIT_LENGTH = (short) (p.length * 8);
         POINT_SIZE = (short) G.length;
         COORD_SIZE = (short) ((short) (G.length - 1) / 2);
 
-        if (copyArgs) {
-            // Copy curve parameters into newly allocated arrays in EEPROM (will be only read, not written later => good performance even when in EEPROM)
-            this.p = new byte[(short) p.length];
-            this.a = new byte[(short) a.length];
-            this.b = new byte[(short) b.length];
-            this.G = new byte[(short) G.length];
-            this.r = new byte[(short) r.length];
+        this.p = p;
+        this.a = a;
+        this.b = b;
+        this.G = G;
+        this.r = r;
+        this.rm = rm;
 
-            Util.arrayCopyNonAtomic(p, (short) 0, this.p, (short) 0, (short) this.p.length);
-            Util.arrayCopyNonAtomic(a, (short) 0, this.a, (short) 0, (short) this.a.length);
-            Util.arrayCopyNonAtomic(b, (short) 0, this.b, (short) 0, (short) this.b.length);
-            Util.arrayCopyNonAtomic(G, (short) 0, this.G, (short) 0, (short) this.G.length);
-            Util.arrayCopyNonAtomic(r, (short) 0, this.r, (short) 0, (short) this.r.length);
-        }
-        else {
-            // No allocation, store directly provided arrays 
-            this.p = p;
-            this.a = a;
-            this.b = b;
-            this.G = G;
-            this.r = r;
-        }
-
-        // We will not modify values of p/a/b/r during the lifetime of curve => allocate helper BigNats directly from the array
-        // Additionally, these BigNats will be only read from so ResourceManager can be null (saving need to pass as argument to ECCurve)
-        pBN = new BigNat(this.p, null);
-        aBN = new BigNat(this.a, null);
-        bBN = new BigNat(this.b, null);
-        rBN = new BigNat(this.r, null);
+        pBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
+        pBN.fromByteArray(p, (short) 0, (short) p.length);
+        aBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
+        aBN.fromByteArray(a, (short) 0, (short) a.length);
+        bBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
+        bBN.fromByteArray(b, (short) 0, (short) b.length);
+        rBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
+        rBN.fromByteArray(r, (short) 0, (short) r.length);
 
         disposablePair = newKeyPair(null);
         disposablePriv = (ECPrivateKey) disposablePair.getPrivate();

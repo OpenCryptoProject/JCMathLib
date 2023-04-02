@@ -30,18 +30,6 @@ public class BigNatInternal {
     }
 
     /**
-     * Construct a BigNat with provided array used as internal storage as well as initial value.
-     *
-     * @param valueBuffer internal storage
-     */
-    public BigNatInternal(byte[] valueBuffer, ResourceManager rm) {
-        this.rm = rm;
-        this.size = (short) valueBuffer.length;
-        this.allocatorType = -1; // no allocator
-        this.value = valueBuffer;
-    }
-
-    /**
      * Allocates required underlying storage array.
      *
      * @param maxSize maximum size of this BigNat
@@ -244,7 +232,7 @@ public class BigNatInternal {
             thisStart = 0;
             otherStart = (short) (other.size - this.size);
             len = this.size;
-            // Verify here that other have leading zeroes up to other_start
+            // Verify here that other have leading zeroes up to otherStart
             for (short i = 0; i < otherStart; i++) {
                 if (other.value[i] != 0) {
                     ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDCOPYOTHER);
@@ -253,7 +241,6 @@ public class BigNatInternal {
         }
 
         if (thisStart > 0) {
-            // if this BigNat has more digits than its leading digits are initialized to zero
             Util.arrayFillNonAtomic(this.value, (short) 0, thisStart, (byte) 0);
         }
         Util.arrayCopyNonAtomic(other.value, otherStart, this.value, thisStart, len);
