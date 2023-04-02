@@ -116,11 +116,10 @@ public class BigNatInternal {
      */
     public void deepResize(short newSize) {
         if (newSize > (short) value.length) {
-            if (ALLOW_RUNTIME_REALLOCATION) {
-                allocateStorageArray(newSize, allocatorType);
-            } else {
-                ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED); // Reallocation to longer size not permitted
+            if (!ALLOW_RUNTIME_REALLOCATION) {
+                ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED);
             }
+            allocateStorageArray(newSize, allocatorType);
         }
 
         if (newSize == this.size) {
@@ -266,64 +265,19 @@ public class BigNatInternal {
      * @param other BigNat to clone into this object.
      */
     public void clone(BigNatInternal other) {
-        // Reallocate array only if current array cannot store the other value and reallocation is enabled by ALLOW_RUNTIME_REALLOCATION
-        if ((short) value.length < other.length()) {
-            // Reallocation necessary
-            if (ALLOW_RUNTIME_REALLOCATION) {
-                allocateStorageArray(other.length(), this.allocatorType);
-            } else {
+        if (other.length() > (short) value.length) {
+            if (!ALLOW_RUNTIME_REALLOCATION) {
                 ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED);
             }
+            allocateStorageArray(other.length(), this.allocatorType);
         }
 
-        // copy value from other into proper place in this (this can be longer than other so rest of bytes wil be filled with 0)
         other.copyToBuffer(value, (short) 0);
-        if ((short) value.length > other.length()) {
-            Util.arrayFillNonAtomic(this.value, other.length(), (short) ((short) value.length - other.length()), (byte) 0);
+        short diff = (short) ((short) value.length - other.length());
+        if (diff > 0) {
+            Util.arrayFillNonAtomic(value, other.length(), diff, (byte) 0);
         }
         this.size = other.length();
-    }
-
-    /**
-     * Equality check.
-     *
-     * @param other BigNat to compare
-     * @return true if this and other have the same value, false otherwise.
-     */
-    public boolean equals(BigNatInternal other) {
-        short hashLen;
-        byte[] tmpBuffer = rm.ARRAY_A;
-        byte[] hashBuffer = rm.ARRAY_B;
-
-        // Compare using hash engine
-        // The comparison is made with hash of point values instead of directly values.
-        // This way, offset of first mismatching byte is not leaked via timing side-channel.
-        rm.lock(tmpBuffer);
-        rm.lock(hashBuffer);
-        if (this.length() == other.length()) {
-            // Same length, we can hash directly from BN values
-            rm.hashEngine.doFinal(this.value, (short) 0, this.length(), hashBuffer, (short) 0);
-            hashLen = rm.hashEngine.doFinal(other.value, (short) 0, other.length(), tmpBuffer, (short) 0);
-        } else {
-            // Different length of BigNats - can be still same if prepended with zeroes
-            // Find the length of longer one and pad other one with starting zeroes
-            if (this.length() < other.length()) {
-                this.prependZeros(other.length(), tmpBuffer, (short) 0);
-                rm.hashEngine.doFinal(tmpBuffer, (short) 0, other.length(), hashBuffer, (short) 0);
-                hashLen = rm.hashEngine.doFinal(other.value, (short) 0, other.length(), tmpBuffer, (short) 0);
-            } else {
-                other.prependZeros(this.length(), tmpBuffer, (short) 0);
-                rm.hashEngine.doFinal(tmpBuffer, (short) 0, this.length(), hashBuffer, (short) 0);
-                hashLen = rm.hashEngine.doFinal(this.value, (short) 0, this.length(), tmpBuffer, (short) 0);
-            }
-        }
-
-        boolean result = Util.arrayCompare(hashBuffer, (short) 0, tmpBuffer, (short) 0, hashLen) == 0;
-
-        rm.unlock(tmpBuffer);
-        rm.unlock(hashBuffer);
-
-        return result;
     }
 
     /**
@@ -665,19 +619,12 @@ public class BigNatInternal {
     }
 
     /**
-     * Remainder and Quotient. Divide this number by {@code divisor} and store
-     * the remainder in this. If {@code quotient} is non-null store the quotient
-     * there.
-     * <p>
-     * There are no direct size constraints, but if {@code quotient} is
-     * non-null, it must be big enough for the quotient, otherwise an assertion
-     * is thrown.
-     * <p>
-     * Uses schoolbook division inside and has O^2 complexity in the difference
-     * of significant digits of the divident (in this number) and the divisor.
-     * For numbers of equal size complexity is linear.
+     * Divide this by divisor and store the remained in this. Quotient is stored
+     * in quotient. Uses schoolbook division inside and has O^2 complexity in the
+     * difference of significant digits of the divident (in this number) and the
+     * divisor. For numbers of equal size complexity is linear.
      *
-     * @param divisor  must be non-zero
+     * @param divisor must be non-zero
      * @param quotient gets the quotient if non-null
      */
     public void remainderDivide(BigNatInternal divisor, BigNatInternal quotient) {
@@ -854,29 +801,14 @@ public class BigNatInternal {
     }
 
     /**
-     * Addition with carry report. Adds other to this number. If this is too
-     * small for the result (i.e., an overflow occurs) the method returns true.
-     * Further, the result in {@code this} will then be the correct result of an
-     * addition modulo the first number that does not fit into {@code this} (
-     * {@code 2^(}{@link #DIGIT_LEN}{@code * }{@link #size this.size}{@code )}),
-     * i.e., only one leading 1 bit is missing. If there is no overflow the
-     * method will return false.
-     * <p>
-     * <p>
-     * It would be more natural to report the overflow with an
-     * {@link javacard.framework.UserException}, however its
-     * {@link javacard.framework.UserException#throwIt throwIt} method dies with
-     * a null pointer exception when it runs in a host test frame...
-     * <p>
-     * <p>
-     * Asserts that the size of other is not greater than the size of this.
+     * Adds other to this. Outputs carry bit.
      *
-     * @param other       BigNat to add
+     * @param other byte array representing BigNat to add
      * @param otherOffset start offset within other buffer
-     * @param otherLen    length of other
+     * @param otherLen length of other
      * @return true if carry occurs, false otherwise
      */
-    public boolean addCarry(byte[] other, short otherOffset, short otherLen) {
+    private boolean addCarry(byte[] other, short otherOffset, short otherLen) {
         short akku = 0;
         short j = (short) (this.size - 1);
         for (short i = (short) (otherLen - 1); i >= 0 && j >= 0; i--, j--) {
@@ -897,7 +829,7 @@ public class BigNatInternal {
     }
 
     /**
-     * Add with carry. See {@code add_carry()} for full description
+     * Adds other to this. Outputs carry bit.
      *
      * @param other value to be added
      * @return true if carry happens, false otherwise
@@ -907,12 +839,7 @@ public class BigNatInternal {
     }
 
     /**
-     * Addition. Adds other to this number.
-     * <p>
-     * Same as {@link #timesAdd times_add}{@code (other, 1)} but without the
-     * multiplication overhead.
-     * <p>
-     * Asserts that the size of other is not greater than the size of this.
+     * Adds other to this.
      *
      * @param other BigNat to add
      */
@@ -933,13 +860,12 @@ public class BigNatInternal {
      * Used in multiplication.
      *
      * @param other BigNat to add
-     * @param mult  of short, factor to multiply {@code other} with before
-     *              addition. Must be less than BigNat base.
+     * @param multiplier factor to multiply other with before addition
      */
-    public void timesAdd(BigNatInternal other, short mult) {
+    public void timesAdd(BigNatInternal other, short multiplier) {
         short akku = 0;
         for (short i = (short) (size - 1); i >= 0; i--) {
-            akku = (short) (akku + (short) (this.value[i] & DIGIT_MASK) + (short) (mult * (other.value[i] & DIGIT_MASK)));
+            akku = (short) (akku + (short) (this.value[i] & DIGIT_MASK) + (short) (multiplier * (other.value[i] & DIGIT_MASK)));
             this.value[i] = (byte) (akku & DIGIT_MASK);
             akku = (short) ((akku >> DIGIT_LEN) & DIGIT_MASK);
         }

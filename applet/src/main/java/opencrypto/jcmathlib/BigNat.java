@@ -32,6 +32,42 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
+     * Equality check using hash values.
+     *
+     * @param other BigNat to compare
+     * @return true if this and other have the same value, false otherwise.
+     */
+    public boolean equals(BigNatInternal other) {
+        short hashLen;
+        byte[] tmpBuffer = rm.ARRAY_A;
+        byte[] hashBuffer = rm.ARRAY_B;
+
+        rm.lock(tmpBuffer);
+        rm.lock(hashBuffer);
+        if (this.length() == other.length()) {
+            rm.hashEngine.doFinal(this.asByteArray(), (short) 0, this.length(), hashBuffer, (short) 0);
+            hashLen = rm.hashEngine.doFinal(other.asByteArray(), (short) 0, other.length(), tmpBuffer, (short) 0);
+        } else {
+            if (this.length() < other.length()) {
+                this.prependZeros(other.length(), tmpBuffer, (short) 0);
+                rm.hashEngine.doFinal(tmpBuffer, (short) 0, other.length(), hashBuffer, (short) 0);
+                hashLen = rm.hashEngine.doFinal(other.asByteArray(), (short) 0, other.length(), tmpBuffer, (short) 0);
+            } else {
+                other.prependZeros(this.length(), tmpBuffer, (short) 0);
+                rm.hashEngine.doFinal(tmpBuffer, (short) 0, this.length(), hashBuffer, (short) 0);
+                hashLen = rm.hashEngine.doFinal(this.asByteArray(), (short) 0, this.length(), tmpBuffer, (short) 0);
+            }
+        }
+
+        boolean result = Util.arrayCompare(hashBuffer, (short) 0, tmpBuffer, (short) 0, hashLen) == 0;
+
+        rm.unlock(tmpBuffer);
+        rm.unlock(hashBuffer);
+
+        return result;
+    }
+
+    /**
      * Add other BigNat to this BigNat modulo mod.
      *
      * @param other value to add
