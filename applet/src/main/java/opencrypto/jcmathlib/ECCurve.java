@@ -46,9 +46,9 @@ public class ECCurve {
 
         pBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
         pBN.fromByteArray(p, (short) 0, (short) p.length);
-        aBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
+        aBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
         aBN.fromByteArray(a, (short) 0, (short) a.length);
-        bBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
+        bBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
         bBN.fromByteArray(b, (short) 0, (short) b.length);
         rBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
         rBN.fromByteArray(r, (short) 0, (short) r.length);
