@@ -47,12 +47,7 @@ public class ECPoint {
      * Generates new random point value.
      */
     public void randomize() {
-        if (pointKeyPair == null) {
-            pointKeyPair = curve.newKeyPair(null);
-            point = (ECPublicKey) pointKeyPair.getPublic();
-        } else {
-            pointKeyPair.genKeyPair();
-        }
+        pointKeyPair.genKeyPair();
     }
 
     /**
@@ -277,7 +272,7 @@ public class ECPoint {
             // lambda = (3(x_p^2)+a)/(2y_p)
             // (3(x_p^2)+a)
             nominator.clone(xP);
-            nominator.modExp(ResourceManager.TWO, curve.pBN);
+            nominator.modSq(curve.pBN);
             nominator.modMult(nominator, ResourceManager.THREE, curve.pBN);
             nominator.modAdd(curve.aBN, curve.pBN);
             // (2y_p)
@@ -612,7 +607,7 @@ public class ECPoint {
         //Y^2 = X^3 + XA + B = x(x^2+A)+B
         y_sq.lock();
         y_sq.clone(x);
-        y_sq.modExp(ResourceManager.TWO, curve.pBN);
+        y_sq.modSq(curve.pBN);
         y_sq.modAdd(curve.aBN, curve.pBN);
         y_sq.modMult(y_sq, x, curve.pBN);
         y_sq.modAdd(curve.bBN, curve.pBN);
@@ -710,7 +705,7 @@ public class ECPoint {
             //Y^2 = X^3 + XA + B = x(x^2+A)+B
             y.lock();
             y.clone(x);
-            y.modExp(ResourceManager.TWO, curve.pBN);
+            y.modSq(curve.pBN);
             y.modAdd(curve.aBN, curve.pBN);
             y.modMult(y, x, curve.pBN);
             y.modAdd(curve.bBN, curve.pBN);
@@ -768,7 +763,7 @@ public class ECPoint {
             //Y^2 = X^3 + XA + B = x(x^2+A)+B
             y.lock();
             y.clone(x);
-            y.modExp(ResourceManager.TWO, curve.pBN);
+            y.modSq(curve.pBN);
             y.modAdd(curve.aBN, curve.pBN);
             y.modMult(y, x, curve.pBN);
             x.unlock();

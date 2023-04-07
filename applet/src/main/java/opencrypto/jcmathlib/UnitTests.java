@@ -136,11 +136,11 @@ public class UnitTests extends Applet {
     }
 
     public void process(APDU apdu) {
-        byte[] apduBuffer = apdu.getBuffer();
-
         if (selectingApplet()) {
             return;
         }
+
+        byte[] apduBuffer = apdu.getBuffer();
 
         if (apduBuffer[ISO7816.OFFSET_CLA] != CLA_OC_UT) {
             ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
@@ -335,8 +335,7 @@ public class UnitTests extends Applet {
         byte[] apduBuffer = apdu.getBuffer();
 
         customPoint.setW(apduBuffer, ISO7816.OFFSET_CDATA, customCurve.POINT_SIZE);
-        // NOTE: for doubling, curve G must be also set. Here we expect that testEcSetCurveG() was called before
-        customPoint.makeDouble(); // G + G
+        customPoint.makeDouble();
 
         short len = customPoint.getW(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);

@@ -456,7 +456,11 @@ public class BigNat extends BigNatInternal {
     }
 
     public void modSq(BigNat modulo) {
-        modExp(ResourceManager.TWO, modulo);
+        if (OperationSupport.getInstance().RSA_MOD_SQ) {
+            modExp(ResourceManager.TWO, modulo);
+        } else {
+            modMult(this, this, modulo);
+        }
     }
 
     /**

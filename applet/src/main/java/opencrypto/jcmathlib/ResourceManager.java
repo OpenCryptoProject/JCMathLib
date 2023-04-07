@@ -37,19 +37,20 @@ public class ResourceManager {
     public final short MAX_COORD_SIZE;
 
     public ResourceManager(short maxEcLength) {
+        short min = OperationSupport.getInstance().MIN_RSA_BIT_LENGTH;
         if (maxEcLength <= (short) 256) {
-            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 512;
-            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768;
+            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 512 < min ? min : (short) 512;
+            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768 < min ? min : (short) 768;
             MAX_POINT_SIZE = (short) 64;
         }
         else if (maxEcLength <= (short) 384) {
-            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768;
-            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1024;
+            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768 < min ? min : (short) 768;
+            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1024 < min ? min : (short) 1024;
             MAX_POINT_SIZE = (short) 96;
         }
         else if (maxEcLength <= (short) 512) {
-            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1024;
-            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1280;
+            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1024 < min ? min : (short) 1024;
+            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1280 < min ? min : (short) 1280;
             MAX_POINT_SIZE = (short) 128;
         }
         else {
@@ -105,7 +106,6 @@ public class ResourceManager {
         THREE.setValue((byte) 3);
         ONE_COORD = new BigNat(MAX_COORD_SIZE, JCSystem.MEMORY_TYPE_PERSISTENT, this);
         ONE_COORD.setValue((byte) 1);
-
         // ECC Helpers
         if (OperationSupport.getInstance().EC_HW_XY) {
             // ecMultKA = KeyAgreement.getInstance(KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY, false);
@@ -122,12 +122,14 @@ public class ResourceManager {
         }
 
         // RSA Mult Helpers
-        KeyPair multKP = new KeyPair(KeyPair.ALG_RSA_CRT, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
-        multKP.genKeyPair();
-        RSAPublicKey multPK = (RSAPublicKey) multKP.getPublic();
-        multPK.setExponent(CONST_TWO, (short) 0, (short) CONST_TWO.length);
-        multCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
-        multCiph.init(multPK, Cipher.MODE_ENCRYPT);
+        if (OperationSupport.getInstance().RSA_MULT_TRICK) {
+            KeyPair multKP = new KeyPair(KeyPair.ALG_RSA_CRT, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
+            multKP.genKeyPair();
+            RSAPublicKey multPK = (RSAPublicKey) multKP.getPublic();
+            multPK.setExponent(CONST_TWO, (short) 0, (short) CONST_TWO.length);
+            multCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
+            multCiph.init(multPK, Cipher.MODE_ENCRYPT);
+        }
 
         // RSA Exp Helpers
         expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);

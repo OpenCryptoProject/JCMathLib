@@ -14,6 +14,7 @@ public class OperationSupport {
     public static final short J3R180 = 0x0003;
     public static final short GD60 = 0x0004;
     public static final short GD70 = 0x0005;
+    public static final short SECORA = 0x0006;
 
     public boolean RSA_MULT_TRICK = false;
     public boolean RSA_MOD_MULT_TRICK = false;
@@ -31,6 +32,8 @@ public class OperationSupport {
     public boolean EC_HW_ADD = false;
     public boolean EC_SW_DOUBLE = false;
     public boolean DEFERRED_INITIALIZATION = false;
+    public boolean RSA_MOD_SQ = true;
+    public short MIN_RSA_BIT_LENGTH = 512;
 
     private OperationSupport() {
     }
@@ -95,6 +98,21 @@ public class OperationSupport {
                 RSA_MOD_EXP = true;
                 EC_HW_XY = true;
                 EC_HW_ADD = true;
+                break;
+            case SECORA:
+                DEFERRED_INITIALIZATION = true;
+                RSA_MOD_MULT_TRICK = false;
+                RSA_MULT_TRICK = false;
+                RSA_MOD_SQ = false;
+                RSA_MOD_EXP = true;
+                RSA_MOD_EXP_PUB = true;
+                RSA_MOD_EXP_EXTRA_MOD = true;
+                RSA_RESIZE_BASE = true;
+                RSA_RESIZE_MODULUS = true;
+                RSA_RESIZE_MODULUS_APPEND = true;
+                EC_HW_XY = true;
+                EC_HW_ADD = false;
+                MIN_RSA_BIT_LENGTH = 1024;
                 break;
             default:
                 break;

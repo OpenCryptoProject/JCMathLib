@@ -624,10 +624,7 @@ public class BigNatInternal {
      * @return true if odd, false if even
      */
     public boolean isOdd() {
-        if ((value[(short) (this.size - 1)] & 1) == 0) {
-            return false; // CTO
-        }
-        return true;
+        return (byte) (value[(short) (this.size - 1)] & (byte) 1) != (byte) 0;
     }
 
     /**

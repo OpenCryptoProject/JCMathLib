@@ -4,6 +4,7 @@ import javacard.framework.JCSystem;
 import javacard.framework.Util;
 import javacard.security.ECPrivateKey;
 import javacard.security.ECPublicKey;
+import javacard.security.KeyBuilder;
 import javacard.security.KeyPair;
 
 /**
@@ -69,30 +70,21 @@ public class ECCurve {
     
     /**
      * Creates a new keyPair based on this curve parameters. KeyPair object is reused if provided. Fresh keyPair value is generated.
-     * @param existingKeyPair existing KeyPair object which is reused if required. If null, new KeyPair is allocated
+     * @param keyPair existing KeyPair object which is reused if required. If null, new KeyPair is allocated
      * @return new or existing object with fresh key pair value
      */
-    KeyPair newKeyPair(KeyPair existingKeyPair) {
-        ECPrivateKey privKey;
+    KeyPair newKeyPair(KeyPair keyPair) {
         ECPublicKey pubKey;
-        if (existingKeyPair == null) { // Allocate if not supplied
-            existingKeyPair = new KeyPair(KeyPair.ALG_EC_FP, KEY_BIT_LENGTH);
+        ECPrivateKey privKey;
+        if (keyPair == null) {
+            pubKey = (ECPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_EC_FP_PUBLIC, KEY_BIT_LENGTH, false);
+            privKey = (ECPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_EC_FP_PRIVATE, KEY_BIT_LENGTH, false);
+            keyPair = new KeyPair(pubKey, privKey);
+        } else {
+            pubKey = (ECPublicKey) keyPair.getPublic();
+            privKey = (ECPrivateKey) keyPair.getPrivate();
         }
-        
-        // Some implementation will not return valid pub key until ecKeyPair.genKeyPair() is called
-        // Other implementation will fail with exception if same is called => try catch and drop any exception 
-        try {
-            pubKey = (ECPublicKey) existingKeyPair.getPublic();
-            if (pubKey == null) {
-                existingKeyPair.genKeyPair();
-            }
-        } catch (Exception e) {
-        } // intentionally do nothing
-        
-        privKey = (ECPrivateKey) existingKeyPair.getPrivate();
-        pubKey = (ECPublicKey) existingKeyPair.getPublic();
 
-        // Set required values
         privKey.setFieldFP(p, (short) 0, (short) p.length);
         privKey.setA(a, (short) 0, (short) a.length);
         privKey.setB(b, (short) 0, (short) b.length);
@@ -107,8 +99,8 @@ public class ECCurve {
         pubKey.setR(r, (short) 0, (short) r.length);
         pubKey.setK((short) 1);
 
-        existingKeyPair.genKeyPair();
+        keyPair.genKeyPair();
 
-        return existingKeyPair;
+        return keyPair;
     }
 }
