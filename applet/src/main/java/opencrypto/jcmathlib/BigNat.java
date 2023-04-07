@@ -178,37 +178,17 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
-     * Computes base^exp and stores result into this BigNat
-     *
-     * @param base value of base
-     * @param exp  value of exponent
-     */
-    public void exponentiation(BigNat base, BigNat exp) {
-        BigNat tmp = rm.BN_A;
-        BigNat i = rm.BN_B;
-
-        this.setValue((byte) 1);
-        i.lock();
-        i.setSize(exp.length());
-        i.zero();
-        tmp.lock();
-        tmp.setSize((short) (2 * this.length()));
-        for (; i.lesser(exp); i.increment()) {
-            tmp.mult(this, base);
-            this.copy(tmp);
-        }
-        i.unlock();
-        tmp.unlock();
-    }
-
-    /**
      * Computes x * y and stores the result into this. Chooses computation approach based on operation support and operand size.
      *
      * @param x left operand
      * @param y right operand
      */
     public void mult(BigNat x, BigNat y) {
-        if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() < (short) 16) {
+        if (OperationSupport.getInstance().RSA_CHECK_ONE && x.isOne()) {
+            clone(y);
+            return;
+        }
+        if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() <= (short) 16) {
             multSchoolbook(x, y);
         } else {
             multRsaTrick(x, y, null, null);
@@ -258,8 +238,12 @@ public class BigNat extends BigNatInternal {
     public void modMult(BigNat x, BigNat y, BigNat mod) {
         BigNat tmp = rm.BN_E; // modMult is called from modSqrt => requires BN_E not being locked when modMult is called
 
-        tmp.lock();
+        if (OperationSupport.getInstance().RSA_CHECK_ONE && x.isOne()) {
+            clone(y);
+            return;
+        }
 
+        tmp.lock();
         if (OperationSupport.getInstance().RSA_MOD_MULT_TRICK) {
             tmp.modMultRsaTrick(x, y, mod);
         } else {

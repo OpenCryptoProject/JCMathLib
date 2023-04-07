@@ -287,19 +287,6 @@ public class JCMathLibTest extends BaseTest {
     }
 
     @Test
-    public void bigNatExponentiation() throws Exception {
-        BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH / 4);
-        BigInteger num2 = BigInteger.valueOf(3);
-        BigInteger result = num1.pow(3);
-        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_EXP, num1.toByteArray().length, result.toByteArray().length, Util.concat(num1.toByteArray(), num2.toByteArray()));
-        ResponseAPDU resp = statefulCard.transmit(cmd);
-
-        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
-        Assertions.assertEquals(result, new BigInteger(1, resp.getData()));
-        statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
-    }
-
-    @Test
     public void bigNatModulo() throws Exception {
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH - 1);

@@ -13,6 +13,7 @@ public class OperationSupport {
     public static final short J3H145 = 0x0002;
     public static final short J3R180 = 0x0003;
     public static final short GD60 = 0x0004;
+    public static final short GD70 = 0x0005;
 
     public boolean RSA_MULT_TRICK = false;
     public boolean RSA_MOD_MULT_TRICK = false;
@@ -24,6 +25,7 @@ public class OperationSupport {
     public boolean RSA_RESIZE_BASE = true;
     public boolean RSA_RESIZE_MODULUS = true;
     public boolean RSA_RESIZE_MODULUS_APPEND = false;
+    public boolean RSA_CHECK_ONE = false;
     public boolean EC_HW_XY = false;
     public boolean EC_HW_X = true;
     public boolean EC_HW_ADD = false;
@@ -64,6 +66,18 @@ public class OperationSupport {
                 RSA_RESIZE_MODULUS = true;
                 RSA_RESIZE_MODULUS_APPEND = true;
                 EC_HW_X = true;
+                break;
+            case GD70:
+                RSA_MOD_MULT_TRICK = true;
+                RSA_MULT_TRICK = true;
+                RSA_MOD_EXP = true;
+                RSA_MOD_EXP_EXTRA_MOD = true;
+                RSA_MOD_EXP_PUB = true;
+                RSA_RESIZE_BASE = true;
+                RSA_RESIZE_MODULUS = true;
+                RSA_RESIZE_MODULUS_APPEND = true;
+                EC_HW_X = true;
+                RSA_CHECK_ONE = true;
                 break;
             case J3H145:
                 DEFERRED_INITIALIZATION = true;

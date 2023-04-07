@@ -225,7 +225,7 @@ public class BigNatInternal {
     public void setValue(short newValue) {
         zero();
         value[(short) (size - 1)] = (byte) (newValue & DIGIT_MASK);
-        value[(short) (size - 2)] = (byte) (newValue & (DIGIT_MASK << 8));
+        value[(short) (size - 2)] = (byte) (newValue & (short) (DIGIT_MASK << 8));
     }
 
     /**
@@ -602,6 +602,20 @@ public class BigNatInternal {
             }
         }
         return true;
+    }
+
+    /**
+     * Test equality with one.
+     *
+     * @return true if this BigNat equals one.
+     */
+    public boolean isOne() {
+        for (short i = 0; i < (short) (size - 1); i++) {
+            if (value[i] != 0) {
+                return false; // CTO
+            }
+        }
+        return value[(short) (size - 1)] == (byte) 0x01;
     }
 
     /**
