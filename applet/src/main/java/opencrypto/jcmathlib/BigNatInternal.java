@@ -1024,26 +1024,31 @@ public class BigNatInternal {
     }
 
     /**
-     * Optimized division by value two with carry
+     * Right bit shift with carry
      *
+     * @param bits number of bits to shift by
      * @param carry XORed into the highest byte
      */
-    public void divideByTwo(short carry) {
+    private void shiftRight(short bits, short carry) {
+        // assumes 0 <= bits < 8
+        short mask = (short) ((short) (1 << bits) - 1); // lowest `bits` bits set to 1
         for (short i = 0; i < this.size; i++) {
-            short tmp = (short) (this.value[i] & 0xff);
-            short tmp2 = tmp;
-            tmp >>= 1; // shift by 1 => divide by 2
-            this.value[i] = (byte) (tmp | carry);
-            carry = (short) (tmp2 & 0x01); // save lowest bit
-            carry <<= 7; // shifted to highest position
+            short current = (short) (this.value[i] & 0xff);
+            short previous = current;
+            current >>= bits;
+            this.value[i] = (byte) (current | carry);
+            carry = (short) (previous & mask);
+            carry <<= (short) (8 - bits);
         }
     }
 
     /**
-     * Optimized division by value two
+     * Right bit shift
+     *
+     * @param bits number of bits to shift by
      */
-    public void divideByTwo() {
-        divideByTwo((short) 0);
+    public void shiftRight(short bits) {
+        shiftRight(bits, (short) 0);
     }
 
     /**

@@ -274,6 +274,19 @@ public class JCMathLibTest extends BaseTest {
     }
 
     @Test
+    public void bigNatShiftRight() throws Exception {
+        for(int bits = 0; bits < 8; ++bits) {
+            BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
+            BigInteger result = num1.shiftRight(bits);
+            CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SHIFT_RIGHT, bits, 0, num1.toByteArray());
+            ResponseAPDU resp = statefulCard.transmit(cmd);
+            Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+            Assertions.assertEquals(result, new BigInteger(1, resp.getData()));
+        }
+        statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
+    }
+
+    @Test
     public void bigNatMultiplicationSlow() throws Exception {
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
@@ -287,7 +300,7 @@ public class JCMathLibTest extends BaseTest {
     }
 
     @Test
-    public void bigNatModulo() throws Exception {
+    public void bigNatMod() throws Exception {
         BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
         BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
         BigInteger result = num1.mod(num2);

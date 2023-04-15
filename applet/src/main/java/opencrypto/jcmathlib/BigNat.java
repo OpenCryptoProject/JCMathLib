@@ -224,7 +224,7 @@ public class BigNat extends BigNatInternal {
             carry = this.add(mod);
         }
 
-        this.divideByTwo(carry != 0 ? (short) (1 << 7) : (short) 0);
+        this.shiftRight(carry != 0 ? (short) (1 << 7) : (short) 0);
     }
 
     /**
@@ -378,7 +378,7 @@ public class BigNat extends BigNatInternal {
         // Compute Q
         q.lock();
         q.clone(p1);
-        q.divideByTwo(); // Q /= 2
+        q.shiftRight((short) 1); // Q /= 2
 
         // Compute S
         s.lock();
@@ -402,7 +402,7 @@ public class BigNat extends BigNatInternal {
         // 2. Find the first quadratic non-residue z by brute-force search
         exp.lock();
         exp.clone(p1);
-        exp.divideByTwo();
+        exp.shiftRight((short) 1);
 
 
         z.lock();
@@ -423,7 +423,7 @@ public class BigNat extends BigNatInternal {
         exp.copy(q);
         q.unlock();
         exp.increment();
-        exp.divideByTwo();
+        exp.shiftRight((short) 1);
 
         this.mod(p);
         this.modExp(exp, p);

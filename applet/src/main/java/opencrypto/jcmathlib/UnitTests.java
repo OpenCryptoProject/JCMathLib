@@ -12,7 +12,6 @@ import javacard.framework.SystemException;
 import javacard.framework.TransactionException;
 import javacard.framework.Util;
 import javacard.security.CryptoException;
-import opencrypto.jcmathlib.SecP256r1;
 
 /**
  * @author Vasilios Mavroudis and Petr Svenda and Antonin Dufka
@@ -37,6 +36,7 @@ public class UnitTests extends Applet {
     public final static byte INS_BN_ADD = (byte) 0x21;
     public final static byte INS_BN_SUB = (byte) 0x22;
     public final static byte INS_BN_MUL = (byte) 0x23;
+    public final static byte INS_BN_SHIFT_RIGHT = (byte) 0x24;
     public final static byte INS_BN_MOD = (byte) 0x25;
     public final static byte INS_BN_SQRT = (byte) 0x26;
     public final static byte INS_BN_MUL_SCHOOL = (byte) 0x27;
@@ -222,6 +222,9 @@ public class UnitTests extends Applet {
                     break;
                 case INS_BN_MUL:
                     testBnMul(apdu, dataLen);
+                    break;
+                case INS_BN_SHIFT_RIGHT:
+                    testBnShiftRight(apdu, dataLen);
                     break;
                 case INS_BN_MUL_SCHOOL:
                     testBnMulSchool(apdu, dataLen);
@@ -488,6 +491,17 @@ public class UnitTests extends Applet {
         bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) (dataLen - p1));
         bn3.mult(bn1, bn2);
         short len = bn3.copyToBuffer(apduBuffer, (short) 0);
+        apdu.setOutgoingAndSend((short) 0, len);
+    }
+
+    void testBnShiftRight(APDU apdu, short dataLen) {
+        byte[] apduBuffer = apdu.getBuffer();
+        short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
+
+        bn1.setSize(dataLen);
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, dataLen);
+        bn1.shiftRight(p1);
+        short len = bn1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
