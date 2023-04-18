@@ -1029,7 +1029,7 @@ public class BigNatInternal {
      * @param bits number of bits to shift by
      * @param carry XORed into the highest byte
      */
-    private void shiftRight(short bits, short carry) {
+    public void shiftRight(short bits, short carry) {
         // assumes 0 <= bits < 8
         short mask = (short) ((short) (1 << bits) - 1); // lowest `bits` bits set to 1
         for (short i = 0; i < this.size; i++) {

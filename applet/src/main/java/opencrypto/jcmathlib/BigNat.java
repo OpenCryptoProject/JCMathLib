@@ -224,7 +224,7 @@ public class BigNat extends BigNatInternal {
             carry = this.add(mod);
         }
 
-        this.shiftRight(carry != 0 ? (short) (1 << 7) : (short) 0);
+        this.shiftRight((short) 1, carry != 0 ? (short) (1 << 7) : (short) 0);
     }
 
     /**
