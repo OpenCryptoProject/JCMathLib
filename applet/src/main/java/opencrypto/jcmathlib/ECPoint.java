@@ -176,7 +176,8 @@ public class ECPoint {
         pY.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
 
         lambda.lock();
-        lambda.modMult(pX, pX, curve.pBN);
+        lambda.clone(pX);
+        lambda.modSq(curve.pBN);
         lambda.modMult(lambda, ResourceManager.THREE, curve.pBN);
         lambda.modAdd(curve.aBN, curve.pBN);
 
@@ -185,7 +186,8 @@ public class ECPoint {
         tmp.modAdd(tmp, curve.pBN);
         tmp.modInv(curve.pBN);
         lambda.modMult(lambda, tmp, curve.pBN);
-        tmp.modMult(lambda, lambda, curve.pBN);
+        tmp.clone(lambda);
+        tmp.modSq(curve.pBN);
         tmp.modSub(pX, curve.pBN);
         tmp.modSub(pX, curve.pBN);
         tmp.prependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);

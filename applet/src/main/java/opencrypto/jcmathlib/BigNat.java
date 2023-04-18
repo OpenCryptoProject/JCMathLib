@@ -206,25 +206,24 @@ public class BigNat extends BigNatInternal {
     private void modMultRsaTrick(BigNat x, BigNat y, BigNat mod) {
         this.clone(x);
         this.modAdd(y, mod);
-        this.modSq(mod);
 
-        BigNat tmp = rm.BN_D;
-        tmp.lock();
-        tmp.clone(x);
-        tmp.modSq(mod);
-        this.modSub(tmp, mod);
-
-        tmp.clone(y);
-        tmp.modSq(mod);
-        this.modSub(tmp, mod);
-        tmp.unlock();
-
+        this.deepResize(mod.length());
         byte carry = (byte) 0;
         if (this.isOdd()) {
             carry = this.add(mod);
         }
-
         this.shiftRight((short) 1, carry != 0 ? (short) (1 << 7) : (short) 0);
+
+        BigNat tmp = rm.BN_D;
+        tmp.lock();
+        tmp.clone(this);
+        tmp.modSub(y, mod);
+
+        this.modSq(mod);
+        tmp.modSq(mod);
+
+        this.modSub(tmp, mod);
+        tmp.unlock();
     }
 
     /**

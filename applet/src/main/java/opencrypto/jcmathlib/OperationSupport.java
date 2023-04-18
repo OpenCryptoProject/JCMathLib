@@ -47,6 +47,7 @@ public class OperationSupport {
     public void setCard(short card_identifier) {
         switch (card_identifier) {
             case SIMULATOR:
+                RSA_MOD_MULT_TRICK = true;
                 RSA_MULT_TRICK = false;
                 RSA_MOD_EXP = true;
                 RSA_PREPEND_ZEROS = true;
