@@ -532,10 +532,10 @@ public class UnitTests extends Applet {
         product.setSize(dataLen);
         mul1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, p1);
         mul2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) (dataLen - p1));
-        boolean previous = OperationSupport.getInstance().RSA_MULT_TRICK;
-        OperationSupport.getInstance().RSA_MULT_TRICK = false;
+        boolean previous = OperationSupport.getInstance().RSA_SQ;
+        OperationSupport.getInstance().RSA_SQ = false;
         product.mult(mul1, mul2);
-        OperationSupport.getInstance().RSA_MULT_TRICK = previous;
+        OperationSupport.getInstance().RSA_SQ = previous;
         short len = product.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }

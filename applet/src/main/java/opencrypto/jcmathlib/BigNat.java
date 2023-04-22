@@ -224,7 +224,7 @@ public class BigNat extends BigNatInternal {
             clone(y);
             return;
         }
-        if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() <= (short) 16) {
+        if (!OperationSupport.getInstance().RSA_SQ || x.length() <= (short) 16) {
             multSw(x, y);
             return;
         }
@@ -275,7 +275,7 @@ public class BigNat extends BigNatInternal {
         }
 
         result.lock();
-        if (!OperationSupport.getInstance().RSA_MOD_MULT_TRICK) {
+        if (!OperationSupport.getInstance().RSA_SQ) {
             result.resizeToMax(false);
             result.mult(x, y);
             result.mod(mod);
@@ -312,7 +312,7 @@ public class BigNat extends BigNatInternal {
      * @param modulo modulo
      */
     public void modExp(BigNat exponent, BigNat modulo) {
-        if (!OperationSupport.getInstance().RSA_MOD_EXP)
+        if (!OperationSupport.getInstance().RSA_EXP)
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
 
         BigNat tmpMod = rm.BN_F; // modExp is called from modSqrt => requires BN_F not being locked when modExp is called
@@ -333,8 +333,8 @@ public class BigNat extends BigNatInternal {
             }
             rm.expPub.setExponent(exponent.asByteArray(), (short) 0, exponent.length());
             rm.lock(tmpBuffer);
-            if (OperationSupport.getInstance().RSA_RESIZE_MODULUS) {
-                if (OperationSupport.getInstance().RSA_RESIZE_MODULUS_APPEND) {
+            if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
+                if (OperationSupport.getInstance().RSA_APPEND_MOD) {
                     modulo.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 } else {
                     modulo.prependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
@@ -357,8 +357,8 @@ public class BigNat extends BigNatInternal {
             }
             rm.expPriv.setExponent(exponent.asByteArray(), (short) 0, exponent.length());
             rm.lock(tmpBuffer);
-            if (OperationSupport.getInstance().RSA_RESIZE_MODULUS) {
-                if (OperationSupport.getInstance().RSA_RESIZE_MODULUS_APPEND) {
+            if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
+                if (OperationSupport.getInstance().RSA_APPEND_MOD) {
                     modulo.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 } else {
                     modulo.prependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
@@ -372,13 +372,9 @@ public class BigNat extends BigNatInternal {
             }
             rm.expCiph.init(rm.expPriv, Cipher.MODE_DECRYPT);
         }
-        short len;
-        if (OperationSupport.getInstance().RSA_RESIZE_BASE) {
-            this.prependZeros(modLength, tmpBuffer, (short) 0);
-            len = rm.expCiph.doFinal(tmpBuffer, (short) 0, modLength, tmpBuffer, (short) 0);
-        } else {
-            len = rm.expCiph.doFinal(this.asByteArray(), (short) 0, this.length(), tmpBuffer, (short) 0);
-        }
+
+        prependZeros(modLength, tmpBuffer, (short) 0);
+        short len = rm.expCiph.doFinal(tmpBuffer, (short) 0, modLength, tmpBuffer, (short) 0);
 
         if (len != rm.MAX_EXP_LENGTH) {
             if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
@@ -394,7 +390,7 @@ public class BigNat extends BigNatInternal {
         tmpMod.fromByteArray(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
         rm.unlock(tmpBuffer);
 
-        if (OperationSupport.getInstance().RSA_MOD_EXP_EXTRA_MOD) {
+        if (OperationSupport.getInstance().RSA_EXTRA_MOD) {
             tmpMod.mod(modulo);
         }
         tmpMod.shrink();
@@ -503,7 +499,7 @@ public class BigNat extends BigNatInternal {
     }
 
     public void modSq(BigNat modulo) {
-        if (OperationSupport.getInstance().RSA_MOD_SQ) {
+        if (OperationSupport.getInstance().RSA_SQ) {
             modExp(ResourceManager.TWO, modulo);
         } else {
             modMult(this, this, modulo);
