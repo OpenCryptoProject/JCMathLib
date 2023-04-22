@@ -264,56 +264,6 @@ public class BigNatInternal {
     }
 
     /**
-     * Scaled subtraction. Subtracts {@code mult * 2^(}{@link #DIGIT_LEN}
-     * {@code  * shift) * other} from this.
-     * <p>
-     * That is, shifts {@code mult * other} precisely {@code shift} digits to
-     * the left and subtracts that value from this. {@code mult} must be less
-     * than BigNat base, that is, it must fit into one digit. It is
-     * only declared as short here to avoid negative values.
-     * <p>
-     * {@code mult} has type short.
-     * <p>
-     * No size constraint. However, an assertion is thrown, if the result would
-     * be negative. {@code other} can have more digits than this object, but
-     * then sufficiently many leading digits must be zero to avoid the
-     * underflow.
-     * <p>
-     * Used in division.
-     *
-     * @param other BigNat to subtract from this object
-     * @param shift number of digits to shift {@code other} to the left
-     * @param mult  of type short, multiple of {@code other} to subtract from this
-     *              object. Must be below BigNat base.
-     */
-    public void timesMinus(BigNatInternal other, short shift, short mult) {
-        short akku = 0;
-        short i = (short) (this.size - 1 - shift);
-        short j = (short) (other.size - 1);
-        for (; i >= 0 && j >= 0; i--, j--) {
-            akku = (short) (akku + (short) (mult * (other.value[j] & DIGIT_MASK)));
-            short subtraction_result = (short) ((value[i] & DIGIT_MASK) - (akku & DIGIT_MASK));
-
-            value[i] = (byte) (subtraction_result & DIGIT_MASK);
-            akku = (short) ((akku >> DIGIT_LEN) & DIGIT_MASK);
-            if (subtraction_result < 0) {
-                akku++;
-            }
-        }
-
-        // deal with carry as long as there are digits left in this
-        while (i >= 0 && akku != 0) {
-            short subtraction_result = (short) ((value[i] & DIGIT_MASK) - (akku & DIGIT_MASK));
-            value[i] = (byte) (subtraction_result & DIGIT_MASK);
-            akku = (short) ((akku >> DIGIT_LEN) & DIGIT_MASK);
-            if (subtraction_result < 0) {
-                akku++;
-            }
-            i--;
-        }
-    }
-
-    /**
      * Decrement this BigNat.
      */
     public void decrement() {
@@ -669,55 +619,62 @@ public class BigNatInternal {
      * @return true if carry occurs, false otherwise
      */
     public byte add(BigNatInternal other) {
-        short akku = 0;
-        short j = (short) (this.size - 1);
-        for (short i = (short) (other.size - 1); i >= 0 && j >= 0; i--, j--) {
-            akku = (short) (akku + (short) (this.value[j] & DIGIT_MASK) + (short) (other.value[i] & DIGIT_MASK));
-
-            this.value[j] = (byte) (akku & DIGIT_MASK);
-            akku = (short) ((akku >> DIGIT_LEN) & DIGIT_MASK);
-        }
-        // add carry at position j
-        while (akku > 0 && j >= 0) {
-            akku = (short) (akku + (short) (this.value[j] & DIGIT_MASK));
-            this.value[j] = (byte) (akku & DIGIT_MASK);
-            akku = (short) ((akku >> DIGIT_LEN) & DIGIT_MASK);
-            j--;
-        }
-
-        // 1. result != 0 => result | -result will have the sign bit set
-        // 2. casting magic to overcome the absence of int
-        // 3. move the sign bit to the rightmost position
-        // 4. discard the sign bit which is present due to the unavoidable casts
-        //    and return the value of the rightmost bit
-        return (byte) ((byte) (((short) (akku | -akku) & (short) 0xFFFF) >>> 15) & 0x01);
+        return timesAdd(other, (short) 0, (short) 1);
     }
 
     /**
-     * Computes x * multiplier, shifts the results by shift and adds it to this.
+     * Computes other * multiplier, shifts the results by shift and adds it to this.
      * Multiplier must be in range [0; 2^8 - 1].
      * This must be large enough to fit the results.
      */
-    public void timesAdd(BigNatInternal x, short shift, short multiplier) {
-        if (size < (short) (x.size + shift + 1)) {
-            ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDMULT);
-        }
-
+    private byte timesAdd(BigNatInternal other, short shift, short multiplier) {
         short acc = 0;
+        short i = (short) (other.size - 1);
         short j = (short) (size - 1 - shift);
-        for (short i = (short) (x.size - 1); i >= 0; i--, j--) {
-            acc += (short) ((short) (value[j] & DIGIT_MASK) + (short) (multiplier * (x.value[i] & DIGIT_MASK)));
+        for (; i >= 0 && j >= 0; i--, j--) {
+            acc += (short) ((short) (value[j] & DIGIT_MASK) + (short) (multiplier * (other.value[i] & DIGIT_MASK)));
 
             value[j] = (byte) (acc & DIGIT_MASK);
             acc = (short) ((acc >> DIGIT_LEN) & DIGIT_MASK);
         }
 
-        acc += (short) (value[j] & DIGIT_MASK);
-        value[j] = (byte) (acc & DIGIT_MASK);
+        for (; acc > 0 && j >= 0; --j) {
+            acc += (short) (value[j] & DIGIT_MASK);
+            value[j] = (byte) (acc & DIGIT_MASK);
+            acc = (short) ((acc >> DIGIT_LEN) & DIGIT_MASK);
+        }
 
-        // ensure no overflow occurred
-        if ((byte) (acc >> DIGIT_LEN) != 0) {
-            ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDMULT);
+        // output carry bit if present
+        return (byte) ((byte) (((short) (acc | -acc) & (short) 0xFFFF) >>> 15) & 0x01);
+    }
+
+    /**
+     * Computes other * multiplier, shifts the results by shift and subtract it from this.
+     * Multiplier must be in range [0; 2^8 - 1].
+     */
+    private void timesMinus(BigNatInternal other, short shift, short multiplier) {
+        short acc = 0;
+        short i = (short) (size - 1 - shift);
+        short j = (short) (other.size - 1);
+        for (; i >= 0 && j >= 0; i--, j--) {
+            acc += (short) (multiplier * (other.value[j] & DIGIT_MASK));
+            short tmp = (short) ((value[i] & DIGIT_MASK) - (acc & DIGIT_MASK));
+
+            value[i] = (byte) (tmp & DIGIT_MASK);
+            acc = (short) ((acc >> DIGIT_LEN) & DIGIT_MASK);
+            if (tmp < 0) {
+                acc++;
+            }
+        }
+
+        // deal with carry as long as there are digits left in this
+        for (; i >= 0 && acc != 0; --i) {
+            short tmp = (short) ((value[i] & DIGIT_MASK) - (acc & DIGIT_MASK));
+            value[i] = (byte) (tmp & DIGIT_MASK);
+            acc = (short) ((acc >> DIGIT_LEN) & DIGIT_MASK);
+            if (tmp < 0) {
+                acc++;
+            }
         }
     }
 
