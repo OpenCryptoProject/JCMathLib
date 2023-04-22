@@ -321,8 +321,7 @@ public class BigNatInternal {
         high <<= shift;
 
         // merge middle bits
-        byte mask = (byte) (DIGIT_MASK << (shift >= DIGIT_LEN ? 0 : DIGIT_LEN
-                - shift));
+        byte mask = (byte) (DIGIT_MASK << (shift >= DIGIT_LEN ? 0 : DIGIT_LEN - shift));
         short bits = (short) ((short) (middle & mask) & DIGIT_MASK);
         if (shift > DIGIT_LEN) {
             bits <<= shift - DIGIT_LEN;
@@ -407,171 +406,64 @@ public class BigNatInternal {
     }
 
     /**
-     * Divide this by divisor and store the remained in this. Quotient is stored
-     * in quotient. Uses schoolbook division inside and has O^2 complexity in the
-     * difference of significant digits of the divident (in this number) and the
-     * divisor. For numbers of equal size complexity is linear.
+     * Divide this by divisor and store the remained in this and quotient in quotient.
      *
-     * @param divisor must be non-zero
-     * @param quotient gets the quotient if non-null
+     * Quadratic complexity in digit difference of this and divisor.
+     *
+     * @param divisor non-zero number
+     * @param quotient may be null
      */
     public void remainderDivide(BigNatInternal divisor, BigNatInternal quotient) {
-        // There are some size requirements, namely that quotient must
-        // be big enough. However, this depends on the value of the
-        // divisor and is therefore not stated here.
-
-        // zero-initialize the quotient, because we are only adding to it below
         if (quotient != null) {
             quotient.zero();
         }
 
-        // divisorIndex is the first nonzero digit (short) in the divisor
         short divisorIndex = 0;
         while (divisor.value[divisorIndex] == 0) {
             divisorIndex++;
         }
 
-        // The size of this might be different from divisor. Therefore,
-        // for the first subtraction round we have to shift the divisor
-        // divisorShift = this.size - divisor.size + divisorIndex
-        // digits to the left. If this amount is negative, then
-        // this is already smaller than divisor, and we are done.
-        // Below we do divisor_shift + 1 subtraction rounds. As an
-        // additional loop index we also count the rounds (from
-        // zero upwards) in divisionRound. This gives access to the
-        // first remaining divident digits.
-        short divisorShift = (short) (this.size - divisor.size + divisorIndex);
+        short divisorShift = (short) (size - divisor.size + divisorIndex);
         short divisionRound = 0;
-
-        // We could express now a size constraint, namely that
-        // divisor_shift + 1 <= quotient.size
-        // However, in the proof protocol we divide x / v, where
-        // x has 2*n digits when v has n digits. There the above size
-        // constraint is violated, the division is however valid, because
-        // it will always hold that x < v * (v - 1) and therefore the
-        // quotient will always fit into n digits.
-        // System.out.format("XX this size %d div ind %d div shift %d " +
-        // "quo size %d\n" +
-        // "%s / %s\n",
-        // this.size,
-        // divisor_index,
-        // divisor_shift,
-        // quotient != null ? quotient.size : -1,
-        // this.to_hex_string(),
-        // divisor.to_hex_string());
-        // The first digits of the divisor are needed in every
-        // subtraction round.
         short firstDivisorDigit = (short) (divisor.value[divisorIndex] & DIGIT_MASK);
         short divisorBitShift = (short) (highestOneBit((short) (firstDivisorDigit + 1)) - 1);
-        byte secondDivisorDigit = divisorIndex < (short) (divisor.size - 1) ? divisor.value[(short) (divisorIndex + 1)]
-                : 0;
-        byte thirdDivisorDigit = divisorIndex < (short) (divisor.size - 2) ? divisor.value[(short) (divisorIndex + 2)]
-                : 0;
+        byte secondDivisorDigit = divisorIndex < (short) (divisor.size - 1) ? divisor.value[(short) (divisorIndex + 1)] : 0;
+        byte thirdDivisorDigit = divisorIndex < (short) (divisor.size - 2) ? divisor.value[(short) (divisorIndex + 2)] : 0;
 
-        // The following variables are used inside the loop only.
-        // Declared here as optimization.
-        // divident_digits and divisor_digit hold the first one or two
-        // digits. Needed to compute the multiple of the divisor to
-        // subtract from this.
-        short dividentDigits, divisorDigit;
-
-        // To increase precisision the first digits are shifted to the
-        // left or right a bit. The following variables compute the shift.
-        short dividentBitShift, bitShift;
-
-        // Declaration of the multiple, with which the divident is
-        // multiplied in each round and the quotient_digit. Both are
-        // a single digit, but declared as a double digit to avoid the
-        // trouble with negative numbers. If quotient != null multiple is
-        // added to the quotient. This addition is done with quotient_digit.
-        short multiple, quotientDigit;
-        short numLoops = 0;
-        short numLoops2 = 0;
         while (divisorShift >= 0) {
-            numLoops++; // CTO number of outer loops is constant (for given length of divisor)
-            // Keep subtracting from this until
-            // divisor * 2^(8 * divisor_shift) is bigger than this.
-            while (!lesser(divisor, divisorShift,
-                    (short) (divisionRound > 0 ? divisionRound - 1 : 0))) {
-                numLoops2++; // BUGBUG: CTO - number of these loops fluctuates heavily => strong impact on operation time
-                // this is bigger or equal than the shifted divisor.
-                // Need to subtract some multiple of divisor from this.
-                // Make a conservative estimation of the multiple to subtract.
-                // We estimate a lower bound to avoid underflow, and continue
-                // to subtract until the remainder in this gets smaller than
-                // the shifted divisor.
-                // For the estimation get first the two relevant digits
-                // from this and the first relevant digit from divisor.
-                dividentDigits = divisionRound == 0 ? 0
-                        : (short) ((short) (value[(short) (divisionRound - 1)]) << DIGIT_LEN);
+            while (!lesser(divisor, divisorShift, (short) (divisionRound > 0 ? divisionRound - 1 : 0))) {
+                short dividentDigits = divisionRound == 0 ? 0 : (short) ((short) (value[(short) (divisionRound - 1)]) << DIGIT_LEN);
                 dividentDigits |= (short) (value[divisionRound] & DIGIT_MASK);
 
-                // The multiple to subtract from this is
-                // divident_digits / divisor_digit, but there are two
-                // complications:
-                // 1. divident_digits might be negative,
-                // 2. both might be very small, in which case the estimated
-                // multiple is very inaccurate.
+                short divisorDigit;
                 if (dividentDigits < 0) {
-                    // case 1: shift both one bit to the right
-                    // In standard java (ie. in the test frame) the operation
-                    // for >>= and >>>= seems to be done in integers,
-                    // even if the left hand side is a short. Therefore,
-                    // for a short left hand side there is no difference
-                    // between >>= and >>>= !!!
-                    // Do it the complicated way then.
                     dividentDigits = (short) ((dividentDigits >>> 1) & POSITIVE_DOUBLE_DIGIT_MASK);
                     divisorDigit = (short) ((firstDivisorDigit >>> 1) & POSITIVE_DOUBLE_DIGIT_MASK);
                 } else {
-                    // To avoid case 2 shift both to the left
-                    // and add relevant bits.
-                    dividentBitShift = (short) (highestOneBit(dividentDigits) - 1);
-                    // Below we add one to divisor_digit to avoid underflow.
-                    // Take therefore the highest bit of divisor_digit + 1
-                    // to avoid running into the negatives.
-                    bitShift = dividentBitShift <= divisorBitShift ? dividentBitShift
-                            : divisorBitShift;
+                    short dividentBitShift = (short) (highestOneBit(dividentDigits) - 1);
+                    short bitShift = dividentBitShift <= divisorBitShift ? dividentBitShift : divisorBitShift;
 
                     dividentDigits = shiftBits(
-                            dividentDigits,
-                            divisionRound < (short) (this.size - 1) ? value[(short) (divisionRound + 1)]
-                                    : 0,
-                            divisionRound < (short) (this.size - 2) ? value[(short) (divisionRound + 2)]
-                                    : 0, bitShift);
-                    divisorDigit = shiftBits(firstDivisorDigit,
-                            secondDivisorDigit, thirdDivisorDigit,
-                            bitShift);
+                            dividentDigits, divisionRound < (short) (size - 1) ? value[(short) (divisionRound + 1)] : 0,
+                            divisionRound < (short) (size - 2) ? value[(short) (divisionRound + 2)] : 0,
+                            bitShift
+                    );
+                    divisorDigit = shiftBits(firstDivisorDigit, secondDivisorDigit, thirdDivisorDigit, bitShift);
 
                 }
 
-                // add one to divisor to avoid underflow
-                multiple = (short) (dividentDigits / (short) (divisorDigit + 1));
-
-                // Our strategy to avoid underflow might yield multiple == 0.
-                // We know however, that divident >= divisor, therefore make
-                // sure multiple is at least 1.
+                short multiple = (short) (dividentDigits / (short) (divisorDigit + 1));
                 if (multiple < 1) {
                     multiple = 1;
                 }
 
                 timesMinus(divisor, divisorShift, multiple);
 
-                // build quotient if desired
                 if (quotient != null) {
-                    // Express the size constraint only here. The check is
-                    // essential only in the first round, because
-                    // divisor_shift decreases. divisor_shift must be
-                    // strictly lesser than quotient.size, otherwise
-                    // quotient is not big enough. Note that the initially
-                    // computed divisor_shift might be bigger, this
-                    // is OK, as long as we don't reach this point.
-
-                    quotientDigit = (short) ((quotient.value[(short) (quotient.size - 1 - divisorShift)] & DIGIT_MASK) + multiple);
-                    quotient.value[(short) (quotient.size - 1 - divisorShift)] = (byte) (quotientDigit);
+                    short quotientDigit = (short) ((quotient.value[(short) (quotient.size - 1 - divisorShift)] & DIGIT_MASK) + multiple);
+                    quotient.value[(short) (quotient.size - 1 - divisorShift)] = (byte) quotientDigit;
                 }
             }
-
-            // treat loop indices
             divisionRound++;
             divisorShift--;
         }
