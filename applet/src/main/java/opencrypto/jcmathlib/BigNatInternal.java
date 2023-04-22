@@ -110,41 +110,17 @@ public class BigNatInternal {
             allocateStorageArray(newSize, allocatorType);
         }
 
-        if (newSize == this.size) {
+        if (size == newSize) {
             return;
         }
-
-        byte[] tmpBuffer = rm.ARRAY_A;
-        short thisStart, otherStart, len;
-
-        rm.lock(tmpBuffer);
-        if (this.size >= newSize) {
-            thisStart = (short) (this.size - newSize);
-            len = newSize;
-
-            // Shrinking/cropping
-            Util.arrayCopyNonAtomic(value, thisStart, tmpBuffer, (short) 0, len);
-            Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, value, (short) 0, len); // Move bytes in item array towards beginning
-            // Erase rest of allocated array with zeroes (just as sanitization)
-            short toErase = (short) ((short) value.length - newSize);
-            if (toErase > 0) {
-                Util.arrayFillNonAtomic(value, newSize, toErase, (byte) 0);
-            }
+        if (size >= newSize) {
+            Util.arrayCopyNonAtomic(value, (short) (size - newSize), value, (short) 0, newSize);
+            Util.arrayFillNonAtomic(value, newSize, (short) ((short) value.length - newSize), (byte) 0);
         } else {
-            thisStart = 0;
-            otherStart = (short) (newSize - this.size);
-            len = this.size;
-            // Enlarging => Insert zeroes at begging, move bytes in item array towards the end
-            Util.arrayCopyNonAtomic(value, thisStart, tmpBuffer, (short) 0, len);
-            // Move bytes in item array towards end
-            Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, value, otherStart, len);
-            // Fill begin of array with zeroes (just as sanitization)
-            if (otherStart > 0) {
-                Util.arrayFillNonAtomic(value, (short) 0, otherStart, (byte) 0);
-            }
+            short end = (short) (newSize - size);
+            Util.arrayCopyNonAtomic(value, (short) 0, value, end, size);
+            Util.arrayFillNonAtomic(value, (short) 0, end, (byte) 0);
         }
-        rm.unlock(tmpBuffer);
-
         setSize(newSize);
     }
 
