@@ -211,14 +211,18 @@ public class BigNatInternal {
      */
     public void copy(BigNatInternal other) {
         short thisStart, otherStart, len;
-        if (this.size >= other.size) {
-            thisStart = (short) (this.size - other.size);
+        if (size >= other.size) {
+            thisStart = (short) (size - other.size);
             otherStart = 0;
             len = other.size;
+
+            if (thisStart > 0) {
+                Util.arrayFillNonAtomic(value, (short) 0, thisStart, (byte) 0);
+            }
         } else {
             thisStart = 0;
-            otherStart = (short) (other.size - this.size);
-            len = this.size;
+            otherStart = (short) (other.size - size);
+            len = size;
             // Verify here that other have leading zeroes up to otherStart
             for (short i = 0; i < otherStart; i++) {
                 if (other.value[i] != 0) {
@@ -226,11 +230,7 @@ public class BigNatInternal {
                 }
             }
         }
-
-        if (thisStart > 0) {
-            Util.arrayFillNonAtomic(this.value, (short) 0, thisStart, (byte) 0);
-        }
-        Util.arrayCopyNonAtomic(other.value, otherStart, this.value, thisStart, len);
+        Util.arrayCopyNonAtomic(other.value, otherStart, value, thisStart, len);
     }
 
     /**
@@ -252,45 +252,6 @@ public class BigNatInternal {
             Util.arrayFillNonAtomic(value, other.length(), diff, (byte) 0);
         }
         this.size = other.length();
-    }
-
-    /**
-     * Addition of big integers x and y stored in byte arrays with specified offset and length.
-     * The result is stored into x array argument.
-     *
-     * @param x       array with first BigNat
-     * @param xOffset start offset in array of {@code x}
-     * @param xLength length of {@code x}
-     * @param y       array with second BigNat
-     * @param yOffset start offset in array of {@code y}
-     * @param yLength length of {@code y}
-     * @return 0x01 if carry of most significant byte occurs, 0x00 otherwise
-     */
-    public static byte add(byte[] x, short xOffset, short xLength, byte[] y,
-                           short yOffset, short yLength) {
-        short result = 0;
-        short i = (short) (xLength + xOffset - 1);
-        short j = (short) (yLength + yOffset - 1);
-
-        for (; i >= xOffset && j >= 0; i--, j--) {
-            result = (short) (result + (short) (x[i] & DIGIT_MASK) + (short) (y[j] & DIGIT_MASK));
-
-            x[i] = (byte) (result & DIGIT_MASK);
-            result = (short) ((result >> DIGIT_LEN) & DIGIT_MASK);
-        }
-        while (result > 0 && i >= xOffset) {
-            result = (short) (result + (short) (x[i] & DIGIT_MASK));
-            x[i] = (byte) (result & DIGIT_MASK);
-            result = (short) ((result >> DIGIT_LEN) & DIGIT_MASK);
-            i--;
-        }
-
-        // 1. result != 0 => result | -result will have the sign bit set
-        // 2. casting magic to overcome the absence of int
-        // 3. move the sign bit to the rightmost position
-        // 4. discard the sign bit which is present due to the unavoidable casts
-        //    and return the value of the rightmost bit
-        return (byte) ((byte) (((short) (result | -result) & (short) 0xFFFF) >>> 15) & 0x01);
     }
 
     /**
@@ -475,42 +436,6 @@ public class BigNatInternal {
     }
 
     /**
-     * Compares this and other BigNat.
-     *
-     * @param other other value to compare with
-     * @return true if this BigNat is smaller, false if bigger or equal
-     */
-    public boolean smaller(BigNatInternal other) {
-        short indexThis = 0;
-        for (short i = 0; i < this.length(); i++) {
-            if (this.value[i] != 0x00) {
-                indexThis = i;
-            }
-        }
-
-        short indexOther = 0;
-        for (short i = 0; i < other.length(); i++) {
-            if (other.value[i] != 0x00) {
-                indexOther = i;
-            }
-        }
-
-        if ((short) (this.length() - indexThis) < (short) (other.length() - indexOther)) {
-            return true; // CTO
-        }
-        short i = 0;
-        while (i < this.length() && i < other.length()) {
-            if (((short) (this.value[i] & DIGIT_MASK)) < ((short) (other.value[i] & DIGIT_MASK))) {
-                return true; // CTO
-            }
-            i = (short) (1 + i);
-        }
-
-        return false;
-    }
-
-
-    /**
      * Comparison of this and other.
      *
      * @param other BigNat to compare with
@@ -523,8 +448,6 @@ public class BigNatInternal {
 
     /**
      * Test equality with zero.
-     *
-     * @return true if this BigNat equals zero.
      */
     public boolean isZero() {
         for (short i = 0; i < size; i++) {
@@ -537,8 +460,6 @@ public class BigNatInternal {
 
     /**
      * Test equality with one.
-     *
-     * @return true if this BigNat equals one.
      */
     public boolean isOne() {
         for (short i = 0; i < (short) (size - 1); i++) {
@@ -551,8 +472,6 @@ public class BigNatInternal {
 
     /**
      * Check if stored BigNat is odd.
-     *
-     * @return true if odd, false if even
      */
     public boolean isOdd() {
         return (byte) (value[(short) (this.size - 1)] & (byte) 1) != (byte) 0;
@@ -779,22 +698,22 @@ public class BigNatInternal {
      * Multiplier must be in range [0; 2^8 - 1].
      * This must be large enough to fit the results.
      */
-    public void timesAddShift(BigNatInternal x, short shift, short multiplier) {
-        if (this.size < (short) (x.size + shift + 1)) {
+    public void timesAdd(BigNatInternal x, short shift, short multiplier) {
+        if (size < (short) (x.size + shift + 1)) {
             ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDMULT);
         }
 
         short acc = 0;
-        short j = (short) (this.size - 1 - shift);
+        short j = (short) (size - 1 - shift);
         for (short i = (short) (x.size - 1); i >= 0; i--, j--) {
             acc += (short) ((short) (value[j] & DIGIT_MASK) + (short) (multiplier * (x.value[i] & DIGIT_MASK)));
 
-            this.value[j] = (byte) (acc & DIGIT_MASK);
+            value[j] = (byte) (acc & DIGIT_MASK);
             acc = (short) ((acc >> DIGIT_LEN) & DIGIT_MASK);
         }
 
-        acc += (short) (this.value[j] & DIGIT_MASK);
-        this.value[j] = (byte) (acc & DIGIT_MASK);
+        acc += (short) (value[j] & DIGIT_MASK);
+        value[j] = (byte) (acc & DIGIT_MASK);
 
         // ensure no overflow occurred
         if ((byte) (acc >> DIGIT_LEN) != 0) {
@@ -811,7 +730,7 @@ public class BigNatInternal {
     protected void multSw(BigNatInternal x, BigNatInternal y) {
         resizeToMax(true);
         for (short i = (short) (y.size - 1); i >= 0; i--) {
-            timesAddShift(x, (short) (y.size - 1 - i), (short) (y.value[i] & DIGIT_MASK));
+            timesAdd(x, (short) (y.size - 1 - i), (short) (y.value[i] & DIGIT_MASK));
         }
         shrink();
     }
