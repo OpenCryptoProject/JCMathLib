@@ -344,41 +344,24 @@ public class BigNatInternal {
     }
 
     /**
-     * Scaled comparison. Compares this number with {@code other * 2^(}
-     * {@link #DIGIT_LEN} {@code * shift)}. That is, shifts {@code other}
-     * {@code shift} digits to the left and compares then. This BigNat and
-     * {@code other} will not be modified inside this method.
-     * <p>
-     * <p>
-     * As optimization {@code start} can be greater than zero to skip the first
-     * {@code start} digits in the comparison. These first digits must be zero
-     * then, otherwise an assertion is thrown. (So the optimization takes only
-     * effect when <a
-     * href="../../../overview-summary.html#NO_CARD_ASSERT">NO_CARD_ASSERT</a>
-     * is defined.)
-     *
-     * @param other BigNat to compare to
-     * @param shift left shift of other before the comparison
-     * @param start digits to skip at the beginning
-     * @return true if this number is strictly less than the shifted
-     * {@code other}, false otherwise.
+     * Returns true if this is lesser than other shifted by a given number of digits.
      */
-    public boolean shiftLesser(BigNatInternal other, short shift, short start) {
-        short j;
+    private boolean lesser(BigNatInternal other, short shift, short start) {
+        short j = (short) (other.size + shift - size + start);
 
-        j = (short) (other.size + shift - this.size + start);
-        short thisShort, otherShort;
-        for (short i = start; i < this.size; i++, j++) {
-            thisShort = (short) (this.value[i] & DIGIT_MASK);
-            if (j >= 0 && j < other.size) {
-                otherShort = (short) (other.value[j] & DIGIT_MASK);
-            } else {
-                otherShort = 0;
+        for (short i = start; i < j; ++i) {
+            if (other.value[i] != 0) {
+                return true;
             }
-            if (thisShort < otherShort) {
+        }
+
+        for (short i = start; i < size; i++, j++) {
+            short thisValue = (short) (value[i] & DIGIT_MASK);
+            short otherValue = (j >= 0 && j < other.size) ? (short) (other.value[j] & DIGIT_MASK) : (short) 0;
+            if (thisValue < otherValue) {
                 return true; // CTO
             }
-            if (thisShort > otherShort) {
+            if (thisValue > otherValue) {
                 return false;
             }
         }
@@ -386,14 +369,10 @@ public class BigNatInternal {
     }
 
     /**
-     * Comparison of this and other.
-     *
-     * @param other BigNat to compare with
-     * @return true if this number is strictly lesser than {@code other}, false
-     * otherwise.
+     * Returns true if this is lesser than other.
      */
     public boolean lesser(BigNatInternal other) {
-        return shiftLesser(other, (short) 0, (short) 0);
+        return lesser(other, (short) 0, (short) 0);
     }
 
     /**
@@ -512,7 +491,7 @@ public class BigNatInternal {
             numLoops++; // CTO number of outer loops is constant (for given length of divisor)
             // Keep subtracting from this until
             // divisor * 2^(8 * divisor_shift) is bigger than this.
-            while (!shiftLesser(divisor, divisorShift,
+            while (!lesser(divisor, divisorShift,
                     (short) (divisionRound > 0 ? divisionRound - 1 : 0))) {
                 numLoops2++; // BUGBUG: CTO - number of these loops fluctuates heavily => strong impact on operation time
                 // this is bigger or equal than the shifted divisor.
