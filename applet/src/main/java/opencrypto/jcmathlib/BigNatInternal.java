@@ -208,15 +208,6 @@ public class BigNatInternal {
     }
 
     /**
-     * Fill this BigNat representation with `value` bytes.
-     *
-     * @param value the value
-     */
-    public void fill(byte value) {
-        Util.arrayFillNonAtomic(this.value, (short) 0, this.size, value);
-    }
-
-    /**
      * Sets new value. Keeps previous size of this BigNat.
      *
      * @param newValue new value to set
@@ -327,45 +318,12 @@ public class BigNatInternal {
     }
 
     /**
-     * Subtracts big integer y from x specified by offset and length.
-     * The result is stored into x array argument.
-     *
-     * @param x       array with first BigNat
-     * @param xOffset start offset in array of {@code x}
-     * @param xLength length of {@code x}
-     * @param y       array with second BigNat
-     * @param yOffset start offset in array of {@code y}
-     * @param yLength length of {@code y}
-     * @return true if carry of most significant byte occurs, false otherwise
-     */
-    public static boolean subtract(byte[] x, short xOffset, short xLength, byte[] y,
-                                   short yOffset, short yLength) {
-        short i = (short) (xLength + xOffset - 1);
-        short j = (short) (yLength + yOffset - 1);
-        short carry = 0;
-
-        for (; i >= xOffset && j >= yOffset; i--, j--) {
-            short subtractionResult = (short) ((x[i] & DIGIT_MASK) - (y[j] & DIGIT_MASK) - carry);
-            x[i] = (byte) (subtractionResult & DIGIT_MASK);
-            carry = (short) (subtractionResult < 0 ? 1 : 0);
-        }
-        for (; i >= xOffset && carry > 0; i--) {
-            if (x[i] != 0) {
-                carry = 0;
-            }
-            x[i] -= 1;
-        }
-
-        return carry > 0;
-    }
-
-    /**
      * Subtract provided other BigNat from this BigNat.
      *
      * @param other BigNat to be subtracted from this
      */
     public void subtract(BigNatInternal other) {
-        this.timesMinus(other, (short) 0, (short) 1);
+        timesMinus(other, (short) 0, (short) 1);
     }
 
     /**
@@ -428,8 +386,6 @@ public class BigNatInternal {
             this.value[i] = (byte) (tmp - 1);
             if (tmp != 0) {
                 break; // CTO
-            } else {
-                // need to modify also one byte up, continue with cycle
             }
         }
     }
@@ -443,25 +399,15 @@ public class BigNatInternal {
             this.value[i] = (byte) (tmp + 1);
             if (tmp < 255) {
                 break; // CTO
-            } else {
-                // need to modify also one byte up (carry) , continue with cycle
             }
         }
     }
 
     /**
-     * Index of the most significant 1 bit.
-     * <p>
-     * {@code x} has type short.
-     * <p>
-     * Utility method, used in division.
-     *
-     * @param x of type short
-     * @return index of the most significant 1 bit in {@code x}, returns
-     * {@link #DOUBLE_DIGIT_LEN} for {@code x == 0}.
+     * Index of the highest bit set to 1.
      */
-    private static short highestBit(short x) {
-        for (short i = 0; i < DOUBLE_DIGIT_LEN; i++) {
+    private static short highestOneBit(short x) {
+        for (short i = 0; i < DOUBLE_DIGIT_LEN; ++i) {
             if (x < 0) {
                 return i;
             }
@@ -692,7 +638,7 @@ public class BigNatInternal {
         // The first digits of the divisor are needed in every
         // subtraction round.
         short firstDivisorDigit = (short) (divisor.value[divisorIndex] & DIGIT_MASK);
-        short divisorBitShift = (short) (highestBit((short) (firstDivisorDigit + 1)) - 1);
+        short divisorBitShift = (short) (highestOneBit((short) (firstDivisorDigit + 1)) - 1);
         byte secondDivisorDigit = divisorIndex < (short) (divisor.size - 1) ? divisor.value[(short) (divisorIndex + 1)]
                 : 0;
         byte thirdDivisorDigit = divisorIndex < (short) (divisor.size - 2) ? divisor.value[(short) (divisorIndex + 2)]
@@ -755,7 +701,7 @@ public class BigNatInternal {
                 } else {
                     // To avoid case 2 shift both to the left
                     // and add relevant bits.
-                    dividentBitShift = (short) (highestBit(dividentDigits) - 1);
+                    dividentBitShift = (short) (highestOneBit(dividentDigits) - 1);
                     // Below we add one to divisor_digit to avoid underflow.
                     // Take therefore the highest bit of divisor_digit + 1
                     // to avoid running into the negatives.
