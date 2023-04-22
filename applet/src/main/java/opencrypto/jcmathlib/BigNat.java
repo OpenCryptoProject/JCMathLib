@@ -232,21 +232,28 @@ public class BigNat extends BigNatInternal {
         BigNat result = rm.BN_F;
         BigNat tmp = rm.BN_G;
 
+        result.lock();
         result.clone(x);
         result.add(y);
         result.sq();
-        tmp.clone(x);
-        tmp.sq();
-        result.subtract(tmp);
 
-        tmp.clone(y);
+        tmp.lock();
+        if (x.lesser(y)) {
+            tmp.clone(y);
+            tmp.subtract(x);
+        } else {
+            tmp.clone(x);
+            tmp.subtract(y);
+        }
         tmp.sq();
-        result.subtract(tmp);
 
-        result.shiftRight((short) 1);
+        result.subtract(tmp);
+        tmp.unlock();
+        result.shiftRight((short) 2);
 
         resizeToMax(false);
         copy(result);
+        result.unlock();
         shrink();
     }
 
