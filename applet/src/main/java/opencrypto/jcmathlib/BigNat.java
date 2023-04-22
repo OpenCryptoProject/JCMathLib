@@ -258,37 +258,6 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
-     * Performs multiplication of two BigNat x and y and stores result into this.
-     * RSA engine is used to speedup operation for large values.
-     *
-     * @param x   first value to multiply
-     * @param y   second value to multiply
-     * @param mod modulus
-     */
-    private void modMultRsaTrick(BigNat x, BigNat y, BigNat mod) {
-        this.clone(x);
-        this.modAdd(y, mod);
-
-        this.deepResize(mod.length());
-        byte carry = (byte) 0;
-        if (this.isOdd()) {
-            carry = this.add(mod);
-        }
-        this.shiftRight((short) 1, carry != 0 ? (short) (1 << 7) : (short) 0);
-
-        BigNat tmp = rm.BN_D;
-        tmp.lock();
-        tmp.clone(this);
-        tmp.modSub(y, mod);
-
-        this.modSq(mod);
-        tmp.modSq(mod);
-
-        this.modSub(tmp, mod);
-        tmp.unlock();
-    }
-
-    /**
      * Multiplication of BigNats x and y computed modulo mod.
      * The result is stored to this.
      *
@@ -297,24 +266,43 @@ public class BigNat extends BigNatInternal {
      * @param mod value of modulo
      */
     public void modMult(BigNat x, BigNat y, BigNat mod) {
-        BigNat tmp = rm.BN_E; // modMult is called from modSqrt => requires BN_E not being locked when modMult is called
+        BigNat tmp = rm.BN_D;
+        BigNat result = rm.BN_E;
 
         if (OperationSupport.getInstance().RSA_CHECK_ONE && x.isOne()) {
             clone(y);
             return;
         }
 
-        tmp.lock();
-        if (OperationSupport.getInstance().RSA_MOD_MULT_TRICK) {
-            tmp.modMultRsaTrick(x, y, mod);
+        result.lock();
+        if (!OperationSupport.getInstance().RSA_MOD_MULT_TRICK) {
+            result.resizeToMax(false);
+            result.mult(x, y);
+            result.mod(mod);
+            result.shrink();
         } else {
-            tmp.resizeToMax(false);
-            tmp.mult(x, y);
-            tmp.mod(mod);
-            tmp.shrink();
+            result.clone(x);
+            result.modAdd(y, mod);
+
+            result.deepResize(mod.length());
+            byte carry = (byte) 0;
+            if (result.isOdd()) {
+                carry = result.add(mod);
+            }
+            result.shiftRight((short) 1, carry != 0 ? (short) (1 << 7) : (short) 0);
+
+            tmp.lock();
+            tmp.clone(result);
+            tmp.modSub(y, mod);
+
+            result.modSq(mod);
+            tmp.modSq(mod);
+
+            result.modSub(tmp, mod);
+            tmp.unlock();
         }
-        this.clone(tmp);
-        tmp.unlock();
+        this.clone(result);
+        result.unlock();
     }
 
     /**
