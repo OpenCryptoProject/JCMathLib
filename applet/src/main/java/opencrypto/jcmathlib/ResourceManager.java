@@ -16,10 +16,9 @@ public class ResourceManager {
     KeyAgreement ecMultKA;
     KeyAgreement ecAddKA;
     Signature verifyEcdsa;
-    Cipher multCiph;
-    RSAPublicKey expPub;
-    RSAPrivateKey expPriv;
-    Cipher expCiph;
+    Cipher sqCiph, expCiph;
+    RSAPublicKey sqPub, expPub;
+    RSAPrivateKey sqPriv, expPriv;
 
     byte[] ARRAY_A, ARRAY_B, POINT_ARRAY_A, POINT_ARRAY_B, HASH_ARRAY;
 
@@ -30,8 +29,10 @@ public class ResourceManager {
     BigNat EC_BN_A, EC_BN_B, EC_BN_C, EC_BN_D, EC_BN_E, EC_BN_F;
     public static BigNat ONE, TWO, THREE, ONE_COORD;
 
-    public final short MODULO_RSA_ENGINE_MAX_LENGTH_BITS;
-    public final short MULT_RSA_ENGINE_MAX_LENGTH_BITS;
+    public final short MAX_EXP_BIT_LENGTH;
+    public final short MAX_EXP_LENGTH;
+    public final short MAX_SQ_BIT_LENGTH;
+    public final short MAX_SQ_LENGTH;
     public final short MAX_BIGNAT_SIZE;
     public final short MAX_POINT_SIZE;
     public final short MAX_COORD_SIZE;
@@ -39,27 +40,29 @@ public class ResourceManager {
     public ResourceManager(short maxEcLength) {
         short min = OperationSupport.getInstance().MIN_RSA_BIT_LENGTH;
         if (maxEcLength <= (short) 256) {
-            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 512 < min ? min : (short) 512;
-            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768 < min ? min : (short) 768;
+            MAX_EXP_BIT_LENGTH = (short) 512 < min ? min : (short) 512;
+            MAX_SQ_BIT_LENGTH = (short) 768 < min ? min : (short) 768;
             MAX_POINT_SIZE = (short) 64;
         }
         else if (maxEcLength <= (short) 384) {
-            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 768 < min ? min : (short) 768;
-            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1024 < min ? min : (short) 1024;
+            MAX_EXP_BIT_LENGTH = (short) 768 < min ? min : (short) 768;
+            MAX_SQ_BIT_LENGTH = (short) 1024 < min ? min : (short) 1024;
             MAX_POINT_SIZE = (short) 96;
         }
         else if (maxEcLength <= (short) 512) {
-            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1024 < min ? min : (short) 1024;
-            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 1280 < min ? min : (short) 1280;
+            MAX_EXP_BIT_LENGTH = (short) 1024 < min ? min : (short) 1024;
+            MAX_SQ_BIT_LENGTH = (short) 1280 < min ? min : (short) 1280;
             MAX_POINT_SIZE = (short) 128;
         }
         else {
-            MODULO_RSA_ENGINE_MAX_LENGTH_BITS = (short) 0;
-            MULT_RSA_ENGINE_MAX_LENGTH_BITS = (short) 0;
+            MAX_EXP_BIT_LENGTH = (short) 0;
+            MAX_SQ_BIT_LENGTH = (short) 0;
             MAX_POINT_SIZE = (short) 0;
             ISOException.throwIt(ReturnCodes.SW_ECPOINT_INVALIDLENGTH);
         }
-        MAX_BIGNAT_SIZE = (short) ((short) (MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8) + 1);
+        MAX_SQ_LENGTH = (short) (MAX_SQ_BIT_LENGTH / 8);
+        MAX_EXP_LENGTH = (short) (MAX_EXP_BIT_LENGTH / 8);
+        MAX_BIGNAT_SIZE = (short) ((short) (MAX_EXP_BIT_LENGTH / 8) + 1);
         MAX_COORD_SIZE = (short) (MAX_POINT_SIZE / 2);
 
         memAlloc = new ObjectAllocator();
@@ -69,9 +72,9 @@ public class ResourceManager {
         // ObjectAllocator.setAllocatorsTradeoff();
 
 
-        ARRAY_A = memAlloc.allocateByteArray((short) (MULT_RSA_ENGINE_MAX_LENGTH_BITS / 8), memAlloc.getAllocatorType(ObjectAllocator.ARRAY_A));
+        ARRAY_A = memAlloc.allocateByteArray(MAX_SQ_LENGTH, memAlloc.getAllocatorType(ObjectAllocator.ARRAY_A));
         locker.registerLock(ARRAY_A);
-        ARRAY_B = memAlloc.allocateByteArray((short) (MULT_RSA_ENGINE_MAX_LENGTH_BITS / 8), memAlloc.getAllocatorType(ObjectAllocator.ARRAY_B));
+        ARRAY_B = memAlloc.allocateByteArray(MAX_SQ_LENGTH, memAlloc.getAllocatorType(ObjectAllocator.ARRAY_B));
         locker.registerLock(ARRAY_B);
         POINT_ARRAY_A = memAlloc.allocateByteArray((short) (MAX_POINT_SIZE + 1), memAlloc.getAllocatorType(ObjectAllocator.POINT_ARRAY_A));
         locker.registerLock(POINT_ARRAY_A);
@@ -88,7 +91,7 @@ public class ResourceManager {
         BN_C = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_C), this);
         BN_D = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_D), this);
         BN_E = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_E), this);
-        BN_F = new BigNat((short) (MAX_BIGNAT_SIZE + 2), memAlloc.getAllocatorType(ObjectAllocator.BN_F), this); // +2 is to correct for infrequent RSA result with two or more leading zeroes
+        BN_F = new BigNat(MAX_SQ_LENGTH, memAlloc.getAllocatorType(ObjectAllocator.BN_F), this);
 
         EC_BN_A = new BigNat(MAX_POINT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.EC_BN_A), this);
         EC_BN_B = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.EC_BN_B), this);
@@ -121,19 +124,26 @@ public class ResourceManager {
             ecAddKA = KeyAgreement.getInstance((byte) 5, false);
         }
 
-        // RSA Mult Helpers
-        if (OperationSupport.getInstance().RSA_MULT_TRICK) {
-            KeyPair multKP = new KeyPair(KeyPair.ALG_RSA_CRT, MULT_RSA_ENGINE_MAX_LENGTH_BITS);
-            multKP.genKeyPair();
-            RSAPublicKey multPK = (RSAPublicKey) multKP.getPublic();
-            multPK.setExponent(CONST_TWO, (short) 0, (short) CONST_TWO.length);
-            multCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
-            multCiph.init(multPK, Cipher.MODE_ENCRYPT);
+        // RSA Sq Helpers
+        if (OperationSupport.getInstance().RSA_SQ) {
+            Util.arrayFillNonAtomic(ARRAY_A, (short) 0, MAX_SQ_LENGTH, (byte) 0xff);
+            sqCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
+            if (OperationSupport.getInstance().RSA_PUB) {
+                sqPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MAX_SQ_BIT_LENGTH, false);
+                sqPub.setExponent(CONST_TWO, (short) 0, (short) CONST_TWO.length);
+                sqPub.setModulus(ARRAY_A, (short) 0, MAX_SQ_LENGTH);
+                sqCiph.init(sqPub, Cipher.MODE_ENCRYPT);
+            } else {
+                sqPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MAX_SQ_BIT_LENGTH, false);
+                sqPriv.setExponent(CONST_TWO, (short) 0, (short) CONST_TWO.length);
+                sqPriv.setModulus(ARRAY_A, (short) 0, MAX_SQ_LENGTH);
+                sqCiph.init(sqPriv, Cipher.MODE_DECRYPT);
+            }
         }
 
         // RSA Exp Helpers
-        expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
-        expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
+        expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MAX_EXP_BIT_LENGTH, false);
+        expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MAX_EXP_BIT_LENGTH, false);
         expCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
     }
 

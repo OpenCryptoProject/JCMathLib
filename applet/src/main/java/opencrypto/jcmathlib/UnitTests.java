@@ -38,7 +38,7 @@ public class UnitTests extends Applet {
     public final static byte INS_BN_MUL = (byte) 0x23;
     public final static byte INS_BN_SHIFT_RIGHT = (byte) 0x24;
     public final static byte INS_BN_MOD = (byte) 0x25;
-    public final static byte INS_BN_SQRT = (byte) 0x26;
+    public final static byte INS_BN_SQ = (byte) 0x26;
     public final static byte INS_BN_MUL_SCHOOL = (byte) 0x27;
 
     public final static byte INS_BN_ADD_MOD = (byte) 0x30;
@@ -47,6 +47,7 @@ public class UnitTests extends Applet {
     public final static byte INS_BN_EXP_MOD = (byte) 0x33;
     public final static byte INS_BN_INV_MOD = (byte) 0x34;
     public final static byte INS_BN_SQ_MOD = (byte) 0x35;
+    public final static byte INS_BN_SQRT_MOD = (byte) 0x36;
 
     public final static byte INS_EC_GEN = (byte) 0x40;
     public final static byte INS_EC_DBL = (byte) 0x41;
@@ -113,7 +114,7 @@ public class UnitTests extends Applet {
         // Testing BigNat objects used in tests
         memoryInfoOffset = snapshotAvailableMemory((short) 7, memoryInfo, memoryInfoOffset);
         byte memoryType = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
-        bn1 = new BigNat(rm.MAX_BIGNAT_SIZE, memoryType, rm);
+        bn1 = new BigNat(rm.MAX_SQ_LENGTH, memoryType, rm);
         memoryInfoOffset = snapshotAvailableMemory((short) 8, memoryInfo, memoryInfoOffset);
         bn2 = new BigNat(rm.MAX_BIGNAT_SIZE, memoryType, rm);
         bn3 = new BigNat(rm.MAX_BIGNAT_SIZE, memoryType, rm);
@@ -229,12 +230,13 @@ public class UnitTests extends Applet {
                 case INS_BN_MUL_SCHOOL:
                     testBnMulSchool(apdu, dataLen);
                     break;
-                case INS_BN_SQRT:
-                    testBnModSqrt(apdu, dataLen);
+                case INS_BN_SQ:
+                    testBnSq(apdu, dataLen);
                     break;
                 case INS_BN_MOD:
                     testBnMod(apdu, dataLen);
                     break;
+
                 case INS_BN_ADD_MOD:
                     testBnAddMod(apdu, dataLen);
                     break;
@@ -252,6 +254,9 @@ public class UnitTests extends Applet {
                     break;
                 case INS_BN_INV_MOD:
                     testBnInvMod(apdu, dataLen);
+                    break;
+                case INS_BN_SQRT_MOD:
+                    testBnModSqrt(apdu, dataLen);
                     break;
 
                 case INS_INT_STR:
@@ -491,6 +496,16 @@ public class UnitTests extends Applet {
         bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) (dataLen - p1));
         bn3.mult(bn1, bn2);
         short len = bn3.copyToBuffer(apduBuffer, (short) 0);
+        apdu.setOutgoingAndSend((short) 0, len);
+    }
+
+    void testBnSq(APDU apdu, short dataLen) {
+        byte[] apduBuffer = apdu.getBuffer();
+
+        bn1.setSize(dataLen);
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, dataLen);
+        bn1.sq();
+        short len = bn1.copyToBuffer(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 

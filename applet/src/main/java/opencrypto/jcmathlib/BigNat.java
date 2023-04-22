@@ -178,6 +178,34 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
+     * Square computation supporting base greater than MAX_BIGNAT_LENGTH.
+     */
+    public void sq() {
+        if (!OperationSupport.getInstance().RSA_SQ) {
+            BigNat tmp = rm.BN_A;
+            tmp.lock();
+            tmp.clone(this);
+            multSw(tmp, tmp);
+            return;
+        }
+        if ((short) (rm.MAX_SQ_LENGTH - 1) < (short) (2 * length())) {
+            ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDSQ);
+        }
+
+        byte[] resultBuffer = rm.ARRAY_A;
+        short offset = (short) (rm.MAX_SQ_LENGTH - length());
+
+        rm.lock(resultBuffer);
+        Util.arrayFillNonAtomic(resultBuffer, (short) 0, offset, (byte) 0x00);
+        copyToBuffer(resultBuffer, offset);
+        short len = rm.sqCiph.doFinal(resultBuffer, (short) 0, rm.MAX_SQ_LENGTH, resultBuffer, (short) 0);
+        short zeroPrefix = (short) (len - (short) 2 * length());
+        fromByteArray(resultBuffer, zeroPrefix, (short) (len - zeroPrefix));
+        rm.unlock(resultBuffer);
+        shrink();
+    }
+
+    /**
      * Computes x * y and stores the result into this. Chooses computation approach based on operation support and operand size.
      *
      * @param x left operand
@@ -189,9 +217,9 @@ public class BigNat extends BigNatInternal {
             return;
         }
         if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() <= (short) 16) {
-            multSchoolbook(x, y);
+            multSw(x, y);
         } else {
-            multRsaTrick(x, y, null, null);
+            multRsa(x, y, null, null);
         }
     }
 
@@ -267,32 +295,30 @@ public class BigNat extends BigNatInternal {
 
         BigNat tmpMod = rm.BN_F; // modExp is called from modSqrt => requires BN_F not being locked when modExp is called
         byte[] tmpBuffer = rm.ARRAY_A;
-        short tmpSize = (short) (rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS / 8);
         short modLength;
 
         tmpMod.lock();
-        tmpMod.setSize(tmpSize);
+        tmpMod.setSize(rm.MAX_EXP_LENGTH);
 
-        if (OperationSupport.getInstance().RSA_MOD_EXP_PUB) {
+        if (OperationSupport.getInstance().RSA_PUB) {
             // Verify if pre-allocated engine match the required values
             if (rm.expPub.getSize() < (short) (modulo.length() * 8) || rm.expPub.getSize() < (short) (this.length() * 8)) {
                 ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
             }
             if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
                 // Simulator fails when reusing the original object
-                rm.expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
+                rm.expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, rm.MAX_EXP_BIT_LENGTH, false);
             }
             rm.expPub.setExponent(exponent.asByteArray(), (short) 0, exponent.length());
             rm.lock(tmpBuffer);
             if (OperationSupport.getInstance().RSA_RESIZE_MODULUS) {
                 if (OperationSupport.getInstance().RSA_RESIZE_MODULUS_APPEND) {
-                    modulo.appendZeros(tmpSize, tmpBuffer, (short) 0);
+                    modulo.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 } else {
-                    modulo.prependZeros(tmpSize, tmpBuffer, (short) 0);
-
+                    modulo.prependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 }
-                rm.expPub.setModulus(tmpBuffer, (short) 0, tmpSize);
-                modLength = tmpSize;
+                rm.expPub.setModulus(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
+                modLength = rm.MAX_EXP_LENGTH;
             } else {
                 rm.expPub.setModulus(modulo.asByteArray(), (short) 0, modulo.length());
                 modLength = modulo.length();
@@ -305,19 +331,19 @@ public class BigNat extends BigNatInternal {
             }
             if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
                 // Simulator fails when reusing the original object
-                rm.expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, rm.MODULO_RSA_ENGINE_MAX_LENGTH_BITS, false);
+                rm.expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, rm.MAX_EXP_BIT_LENGTH, false);
             }
             rm.expPriv.setExponent(exponent.asByteArray(), (short) 0, exponent.length());
             rm.lock(tmpBuffer);
             if (OperationSupport.getInstance().RSA_RESIZE_MODULUS) {
                 if (OperationSupport.getInstance().RSA_RESIZE_MODULUS_APPEND) {
-                    modulo.appendZeros(tmpSize, tmpBuffer, (short) 0);
+                    modulo.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 } else {
-                    modulo.prependZeros(tmpSize, tmpBuffer, (short) 0);
+                    modulo.prependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
 
                 }
-                rm.expPriv.setModulus(tmpBuffer, (short) 0, tmpSize);
-                modLength = tmpSize;
+                rm.expPriv.setModulus(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
+                modLength = rm.MAX_EXP_LENGTH;
             } else {
                 rm.expPriv.setModulus(modulo.asByteArray(), (short) 0, modulo.length());
                 modLength = modulo.length();
@@ -332,18 +358,18 @@ public class BigNat extends BigNatInternal {
             len = rm.expCiph.doFinal(this.asByteArray(), (short) 0, this.length(), tmpBuffer, (short) 0);
         }
 
-        if (len != tmpSize) {
+        if (len != rm.MAX_EXP_LENGTH) {
             if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
                 // Decrypted length can be either tmp_size or less because of leading zeroes consumed by simulator engine implementation
                 // Move obtained value into proper position with zeroes prepended
-                Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, tmpBuffer, (short) (tmpSize - len), len);
-                Util.arrayFillNonAtomic(tmpBuffer, (short) 0, (short) (tmpSize - len), (byte) 0);
+                Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, tmpBuffer, (short) (rm.MAX_EXP_LENGTH - len), len);
+                Util.arrayFillNonAtomic(tmpBuffer, (short) 0, (short) (rm.MAX_EXP_LENGTH - len), (byte) 0);
             } else {
                 // real cards should keep whole length of block
                 ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
             }
         }
-        tmpMod.fromByteArray(tmpBuffer, (short) 0, tmpSize);
+        tmpMod.fromByteArray(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
         rm.unlock(tmpBuffer);
 
         if (OperationSupport.getInstance().RSA_MOD_EXP_EXTRA_MOD) {

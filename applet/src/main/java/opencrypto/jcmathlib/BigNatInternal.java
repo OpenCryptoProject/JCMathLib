@@ -208,6 +208,15 @@ public class BigNatInternal {
     }
 
     /**
+     * Fill this BigNat representation with `value` bytes.
+     *
+     * @param value the value
+     */
+    public void fill(byte value) {
+        Util.arrayFillNonAtomic(this.value, (short) 0, this.size, value);
+    }
+
+    /**
      * Sets new value. Keeps previous size of this BigNat.
      *
      * @param newValue new value to set
@@ -844,84 +853,56 @@ public class BigNatInternal {
     }
 
     /**
-     * Scaled addition. Add {@code mult * other} to this number. {@code mult}
-     * must be below BigNat base, that is, it must fit into one digit.
-     * It is only declared as a short here to avoid negative numbers.
-     * <p>
-     * Asserts (overly restrictive) that this and other have the same size.
-     * <p>
-     * Same as {@link #timesAddShift times_add_shift}{@code (other, 0, mult)}
-     * but without the shift overhead.
-     * <p>
-     * Used in multiplication.
-     *
-     * @param other BigNat to add
-     * @param multiplier factor to multiply other with before addition
+     * Computes x * multiplier, shifts the results by shift and adds it to this.
+     * Multiplier must be in range [0; 2^8 - 1].
+     * This must be large enough to fit the results.
      */
-    public void timesAdd(BigNatInternal other, short multiplier) {
-        short akku = 0;
-        for (short i = (short) (size - 1); i >= 0; i--) {
-            akku = (short) (akku + (short) (this.value[i] & DIGIT_MASK) + (short) (multiplier * (other.value[i] & DIGIT_MASK)));
-            this.value[i] = (byte) (akku & DIGIT_MASK);
-            akku = (short) ((akku >> DIGIT_LEN) & DIGIT_MASK);
+    public void timesAddShift(BigNatInternal x, short shift, short multiplier) {
+        if (this.size < (short) (x.size + shift + 1)) {
+            ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDMULT);
         }
-    }
 
-    /**
-     * Scaled addition. Adds {@code mult * other * 2^(}{@link #DIGIT_LEN}
-     * {@code * shift)} to this. That is, shifts other {@code shift} digits to
-     * the left, multiplies it with {@code mult} and adds then.
-     * <p>
-     * {@code mult} must be less than BigNat base, that is, it must fit
-     * into one digit. It is only declared as a short here to avoid negative
-     * numbers.
-     * <p>
-     * Asserts that the size of this is greater than or equal to
-     * {@code other.size + shift + 1}.
-     *
-     * @param x     BigNat to add
-     * @param mult  of short, factor to multiply {@code other} with before
-     *              addition. Must be less than BigNat base.
-     * @param shift number of digits to shift {@code other} to the left, before
-     *              addition.
-     */
-    public void timesAddShift(BigNatInternal x, short shift, short mult) {
-        short akku = 0;
+        short acc = 0;
         short j = (short) (this.size - 1 - shift);
         for (short i = (short) (x.size - 1); i >= 0; i--, j--) {
-            akku = (short) (akku + (short) (this.value[j] & DIGIT_MASK) + (short) (mult * (x.value[i] & DIGIT_MASK)));
+            acc += (short) ((short) (value[j] & DIGIT_MASK) + (short) (multiplier * (x.value[i] & DIGIT_MASK)));
 
-            this.value[j] = (byte) (akku & DIGIT_MASK);
-            akku = (short) ((akku >> DIGIT_LEN) & DIGIT_MASK);
+            this.value[j] = (byte) (acc & DIGIT_MASK);
+            acc = (short) ((acc >> DIGIT_LEN) & DIGIT_MASK);
         }
-        // add carry at position j
-        akku = (short) (akku + (short) (this.value[j] & DIGIT_MASK));
-        this.value[j] = (byte) (akku & DIGIT_MASK);
-        // BUGUG: assert no overflow
+
+        acc += (short) (this.value[j] & DIGIT_MASK);
+        this.value[j] = (byte) (acc & DIGIT_MASK);
+
+        // ensure no overflow occurred
+        if ((byte) (acc >> DIGIT_LEN) != 0) {
+            ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDMULT);
+        }
     }
 
     /**
-     * Slow schoolbook algorithm for multiplication.
+     * Multiplies x and y using software multiplications and stores results into this.
      *
      * @param x left operand
      * @param y right operand
      */
-    protected void multSchoolbook(BigNatInternal x, BigNatInternal y) {
-        zero(); // important to keep, used in exponentiation()
+    protected void multSw(BigNatInternal x, BigNatInternal y) {
+        resizeToMax(true);
         for (short i = (short) (y.size - 1); i >= 0; i--) {
             timesAddShift(x, (short) (y.size - 1 - i), (short) (y.value[i] & DIGIT_MASK));
         }
+        shrink();
     }
 
     /**
-     * Multiplies x and y using RSA exponentiation and store result into this.
+     * Multiplies x and y using RSA exponentiation and stores result into this.
      *
      * @param x left operand
      * @param y right operand
      * @param xSq if not null, array with precomputed value x^2 is expected
      * @param ySq if not null, array with precomputed value y^2 is expected
      */
-    protected void multRsaTrick(BigNatInternal x, BigNatInternal y, byte[] xSq, byte[] ySq) {
+    protected void multRsa(BigNatInternal x, BigNatInternal y, byte[] xSq, byte[] ySq) {
         short xOffset;
         short yOffset;
 
@@ -954,7 +935,7 @@ public class BigNatInternal {
         }
 
         // ((x+y)^2)
-        rm.multCiph.doFinal(resultBuffer1, (byte) 0, (short) resultBuffer1.length, resultBuffer1, (short) 0);
+        rm.sqCiph.doFinal(resultBuffer1, (byte) 0, (short) resultBuffer1.length, resultBuffer1, (short) 0);
 
         // x^2
         rm.lock(resultBuffer2);
@@ -963,7 +944,7 @@ public class BigNatInternal {
             Util.arrayFillNonAtomic(resultBuffer2, (short) 0, (short) resultBuffer2.length, (byte) 0);
             xOffset = (short) (resultBuffer2.length - x.length());
             Util.arrayCopyNonAtomic(x.value, (short) 0, resultBuffer2, xOffset, x.length());
-            rm.multCiph.doFinal(resultBuffer2, (byte) 0, (short) resultBuffer2.length, resultBuffer2, (short) 0);
+            rm.sqCiph.doFinal(resultBuffer2, (byte) 0, (short) resultBuffer2.length, resultBuffer2, (short) 0);
         } else {
             // x^2 is precomputed
             if ((short) xSq.length != (short) resultBuffer2.length) {
@@ -983,7 +964,7 @@ public class BigNatInternal {
             Util.arrayFillNonAtomic(resultBuffer2, (short) 0, (short) resultBuffer2.length, (byte) 0);
             yOffset = (short) (resultBuffer2.length - y.length());
             Util.arrayCopyNonAtomic(y.value, (short) 0, resultBuffer2, yOffset, y.length());
-            rm.multCiph.doFinal(resultBuffer2, (byte) 0, (short) resultBuffer2.length, resultBuffer2, (short) 0);
+            rm.sqCiph.doFinal(resultBuffer2, (byte) 0, (short) resultBuffer2.length, resultBuffer2, (short) 0);
         } else {
             // y^2 is precomputed
             if ((short) ySq.length != (short) resultBuffer2.length) {
@@ -1060,9 +1041,10 @@ public class BigNatInternal {
      * @return the number of bytes actually read
      */
     public short fromByteArray(byte[] source, short sourceOffset, short length) {
-        short max = length <= this.size ? length : this.size;
-        Util.arrayCopyNonAtomic(source, sourceOffset, value, (short) 0, max);
-        return length == this.size ? (short) (length + 1) : max;
+        short read = length <= (short) this.value.length ? length : (short) this.value.length;
+        setSize(read);
+        Util.arrayCopyNonAtomic(source, sourceOffset, value, (short) 0, read);
+        return read;
     }
 
     /// [DependencyBegin:ObjectLocker]

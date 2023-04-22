@@ -8,6 +8,7 @@ import javacard.framework.ISO7816;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
+import opencrypto.jcmathlib.OperationSupport;
 import opencrypto.jcmathlib.UnitTests;
 import opencrypto.jcmathlib.SecP256r1;
 import org.bouncycastle.jce.ECNamedCurveTable;
@@ -35,7 +36,7 @@ public class JCMathLibTest extends BaseTest {
     public static int BIGNAT_BIT_LENGTH = 256;
 
     public JCMathLibTest() throws Exception {
-        this.setCardType(CardType.JCARDSIMLOCAL);
+        this.setCardType(UnitTests.CARD_TYPE == OperationSupport.SIMULATOR ? CardType.JCARDSIMLOCAL : CardType.PHYSICAL);
         this.setSimulateStateful(true);
         statefulCard = connect();
     }
@@ -274,6 +275,17 @@ public class JCMathLibTest extends BaseTest {
     }
 
     @Test
+    public void bigNatSq() throws Exception {
+        BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH + 9);
+        BigInteger result = num1.multiply(num1);
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQ, 0, 0, num1.toByteArray());
+        ResponseAPDU resp = statefulCard.transmit(cmd);
+        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+        Assertions.assertEquals(result, new BigInteger(1, resp.getData()));
+        statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
+    }
+
+    @Test
     public void bigNatShiftRight() throws Exception {
         for(int bits = 0; bits < 8; ++bits) {
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
@@ -320,7 +332,7 @@ public class JCMathLibTest extends BaseTest {
         while(!num.modPow(mod.subtract(BigInteger.valueOf(1)).divide(BigInteger.valueOf(2)), mod).equals(BigInteger.valueOf(1))) {
             num = randomBigNat(BIGNAT_BIT_LENGTH);
         }
-        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQRT, Util.trimLeadingZeroes(num.toByteArray()).length, 0, Util.concat(Util.trimLeadingZeroes(num.toByteArray()), Util.trimLeadingZeroes(mod.toByteArray())));
+        CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQRT_MOD, Util.trimLeadingZeroes(num.toByteArray()).length, 0, Util.concat(Util.trimLeadingZeroes(num.toByteArray()), Util.trimLeadingZeroes(mod.toByteArray())));
         ResponseAPDU resp = statefulCard.transmit(cmd);
         BigInteger receivedResult = new BigInteger(1, resp.getData());
 

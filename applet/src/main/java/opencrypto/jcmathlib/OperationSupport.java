@@ -20,7 +20,7 @@ public class OperationSupport {
     public boolean RSA_MOD_MULT_TRICK = false;
     public boolean RSA_MOD_EXP = false;
     public boolean RSA_MOD_EXP_EXTRA_MOD = false;
-    public boolean RSA_MOD_EXP_PUB = false;
+    public boolean RSA_PUB = false;
     public boolean RSA_PREPEND_ZEROS = false;
     public boolean RSA_KEY_REFRESH = false;
     public boolean RSA_RESIZE_BASE = true;
@@ -33,6 +33,7 @@ public class OperationSupport {
     public boolean EC_SW_DOUBLE = false;
     public boolean DEFERRED_INITIALIZATION = false;
     public boolean RSA_MOD_SQ = true;
+    public boolean RSA_SQ = true;
     public short MIN_RSA_BIT_LENGTH = 512;
 
     private OperationSupport() {
@@ -65,7 +66,7 @@ public class OperationSupport {
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = true;
                 RSA_MOD_EXP_EXTRA_MOD = true;
-                RSA_MOD_EXP_PUB = true;
+                RSA_PUB = true;
                 RSA_RESIZE_BASE = true;
                 RSA_RESIZE_MODULUS = true;
                 RSA_RESIZE_MODULUS_APPEND = true;
@@ -76,7 +77,7 @@ public class OperationSupport {
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = true;
                 RSA_MOD_EXP_EXTRA_MOD = true;
-                RSA_MOD_EXP_PUB = true;
+                RSA_PUB = true;
                 RSA_RESIZE_BASE = true;
                 RSA_RESIZE_MODULUS = true;
                 RSA_RESIZE_MODULUS_APPEND = true;
@@ -88,7 +89,7 @@ public class OperationSupport {
                 RSA_MOD_MULT_TRICK = true;
                 RSA_MULT_TRICK = true;
                 RSA_MOD_EXP = true;
-                RSA_MOD_EXP_PUB = true;
+                RSA_PUB = true;
                 EC_HW_XY = true;
                 EC_HW_ADD = true;
                 break;
@@ -104,9 +105,10 @@ public class OperationSupport {
                 DEFERRED_INITIALIZATION = true;
                 RSA_MOD_MULT_TRICK = false;
                 RSA_MULT_TRICK = false;
+                RSA_SQ = false;
                 RSA_MOD_SQ = false;
                 RSA_MOD_EXP = true;
-                RSA_MOD_EXP_PUB = true;
+                RSA_PUB = true;
                 RSA_MOD_EXP_EXTRA_MOD = true;
                 RSA_RESIZE_BASE = true;
                 RSA_RESIZE_MODULUS = true;
