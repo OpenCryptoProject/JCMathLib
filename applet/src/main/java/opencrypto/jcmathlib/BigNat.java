@@ -199,8 +199,16 @@ public class BigNat extends BigNatInternal {
         Util.arrayFillNonAtomic(resultBuffer, (short) 0, offset, (byte) 0x00);
         copyToBuffer(resultBuffer, offset);
         short len = rm.sqCiph.doFinal(resultBuffer, (short) 0, rm.MAX_SQ_LENGTH, resultBuffer, (short) 0);
-        short zeroPrefix = (short) (len - (short) 2 * length());
-        fromByteArray(resultBuffer, zeroPrefix, (short) (len - zeroPrefix));
+        if (len != rm.MAX_SQ_LENGTH) {
+            if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
+                Util.arrayCopyNonAtomic(resultBuffer, (short) 0, resultBuffer, (short) (rm.MAX_SQ_LENGTH - len), len);
+                Util.arrayFillNonAtomic(resultBuffer, (short) 0, (short) (rm.MAX_SQ_LENGTH - len), (byte) 0);
+            } else {
+                ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
+            }
+        }
+        short zeroPrefix = (short) (rm.MAX_SQ_LENGTH - (short) 2 * length());
+        fromByteArray(resultBuffer, zeroPrefix, (short) (rm.MAX_SQ_LENGTH - zeroPrefix));
         rm.unlock(resultBuffer);
         shrink();
     }
@@ -218,9 +226,28 @@ public class BigNat extends BigNatInternal {
         }
         if (!OperationSupport.getInstance().RSA_MULT_TRICK || x.length() <= (short) 16) {
             multSw(x, y);
-        } else {
-            multRsa(x, y, null, null);
+            return;
         }
+
+        BigNat result = rm.BN_F;
+        BigNat tmp = rm.BN_G;
+
+        result.clone(x);
+        result.add(y);
+        result.sq();
+        tmp.clone(x);
+        tmp.sq();
+        result.subtract(tmp);
+
+        tmp.clone(y);
+        tmp.sq();
+        result.subtract(tmp);
+
+        result.shiftRight((short) 1);
+
+        resizeToMax(false);
+        copy(result);
+        shrink();
     }
 
     /**

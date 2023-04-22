@@ -26,16 +26,17 @@ public class ObjectAllocator {
     public static final byte BN_D = 6;
     public static final byte BN_E = 7;
     public static final byte BN_F = 8;
-    
-    public static final byte EC_BN_A = 9;
-    public static final byte EC_BN_B = 10;
-    public static final byte EC_BN_C = 11;
-    public static final byte EC_BN_D = 12;
-    public static final byte EC_BN_E = 13;
-    public static final byte EC_BN_F = 14;
-    public static final byte POINT_ARRAY_A = 15;
-    public static final byte POINT_ARRAY_B = 16;
-    public static final byte HASH_ARRAY = 17;
+    public static final byte BN_G = 9;
+
+    public static final byte EC_BN_A = 10;
+    public static final byte EC_BN_B = 11;
+    public static final byte EC_BN_C = 12;
+    public static final byte EC_BN_D = 13;
+    public static final byte EC_BN_E = 14;
+    public static final byte EC_BN_F = 15;
+    public static final byte POINT_ARRAY_A = 16;
+    public static final byte POINT_ARRAY_B = 17;
+    public static final byte HASH_ARRAY = 18;
     
     public static final short ALLOCATOR_TYPE_ARRAY_LENGTH = (short) (HASH_ARRAY + 1);
     
@@ -77,6 +78,7 @@ public class ObjectAllocator {
         ALLOCATOR_TYPE_ARRAY[BN_D] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[BN_E] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[BN_F] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
+        ALLOCATOR_TYPE_ARRAY[BN_G] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[EC_BN_B] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[EC_BN_C] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
         ALLOCATOR_TYPE_ARRAY[POINT_ARRAY_A] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
