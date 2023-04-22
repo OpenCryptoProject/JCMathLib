@@ -260,7 +260,7 @@ public class BigNatInternal {
      * @param other BigNat to be subtracted from this
      */
     public void subtract(BigNatInternal other) {
-        timesMinus(other, (short) 0, (short) 1);
+        subtract(other, (short) 0, (short) 1);
     }
 
     /**
@@ -457,7 +457,7 @@ public class BigNatInternal {
                     multiple = 1;
                 }
 
-                timesMinus(divisor, divisorShift, multiple);
+                subtract(divisor, divisorShift, multiple);
 
                 if (quotient != null) {
                     short quotientDigit = (short) ((quotient.value[(short) (quotient.size - 1 - divisorShift)] & DIGIT_MASK) + multiple);
@@ -490,7 +490,7 @@ public class BigNatInternal {
      * @return true if carry occurs, false otherwise
      */
     public byte add(BigNatInternal other) {
-        return timesAdd(other, (short) 0, (short) 1);
+        return add(other, (short) 0, (short) 1);
     }
 
     /**
@@ -498,7 +498,7 @@ public class BigNatInternal {
      * Multiplier must be in range [0; 2^8 - 1].
      * This must be large enough to fit the results.
      */
-    private byte timesAdd(BigNatInternal other, short shift, short multiplier) {
+    private byte add(BigNatInternal other, short shift, short multiplier) {
         short acc = 0;
         short i = (short) (other.size - 1);
         short j = (short) (size - 1 - shift);
@@ -523,7 +523,7 @@ public class BigNatInternal {
      * Computes other * multiplier, shifts the results by shift and subtract it from this.
      * Multiplier must be in range [0; 2^8 - 1].
      */
-    private void timesMinus(BigNatInternal other, short shift, short multiplier) {
+    private void subtract(BigNatInternal other, short shift, short multiplier) {
         short acc = 0;
         short i = (short) (size - 1 - shift);
         short j = (short) (other.size - 1);
@@ -558,7 +558,7 @@ public class BigNatInternal {
     protected void multSw(BigNatInternal x, BigNatInternal y) {
         resizeToMax(true);
         for (short i = (short) (y.size - 1); i >= 0; i--) {
-            timesAdd(x, (short) (y.size - 1 - i), (short) (y.value[i] & DIGIT_MASK));
+            add(x, (short) (y.size - 1 - i), (short) (y.value[i] & DIGIT_MASK));
         }
         shrink();
     }
