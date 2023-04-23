@@ -108,6 +108,21 @@ public class ObjectAllocator {
         return null;
     }
 
+    public short[] allocateShortArray(short length, byte allocatorType) {
+        switch (allocatorType) {
+            case JCSystem.MEMORY_TYPE_PERSISTENT:
+                allocatedInEEPROM += (short) (2 * length);
+                return new short[length];
+            case JCSystem.MEMORY_TYPE_TRANSIENT_RESET:
+                allocatedInRAM += (short) (2 * length);
+                return JCSystem.makeTransientShortArray(length, JCSystem.CLEAR_ON_RESET);
+            case JCSystem.MEMORY_TYPE_TRANSIENT_DESELECT:
+                allocatedInRAM += (short) (2 * length);
+                return JCSystem.makeTransientShortArray(length, JCSystem.CLEAR_ON_DESELECT);
+        }
+        return null;
+    }
+
     /**
      * Returns pre-set allocator type for provided object identified by unique objectAllocatorID
      * @param objectAllocatorID unique id of target object
