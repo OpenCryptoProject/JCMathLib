@@ -23,4 +23,5 @@ jobs:
         java-version: '11'
     - name: Run tests
       run: ./gradlew test
-
+    - name: Run JavaCard build
+      run: ./gradlew buildJavaCard
