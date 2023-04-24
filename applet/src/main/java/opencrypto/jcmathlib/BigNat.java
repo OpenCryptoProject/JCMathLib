@@ -94,7 +94,7 @@ public class BigNat extends BigNatInternal {
         BigNat tmpOther = rm.BN_C;
         BigNat tmpThis = rm.BN_A;
 
-        if (other.lesser(this)) { // CTO
+        if (other.isLesser(this)) { // CTO
             this.subtract(other);
             this.mod(mod);
         } else { // other > this (mod - other + this)
@@ -185,7 +185,9 @@ public class BigNat extends BigNatInternal {
             BigNat tmp = rm.BN_A;
             tmp.lock();
             tmp.clone(this);
-            multSw(tmp, tmp);
+            setSizeToMax(true);
+            super.mult(tmp, tmp);
+            shrink();
             return;
         }
         if ((short) (rm.MAX_SQ_LENGTH - 1) < (short) (2 * length())) {
@@ -197,7 +199,7 @@ public class BigNat extends BigNatInternal {
 
         rm.lock(resultBuffer);
         Util.arrayFillNonAtomic(resultBuffer, (short) 0, offset, (byte) 0x00);
-        copyToBuffer(resultBuffer, offset);
+        copyToByteArray(resultBuffer, offset);
         short len = rm.sqCiph.doFinal(resultBuffer, (short) 0, rm.MAX_SQ_LENGTH, resultBuffer, (short) 0);
         if (len != rm.MAX_SQ_LENGTH) {
             if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
@@ -225,7 +227,9 @@ public class BigNat extends BigNatInternal {
             return;
         }
         if (!OperationSupport.getInstance().RSA_SQ || x.length() <= (short) 16) {
-            multSw(x, y);
+            setSizeToMax(true);
+            super.mult(x, y);
+            shrink();
             return;
         }
 
@@ -238,7 +242,7 @@ public class BigNat extends BigNatInternal {
         result.sq();
 
         tmp.lock();
-        if (x.lesser(y)) {
+        if (x.isLesser(y)) {
             tmp.clone(y);
             tmp.subtract(x);
         } else {
@@ -251,10 +255,8 @@ public class BigNat extends BigNatInternal {
         tmp.unlock();
         result.shiftRight((short) 2);
 
-        resizeToMax(false);
         copy(result);
         result.unlock();
-        shrink();
     }
 
     /**
@@ -276,7 +278,7 @@ public class BigNat extends BigNatInternal {
 
         result.lock();
         if (!OperationSupport.getInstance().RSA_SQ) {
-            result.resizeToMax(false);
+            result.setSizeToMax(false);
             result.mult(x, y);
             result.mod(mod);
             result.shrink();
@@ -284,7 +286,7 @@ public class BigNat extends BigNatInternal {
             result.clone(x);
             result.modAdd(y, mod);
 
-            result.deepResize(mod.length());
+            result.resize(mod.length());
             byte carry = (byte) 0;
             if (result.isOdd()) {
                 carry = result.add(mod);
@@ -434,7 +436,7 @@ public class BigNat extends BigNatInternal {
         while (!tmp.equals(q)) {
             s.increment();
             // TODO investigate why just mod_mult(s, q, p) does not work (apart from locks)
-            tmp.resizeToMax(false);
+            tmp.setSizeToMax(false);
             tmp.mult(s, q);
             tmp.mod(p);
             tmp.shrink();
@@ -518,7 +520,7 @@ public class BigNat extends BigNatInternal {
         tmp.setSize(mod.length());
         tmp.copy(mod);
 
-        if (!this.lesser(mod)) {
+        if (!this.isLesser(mod)) {
             this.mod(mod);
         }
         tmp.subtract(this);

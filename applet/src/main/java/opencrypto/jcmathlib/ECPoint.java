@@ -305,7 +305,7 @@ public class ECPoint {
         }
 
         lambda.lock();
-        lambda.resizeToMax(false);
+        lambda.setSizeToMax(false);
         lambda.zero();
         lambda.modMult(nominator, denominator, curve.pBN);
         nominator.unlock();
@@ -523,7 +523,7 @@ public class ECPoint {
             y2.lock();
             y2.clone(curve.pBN); // y_2 = p - y_1
             y2.modSub(y1, curve.pBN);
-            y2.copyToBuffer(pointBuffer, (short) (1 + curve.COORD_SIZE));
+            y2.copyToByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE));
             y2.unlock();
         }
         rm.unlock(resultBuffer);

@@ -257,9 +257,9 @@ public class Integer {
         } else if (this.sign == 0 && other.sign == 1) {
             return false;
         } else if ((this.sign == 0 && other.sign == 0)) {
-            return this.magnitude.lesser(other.magnitude);
+            return this.magnitude.isLesser(other.magnitude);
         } else { //if ((this.sign == 1 && other.sign==1))
-            return (!this.magnitude.lesser(other.magnitude));
+            return (!this.magnitude.isLesser(other.magnitude));
         }
     }
 
@@ -278,20 +278,20 @@ public class Integer {
             this.sign = 1;
             this.magnitude.add(other.magnitude);
         } else {
-            if (this.isPositive() && other.getMagnitude().lesser(this.getMagnitude())) { //this(+) is larger than other(-)
+            if (this.isPositive() && other.getMagnitude().isLesser(this.getMagnitude())) { //this(+) is larger than other(-)
                 this.sign = 0;
                 this.magnitude.subtract(other.magnitude);
-            } else if (this.isNegative() && other.getMagnitude().lesser(this.getMagnitude())) {    //this(-) has larger magnitude than other(+)
+            } else if (this.isNegative() && other.getMagnitude().isLesser(this.getMagnitude())) {    //this(-) has larger magnitude than other(+)
                 this.sign = 1;
                 this.magnitude.subtract(other.magnitude);
-            } else if (this.isPositive() && this.getMagnitude().lesser(other.getMagnitude())) { //this(+) has smaller magnitude than other(-)
+            } else if (this.isPositive() && this.getMagnitude().isLesser(other.getMagnitude())) { //this(+) has smaller magnitude than other(-)
                 this.sign = 1;
                 tmp.lock();
                 tmp.clone(other.getMagnitude());
                 tmp.subtract(this.magnitude);
                 this.magnitude.copy(tmp);
                 tmp.unlock();
-            } else if (this.isNegative() && this.getMagnitude().lesser(other.getMagnitude())) {  //this(-) has larger magnitude than other(+)
+            } else if (this.isNegative() && this.getMagnitude().isLesser(other.getMagnitude())) {  //this(-) has larger magnitude than other(+)
                 this.sign = 0;
                 tmp.lock();
                 tmp.clone(other.getMagnitude());
