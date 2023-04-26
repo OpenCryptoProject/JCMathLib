@@ -325,6 +325,41 @@ public class BigNatInternal {
     }
 
     /**
+     * Value equality check.
+     *
+     * @param other BigNat to compare
+     * @return true if this and other have the same value, false otherwise.
+     */
+    public boolean equals(BigNatInternal other) {
+        short offset = (short) (value.length - size);
+        short otherOffset = (short) (other.value.length - other.size);
+        short diff = (short) (size - other.size);
+
+        if (diff == 0) {
+            return Util.arrayCompare(value, offset, other.value, otherOffset, size) == 0;
+        }
+
+
+        if (diff < 0) {
+            short end = (short) (otherOffset - diff);
+            for (short i = otherOffset; i < end; ++i) {
+                if (other.value[i] != (byte) 0) {
+                    return false;
+                }
+            }
+            return Util.arrayCompare(value, offset, other.value, end, size) == 0;
+        }
+
+        short end = (short) (offset + diff);
+        for (short i = offset; i < end; ++i) {
+            if (value[i] != (byte) 0) {
+                return false;
+            }
+        }
+        return Util.arrayCompare(value, end, other.value, otherOffset, other.size) == 0;
+    }
+
+    /**
      * Increment this BigNat.
      */
     public void increment() {

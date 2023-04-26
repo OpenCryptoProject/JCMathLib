@@ -23,42 +23,6 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
-     * Equality check using hash values.
-     *
-     * @param other BigNat to compare
-     * @return true if this and other have the same value, false otherwise.
-     */
-    public boolean equals(BigNatInternal other) {
-        short hashLen;
-        byte[] tmpBuffer = rm.ARRAY_A;
-        byte[] hashBuffer = rm.ARRAY_B;
-
-        rm.lock(tmpBuffer);
-        rm.lock(hashBuffer);
-        if (this.length() == other.length()) {
-            rm.hashEngine.doFinal(this.asByteArray(), (short) 0, this.length(), hashBuffer, (short) 0);
-            hashLen = rm.hashEngine.doFinal(other.asByteArray(), (short) 0, other.length(), tmpBuffer, (short) 0);
-        } else {
-            if (this.length() < other.length()) {
-                this.prependZeros(other.length(), tmpBuffer, (short) 0);
-                rm.hashEngine.doFinal(tmpBuffer, (short) 0, other.length(), hashBuffer, (short) 0);
-                hashLen = rm.hashEngine.doFinal(other.asByteArray(), (short) 0, other.length(), tmpBuffer, (short) 0);
-            } else {
-                other.prependZeros(this.length(), tmpBuffer, (short) 0);
-                rm.hashEngine.doFinal(tmpBuffer, (short) 0, this.length(), hashBuffer, (short) 0);
-                hashLen = rm.hashEngine.doFinal(this.asByteArray(), (short) 0, this.length(), tmpBuffer, (short) 0);
-            }
-        }
-
-        boolean result = Util.arrayCompare(hashBuffer, (short) 0, tmpBuffer, (short) 0, hashLen) == 0;
-
-        rm.unlock(tmpBuffer);
-        rm.unlock(hashBuffer);
-
-        return result;
-    }
-
-    /**
      * Add other BigNat to this BigNat modulo mod.
      *
      * @param other value to add
@@ -67,26 +31,22 @@ public class BigNat extends BigNatInternal {
     public void modAdd(BigNat other, BigNat mod) {
         BigNat tmp = rm.BN_A;
 
-        short tmpSize = length();
-        if (tmpSize < other.length()) {
-            tmpSize = other.length();
-        }
+        short tmpSize = length() < other.length() ? other.length() : length();
         tmpSize++;
         tmp.lock();
         tmp.setSize(tmpSize);
-        tmp.zero();
         tmp.copy(this);
         tmp.add(other);
         tmp.mod(mod);
-        tmp.shrink();
-        this.clone(tmp);
+        setSize(mod.length());
+        copy(tmp);
         tmp.unlock();
     }
 
     /**
      * Subtract other BigNat from this BigNat modulo mod.
      *
-     * @param other  value to subtract
+     * @param other value to subtract
      * @param mod value of modulo to apply
      */
     public void modSub(BigNat other, BigNat mod) {
@@ -95,8 +55,9 @@ public class BigNat extends BigNatInternal {
         BigNat tmpThis = rm.BN_A;
 
         if (other.isLesser(this)) { // CTO
-            this.subtract(other);
-            this.mod(mod);
+            subtract(other);
+            mod(mod);
+            resize(mod.length());
         } else { // other > this (mod - other + this)
             tmpOther.lock();
             tmpOther.clone(other);
@@ -113,8 +74,8 @@ public class BigNat extends BigNatInternal {
             tmp.add(tmpThis); // this will never overflow as "other" is larger than "this"
             tmpThis.unlock();
             tmp.mod(mod);
-            tmp.shrink();
-            this.clone(tmp);
+            setSize(mod.length());
+            copy(tmp);
             tmp.unlock();
         }
     }
@@ -130,7 +91,7 @@ public class BigNat extends BigNatInternal {
         tmp.lock();
         tmp.clone(this);
         tmp.remainderDivide(other, this);
-        this.clone(tmp);
+        copy(tmp);
         tmp.unlock();
     }
 
@@ -151,9 +112,9 @@ public class BigNat extends BigNatInternal {
         // TODO: optimise?
         while (!other.isZero()) {
             tmp.clone(tmpOther);
-            this.mod(tmpOther);
+            mod(tmpOther);
             tmpOther.clone(this);
-            this.clone(tmp);
+            clone(tmp);
         }
 
         tmp.unlock();
@@ -174,7 +135,9 @@ public class BigNat extends BigNatInternal {
         tmp.clone(a);
 
         tmp.gcd(b);
-        return tmp.equals(ResourceManager.ONE);
+        boolean result = tmp.isOne();
+        tmp.unlock();
+        return result;
     }
 
     /**
@@ -182,7 +145,7 @@ public class BigNat extends BigNatInternal {
      */
     public void sq() {
         if (!OperationSupport.getInstance().RSA_SQ) {
-            BigNat tmp = rm.BN_A;
+            BigNat tmp = rm.BN_E;
             tmp.lock();
             tmp.clone(this);
             setSizeToMax(true);
@@ -271,8 +234,9 @@ public class BigNat extends BigNatInternal {
         BigNat tmp = rm.BN_D;
         BigNat result = rm.BN_E;
 
+        setSize(mod.length());
         if (OperationSupport.getInstance().RSA_CHECK_ONE && x.isOne()) {
-            clone(y);
+            copy(y);
             return;
         }
 
@@ -281,7 +245,6 @@ public class BigNat extends BigNatInternal {
             result.setSizeToMax(false);
             result.mult(x, y);
             result.mod(mod);
-            result.shrink();
         } else {
             result.clone(x);
             result.modAdd(y, mod);
@@ -303,17 +266,17 @@ public class BigNat extends BigNatInternal {
             result.modSub(tmp, mod);
             tmp.unlock();
         }
-        this.clone(result);
+        copy(result);
         result.unlock();
     }
 
     /**
-     * Computes (this ^ exponent % modulo) using RSA algorithm and store results into this.
+     * Computes (this ^ exp % mod) using RSA algorithm and store results into this.
      *
-     * @param exponent exponent
-     * @param modulo modulo
+     * @param exp exponent
+     * @param mod modulo
      */
-    public void modExp(BigNat exponent, BigNat modulo) {
+    public void modExp(BigNat exp, BigNat mod) {
         if (!OperationSupport.getInstance().RSA_EXP)
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
 
@@ -326,51 +289,51 @@ public class BigNat extends BigNatInternal {
 
         if (OperationSupport.getInstance().RSA_PUB) {
             // Verify if pre-allocated engine match the required values
-            if (rm.expPub.getSize() < (short) (modulo.length() * 8) || rm.expPub.getSize() < (short) (this.length() * 8)) {
+            if (rm.expPub.getSize() < (short) (mod.length() * 8) || rm.expPub.getSize() < (short) (length() * 8)) {
                 ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
             }
             if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
                 // Simulator fails when reusing the original object
                 rm.expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, rm.MAX_EXP_BIT_LENGTH, false);
             }
-            rm.expPub.setExponent(exponent.asByteArray(), (short) 0, exponent.length());
+            rm.expPub.setExponent(exp.asByteArray(), (short) 0, exp.length());
             rm.lock(tmpBuffer);
             if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
                 if (OperationSupport.getInstance().RSA_APPEND_MOD) {
-                    modulo.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+                    mod.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 } else {
-                    modulo.prependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+                    mod.prependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 }
                 rm.expPub.setModulus(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
                 modLength = rm.MAX_EXP_LENGTH;
             } else {
-                rm.expPub.setModulus(modulo.asByteArray(), (short) 0, modulo.length());
-                modLength = modulo.length();
+                rm.expPub.setModulus(mod.asByteArray(), (short) 0, mod.length());
+                modLength = mod.length();
             }
             rm.expCiph.init(rm.expPub, Cipher.MODE_DECRYPT);
         } else {
             // Verify if pre-allocated engine match the required values
-            if (rm.expPriv.getSize() < (short) (modulo.length() * 8) || rm.expPriv.getSize() < (short) (this.length() * 8)) {
+            if (rm.expPriv.getSize() < (short) (mod.length() * 8) || rm.expPriv.getSize() < (short) (length() * 8)) {
                 ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
             }
             if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
                 // Simulator fails when reusing the original object
                 rm.expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, rm.MAX_EXP_BIT_LENGTH, false);
             }
-            rm.expPriv.setExponent(exponent.asByteArray(), (short) 0, exponent.length());
+            rm.expPriv.setExponent(exp.asByteArray(), (short) 0, exp.length());
             rm.lock(tmpBuffer);
             if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
                 if (OperationSupport.getInstance().RSA_APPEND_MOD) {
-                    modulo.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+                    mod.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 } else {
-                    modulo.prependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+                    mod.prependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
 
                 }
                 rm.expPriv.setModulus(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
                 modLength = rm.MAX_EXP_LENGTH;
             } else {
-                rm.expPriv.setModulus(modulo.asByteArray(), (short) 0, modulo.length());
-                modLength = modulo.length();
+                rm.expPriv.setModulus(mod.asByteArray(), (short) 0, mod.length());
+                modLength = mod.length();
             }
             rm.expCiph.init(rm.expPriv, Cipher.MODE_DECRYPT);
         }
@@ -393,10 +356,10 @@ public class BigNat extends BigNatInternal {
         rm.unlock(tmpBuffer);
 
         if (OperationSupport.getInstance().RSA_EXTRA_MOD) {
-            tmpMod.mod(modulo);
+            tmpMod.mod(mod);
         }
-        tmpMod.shrink();
-        this.clone(tmpMod);
+        setSize(mod.length());
+        copy(tmpMod);
         tmpMod.unlock();
     }
 
@@ -435,7 +398,7 @@ public class BigNat extends BigNatInternal {
 
         while (!tmp.equals(q)) {
             s.increment();
-            // TODO investigate why just mod_mult(s, q, p) does not work (apart from locks)
+            // TODO replace with modMult(s, q, p)
             tmp.setSizeToMax(false);
             tmp.mult(s, q);
             tmp.mod(p);
@@ -454,8 +417,7 @@ public class BigNat extends BigNatInternal {
         z.setSize(p.length());
         z.setValue((byte) 1);
         tmp.lock();
-        tmp.zero();
-        tmp.copy(ResourceManager.ONE);
+        tmp.setValue((byte) 1);
 
         while (!tmp.equals(p1)) {
             z.increment();
@@ -470,18 +432,18 @@ public class BigNat extends BigNatInternal {
         exp.increment();
         exp.shiftRight((short) 1);
 
-        this.mod(p);
-        this.modExp(exp, p);
+        mod(p);
+        modExp(exp, p);
         exp.unlock();
     }
 
     /**
-     * Computes modulo and stores it in this.
+     * Computes modulo and stores the result in this.
      *
-     * @param modulo value of modulo
+     * @param mod modulo
      */
-    public void mod(BigNat modulo) {
-        remainderDivide(modulo, null);
+    public void mod(BigNat mod) {
+        remainderDivide(mod, null);
     }
 
     /**
@@ -517,14 +479,14 @@ public class BigNat extends BigNatInternal {
         BigNat tmp = rm.BN_B;
 
         tmp.lock();
-        tmp.setSize(mod.length());
-        tmp.copy(mod);
+        tmp.clone(mod);
 
-        if (!this.isLesser(mod)) {
-            this.mod(mod);
+        if (!isLesser(mod)) {
+            mod(mod);
         }
         tmp.subtract(this);
-        this.copy(tmp);
+        setSize(mod.length());
+        copy(tmp);
         tmp.unlock();
     }
 }

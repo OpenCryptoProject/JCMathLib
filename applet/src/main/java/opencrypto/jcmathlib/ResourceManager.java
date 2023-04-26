@@ -27,7 +27,7 @@ public class ResourceManager {
     BigNat BN_WORD;
     BigNat BN_A, BN_B, BN_C, BN_D, BN_E, BN_F, BN_G;
     BigNat EC_BN_A, EC_BN_B, EC_BN_C, EC_BN_D, EC_BN_E, EC_BN_F;
-    public static BigNat ONE, TWO, THREE, ONE_COORD;
+    public static BigNat TWO, THREE, ONE_COORD;
 
     public final short MAX_EXP_BIT_LENGTH;
     public final short MAX_EXP_LENGTH;
@@ -102,8 +102,6 @@ public class ResourceManager {
         EC_BN_F = new BigNat(MAX_COORD_SIZE, memAlloc.getAllocatorType(ObjectAllocator.EC_BN_F), this);
 
         // Allocate BN constants always in EEPROM (only reading)
-        ONE = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
-        ONE.setValue((byte) 1);
         TWO = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
         TWO.setValue((byte) 2);
         THREE = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
