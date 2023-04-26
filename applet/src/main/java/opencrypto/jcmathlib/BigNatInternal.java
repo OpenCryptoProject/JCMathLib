@@ -18,10 +18,7 @@ public class BigNatInternal {
     private byte allocatorType;
 
     /**
-     * Construct a BigNat of given size in bytes.
-     *
-     * @param size the size of the new BigNat in bytes
-     * @param allocatorType type of allocator storage
+     * Construct a BigNat of a given size in bytes.
      */
     public BigNatInternal(short size, byte allocatorType, ResourceManager rm) {
         this.rm = rm;

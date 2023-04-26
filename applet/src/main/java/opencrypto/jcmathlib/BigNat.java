@@ -13,77 +13,14 @@ import javacard.security.KeyBuilder;
 public class BigNat extends BigNatInternal {
 
     /**
-     * Construct a BigNat of given size.
-     *
-     * @param size the size of the new BigNat in bytes
-     * @param allocatorType type of allocator storage
+     * Construct a BigNat of a given size in bytes.
      */
     public BigNat(short size, byte allocatorType, ResourceManager rm) {
         super(size, allocatorType, rm);
     }
 
     /**
-     * Add other BigNat to this BigNat modulo mod.
-     *
-     * @param other value to add
-     * @param mod modulo
-     */
-    public void modAdd(BigNat other, BigNat mod) {
-        BigNat tmp = rm.BN_A;
-
-        short tmpSize = length() < other.length() ? other.length() : length();
-        tmpSize++;
-        tmp.lock();
-        tmp.setSize(tmpSize);
-        tmp.copy(this);
-        tmp.add(other);
-        tmp.mod(mod);
-        setSize(mod.length());
-        copy(tmp);
-        tmp.unlock();
-    }
-
-    /**
-     * Subtract other BigNat from this BigNat modulo mod.
-     *
-     * @param other value to subtract
-     * @param mod value of modulo to apply
-     */
-    public void modSub(BigNat other, BigNat mod) {
-        BigNat tmp = rm.BN_B;
-        BigNat tmpOther = rm.BN_C;
-        BigNat tmpThis = rm.BN_A;
-
-        if (other.isLesser(this)) { // CTO
-            subtract(other);
-            mod(mod);
-            resize(mod.length());
-        } else { // other > this (mod - other + this)
-            tmpOther.lock();
-            tmpOther.clone(other);
-            tmpOther.mod(mod);
-
-            tmpThis.lock();
-            tmpThis.clone(this);
-            tmpThis.mod(mod);
-
-            tmp.lock();
-            tmp.clone(mod);
-            tmp.subtract(tmpOther);
-            tmpOther.unlock();
-            tmp.add(tmpThis); // this will never overflow as "other" is larger than "this"
-            tmpThis.unlock();
-            tmp.mod(mod);
-            setSize(mod.length());
-            copy(tmp);
-            tmp.unlock();
-        }
-    }
-
-    /**
      * Division of this BigNat by provided other BigNat.
-     *
-     * @param other divisor
      */
     public void divide(BigNat other) {
         BigNat tmp = rm.BN_E;
@@ -97,8 +34,6 @@ public class BigNat extends BigNatInternal {
 
     /**
      * Greatest common divisor of this BigNat with other BigNat. Result is stored into this.
-     *
-     * @param other value of other BigNat
      */
     public void gcd(BigNat other) {
         BigNat tmp = rm.BN_A;
@@ -123,10 +58,6 @@ public class BigNat extends BigNatInternal {
 
     /**
      * Decides whether the arguments are co-prime or not.
-     *
-     * @param a BigNat value
-     * @param b BigNat value
-     * @return true if co-prime, false otherwise
      */
     public boolean isCoprime(BigNat a, BigNat b) {
         BigNat tmp = rm.BN_C;
@@ -179,10 +110,7 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
-     * Computes x * y and stores the result into this. Chooses computation approach based on operation support and operand size.
-     *
-     * @param x left operand
-     * @param y right operand
+     * Computes x * y and stores the result into this.
      */
     public void mult(BigNat x, BigNat y) {
         if (OperationSupport.getInstance().RSA_CHECK_ONE && x.isOne()) {
@@ -223,58 +151,84 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
-     * Multiplication of BigNats x and y computed modulo mod.
-     * The result is stored to this.
-     *
-     * @param x first value to multiply
-     * @param y second value to multiply
-     * @param mod value of modulo
+     * Computes modulo and stores the result in this.
      */
-    public void modMult(BigNat x, BigNat y, BigNat mod) {
-        BigNat tmp = rm.BN_D;
-        BigNat result = rm.BN_E;
+    public void mod(BigNat mod) {
+        remainderDivide(mod, null);
+    }
 
-        setSize(mod.length());
-        if (OperationSupport.getInstance().RSA_CHECK_ONE && x.isOne()) {
-            copy(y);
-            return;
+    /**
+     * Negate current BigNat modulo provided modulus.
+     */
+    public void modNegate(BigNat mod) {
+        BigNat tmp = rm.BN_B;
+
+        tmp.lock();
+        tmp.clone(mod);
+
+        if (!isLesser(mod)) {
+            mod(mod);
         }
+        tmp.subtract(this);
+        setSize(mod.length());
+        copy(tmp);
+        tmp.unlock();
+    }
 
-        result.lock();
-        if (!OperationSupport.getInstance().RSA_SQ) {
-            result.setSizeToMax(false);
-            result.mult(x, y);
-            result.mod(mod);
-        } else {
-            result.clone(x);
-            result.modAdd(y, mod);
+    /**
+     * Modular addition of a BigNat to this.
+     */
+    public void modAdd(BigNat other, BigNat mod) {
+        BigNat tmp = rm.BN_A;
 
-            result.resize(mod.length());
-            byte carry = (byte) 0;
-            if (result.isOdd()) {
-                carry = result.add(mod);
-            }
-            result.shiftRight((short) 1, carry != 0 ? (short) (1 << 7) : (short) 0);
+        short tmpSize = length() < other.length() ? other.length() : length();
+        tmpSize++;
+        tmp.lock();
+        tmp.setSize(tmpSize);
+        tmp.copy(this);
+        tmp.add(other);
+        tmp.mod(mod);
+        setSize(mod.length());
+        copy(tmp);
+        tmp.unlock();
+    }
+
+    /**
+     * Modular subtraction of a BigNat from this.
+     */
+    public void modSub(BigNat other, BigNat mod) {
+        BigNat tmp = rm.BN_B;
+        BigNat tmpOther = rm.BN_C;
+        BigNat tmpThis = rm.BN_A;
+
+        if (other.isLesser(this)) { // CTO
+            subtract(other);
+            mod(mod);
+            resize(mod.length());
+        } else { // other > this (mod - other + this)
+            tmpOther.lock();
+            tmpOther.clone(other);
+            tmpOther.mod(mod);
+
+            tmpThis.lock();
+            tmpThis.clone(this);
+            tmpThis.mod(mod);
 
             tmp.lock();
-            tmp.clone(result);
-            tmp.modSub(y, mod);
-
-            result.modSq(mod);
-            tmp.modSq(mod);
-
-            result.modSub(tmp, mod);
+            tmp.clone(mod);
+            tmp.subtract(tmpOther);
+            tmpOther.unlock();
+            tmp.add(tmpThis); // this will never overflow as "other" is larger than "this"
+            tmpThis.unlock();
+            tmp.mod(mod);
+            setSize(mod.length());
+            copy(tmp);
             tmp.unlock();
         }
-        copy(result);
-        result.unlock();
     }
 
     /**
      * Computes (this ^ exp % mod) using RSA algorithm and store results into this.
-     *
-     * @param exp exponent
-     * @param mod modulo
      */
     public void modExp(BigNat exp, BigNat mod) {
         if (!OperationSupport.getInstance().RSA_EXP)
@@ -363,12 +317,81 @@ public class BigNat extends BigNatInternal {
         tmpMod.unlock();
     }
 
+    /**
+     * Computes modular inversion. The result is stored into this.
+     */
+    public void modInv(BigNat mod) {
+        BigNat tmp = rm.BN_B;
+        tmp.lock();
+        tmp.clone(mod);
+        tmp.decrement();
+        tmp.decrement();
+
+        modExp(tmp, mod);
+        tmp.unlock();
+    }
 
     /**
-     * Computes square root of provided BigNat which MUST be prime using Tonelli
-     * Shanks Algorithm. The result (one of the two roots) is stored to this.
+     * Multiplication of BigNats x and y computed modulo mod. The result is stored to this.
      *
-     * @param p value to compute square root from
+     * @param x   first value to multiply
+     * @param y   second value to multiply
+     * @param mod value of modulo
+     */
+    public void modMult(BigNat x, BigNat y, BigNat mod) {
+        BigNat tmp = rm.BN_D;
+        BigNat result = rm.BN_E;
+
+        setSize(mod.length());
+        if (OperationSupport.getInstance().RSA_CHECK_ONE && x.isOne()) {
+            copy(y);
+            return;
+        }
+
+        result.lock();
+        if (!OperationSupport.getInstance().RSA_SQ) {
+            result.setSizeToMax(false);
+            result.mult(x, y);
+            result.mod(mod);
+        } else {
+            result.clone(x);
+            result.modAdd(y, mod);
+
+            result.resize(mod.length());
+            byte carry = (byte) 0;
+            if (result.isOdd()) {
+                carry = result.add(mod);
+            }
+            result.shiftRight((short) 1, carry != 0 ? (short) (1 << 7) : (short) 0);
+
+            tmp.lock();
+            tmp.clone(result);
+            tmp.modSub(y, mod);
+
+            result.modSq(mod);
+            tmp.modSq(mod);
+
+            result.modSub(tmp, mod);
+            tmp.unlock();
+        }
+        copy(result);
+        result.unlock();
+    }
+
+    /**
+     * Computes modulo square of this BigNat.
+     */
+    public void modSq(BigNat mod) {
+        if (OperationSupport.getInstance().RSA_SQ) {
+            modExp(ResourceManager.TWO, mod);
+        } else {
+            modMult(this, this, mod);
+        }
+    }
+
+    /**
+     * Computes square root of provided BigNat which MUST be prime using Tonelli Shanks Algorithm. The result (one of
+     * the two roots) is stored to this.
      */
     public void modSqrt(BigNat p) {
         BigNat s = rm.BN_A;
@@ -435,58 +458,5 @@ public class BigNat extends BigNatInternal {
         mod(p);
         modExp(exp, p);
         exp.unlock();
-    }
-
-    /**
-     * Computes modulo and stores the result in this.
-     *
-     * @param mod modulo
-     */
-    public void mod(BigNat mod) {
-        remainderDivide(mod, null);
-    }
-
-    /**
-     * Computes modular inversion. The result is stored into this.
-     *
-     * @param modulo modulo
-     */
-    public void modInv(BigNat modulo) {
-        BigNat tmp = rm.BN_B;
-        tmp.lock();
-        tmp.clone(modulo);
-        tmp.decrement();
-        tmp.decrement();
-
-        modExp(tmp, modulo);
-        tmp.unlock();
-    }
-
-    public void modSq(BigNat modulo) {
-        if (OperationSupport.getInstance().RSA_SQ) {
-            modExp(ResourceManager.TWO, modulo);
-        } else {
-            modMult(this, this, modulo);
-        }
-    }
-
-    /**
-     * Negate current BigNat modulo provided modulus.
-     *
-     * @param mod modulus
-     */
-    public void modNegate(BigNat mod) {
-        BigNat tmp = rm.BN_B;
-
-        tmp.lock();
-        tmp.clone(mod);
-
-        if (!isLesser(mod)) {
-            mod(mod);
-        }
-        tmp.subtract(this);
-        setSize(mod.length());
-        copy(tmp);
-        tmp.unlock();
     }
 }
