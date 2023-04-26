@@ -108,6 +108,14 @@ public class ObjectAllocator {
         return null;
     }
 
+    /**
+     * Allocates new short[] array with provided length either in RAM or EEPROM based on an allocator type.
+     * Method updates internal counters of bytes allocated with specific allocator. Use {@code getAllocatedInRAM()}
+     * or {@code getAllocatedInEEPROM} for counters readout.
+     * @param length length of array
+     * @param allocatorType type of allocator
+     * @return allocated array
+     */
     public short[] allocateShortArray(short length, byte allocatorType) {
         switch (allocatorType) {
             case JCSystem.MEMORY_TYPE_PERSISTENT:

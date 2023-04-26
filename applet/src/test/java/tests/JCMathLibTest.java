@@ -233,10 +233,12 @@ public class JCMathLibTest extends BaseTest {
         @Test
         public void bigNatStorage() throws Exception {
             BigInteger num = randomBigNat(BIGNAT_BIT_LENGTH);
-            CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_STR, 0, 0, num.toByteArray());
+            byte[] data = Util.concat(new byte[]{}, num.toByteArray());
+            CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_STR, 0, 0, data);
             ResponseAPDU resp = statefulCard.transmit(cmd);
 
             Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+            Assertions.assertArrayEquals(data, resp.getData());
             statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
         }
 
@@ -281,7 +283,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatSq() throws Exception {
-            BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH + 9);
+            BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger result = num1.multiply(num1);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQ, 0, 0, num1.toByteArray());
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -350,7 +352,7 @@ public class JCMathLibTest extends BaseTest {
         public void bigNatModAdd() throws Exception {
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
-            BigInteger num3 = randomBigNat(BIGNAT_BIT_LENGTH / 8);
+            BigInteger num3 = new BigInteger(1, SecP256r1.r);
             BigInteger result = (num1.add(num2)).mod(num3);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_ADD_MOD, (num1.toByteArray()).length, (num2.toByteArray()).length, Util.concat((num1.toByteArray()), (num2.toByteArray()), (num3.toByteArray())));
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -364,7 +366,7 @@ public class JCMathLibTest extends BaseTest {
         public void bigNatModSub() throws Exception {
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
-            BigInteger num3 = randomBigNat(BIGNAT_BIT_LENGTH / 8);
+            BigInteger num3 = new BigInteger(1, SecP256r1.r);
             BigInteger result = (num1.subtract(num2)).mod(num3);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SUB_MOD, (num1.toByteArray()).length, (num2.toByteArray()).length, Util.concat((num1.toByteArray()), (num2.toByteArray()), (num3.toByteArray())));
             ResponseAPDU resp = statefulCard.transmit(cmd);

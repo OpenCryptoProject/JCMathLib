@@ -22,7 +22,6 @@ public class BigNatInternal {
      */
     public BigNatInternal(short size, byte allocatorType, ResourceManager rm) {
         this.rm = rm;
-        this.allocatorType = allocatorType;
         allocateStorageArray(size, allocatorType);
     }
 
@@ -168,7 +167,7 @@ public class BigNatInternal {
      */
     public void shrink() {
         short i;
-        for (i = 0; i < length(); i++) { // Find first non-zero byte
+        for (i = 0; i < size; i++) { // Find first non-zero byte
             if (value[i] != 0) {
                 break;
             }
@@ -243,7 +242,7 @@ public class BigNatInternal {
      * Copies a BigNat into this including its size. May require reallocation.
      */
     public void clone(BigNatInternal other) {
-        if (other.length() > (short) value.length) {
+        if (other.size > (short) value.length) {
             if (!ALLOW_RUNTIME_REALLOCATION) {
                 ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED);
             }
@@ -251,11 +250,11 @@ public class BigNatInternal {
         }
 
         other.copyToByteArray(value, (short) 0);
-        short diff = (short) ((short) value.length - other.length());
+        short diff = (short) ((short) value.length - other.size);
         if (diff > 0) {
-            Util.arrayFillNonAtomic(value, other.length(), diff, (byte) 0);
+            Util.arrayFillNonAtomic(value, other.size, diff, (byte) 0);
         }
-        this.size = other.length();
+        setSize(other.size);
     }
 
     /**
@@ -429,7 +428,7 @@ public class BigNatInternal {
         }
 
         // output carry bit if present
-        return (byte) ((byte) (((short) (acc | -acc) & (short) 0xFFFF) >>> 15) & 0x01);
+        return (byte) (((byte) (((short) (acc | -acc) & (short) 0xFFFF) >>> 15) & 0x01) << 7);
     }
 
     /**
@@ -555,7 +554,6 @@ public class BigNatInternal {
                             bitShift
                     );
                     divisorDigit = shiftBits(firstDivisorDigit, secondDivisorDigit, thirdDivisorDigit, bitShift);
-
                 }
 
                 short multiple = (short) (dividentDigits / (short) (divisorDigit + 1));

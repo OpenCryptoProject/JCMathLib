@@ -78,7 +78,8 @@ public class BigNat extends BigNatInternal {
         if (!OperationSupport.getInstance().RSA_SQ) {
             BigNat tmp = rm.BN_E;
             tmp.lock();
-            tmp.clone(this);
+            tmp.setSize(this.length());
+            tmp.copy(this);
             setSizeToMax(true);
             super.mult(tmp, tmp);
             shrink();
@@ -165,10 +166,6 @@ public class BigNat extends BigNatInternal {
 
         tmp.lock();
         tmp.clone(mod);
-
-        if (!isLesser(mod)) {
-            mod(mod);
-        }
         tmp.subtract(this);
         setSize(mod.length());
         copy(tmp);
@@ -181,13 +178,13 @@ public class BigNat extends BigNatInternal {
     public void modAdd(BigNat other, BigNat mod) {
         BigNat tmp = rm.BN_A;
 
-        short tmpSize = length() < other.length() ? other.length() : length();
-        tmpSize++;
         tmp.lock();
-        tmp.setSize(tmpSize);
+        tmp.setSize((short) (mod.length() + 1));
         tmp.copy(this);
         tmp.add(other);
-        tmp.mod(mod);
+        if (!tmp.isLesser(mod)) {
+            tmp.subtract(mod);
+        }
         setSize(mod.length());
         copy(tmp);
         tmp.unlock();
@@ -197,34 +194,18 @@ public class BigNat extends BigNatInternal {
      * Modular subtraction of a BigNat from this.
      */
     public void modSub(BigNat other, BigNat mod) {
-        BigNat tmp = rm.BN_B;
-        BigNat tmpOther = rm.BN_C;
-        BigNat tmpThis = rm.BN_A;
+        BigNat tmp = rm.BN_A;
 
-        if (other.isLesser(this)) { // CTO
-            subtract(other);
-            mod(mod);
-            resize(mod.length());
-        } else { // other > this (mod - other + this)
-            tmpOther.lock();
-            tmpOther.clone(other);
-            tmpOther.mod(mod);
-
-            tmpThis.lock();
-            tmpThis.clone(this);
-            tmpThis.mod(mod);
-
-            tmp.lock();
-            tmp.clone(mod);
-            tmp.subtract(tmpOther);
-            tmpOther.unlock();
-            tmp.add(tmpThis); // this will never overflow as "other" is larger than "this"
-            tmpThis.unlock();
-            tmp.mod(mod);
-            setSize(mod.length());
-            copy(tmp);
-            tmp.unlock();
+        tmp.lock();
+        tmp.setSize((short) (mod.length() + 1));
+        tmp.copy(this);
+        if (tmp.isLesser(other)) {
+            tmp.add(mod);
         }
+        tmp.subtract(other);
+        setSize(mod.length());
+        copy(tmp);
+        tmp.unlock();
     }
 
     /**
@@ -333,10 +314,6 @@ public class BigNat extends BigNatInternal {
 
     /**
      * Multiplication of BigNats x and y computed modulo mod. The result is stored to this.
-     *
-     * @param x   first value to multiply
-     * @param y   second value to multiply
-     * @param mod value of modulo
      */
     public void modMult(BigNat x, BigNat y, BigNat mod) {
         BigNat tmp = rm.BN_D;
@@ -358,11 +335,11 @@ public class BigNat extends BigNatInternal {
             result.modAdd(y, mod);
 
             result.resize(mod.length());
-            byte carry = (byte) 0;
+            short carry = (byte) 0;
             if (result.isOdd()) {
                 carry = result.add(mod);
             }
-            result.shiftRight((short) 1, carry != 0 ? (short) (1 << 7) : (short) 0);
+            result.shiftRight((short) 1, carry);
 
             tmp.lock();
             tmp.clone(result);
