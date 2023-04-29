@@ -38,15 +38,6 @@ public class BigNatInternal {
     }
 
     /**
-     * Return a byte representation of this BigNat.
-     *
-     * @return the byte array
-     */
-    public byte[] asByteArray() {
-        return value;
-    }
-
-    /**
      * Set value of this from a byte array representation.
      *
      * @param source the byte array
@@ -327,32 +318,30 @@ public class BigNatInternal {
      * @return true if this and other have the same value, false otherwise.
      */
     public boolean equals(BigNatInternal other) {
-        short offset = (short) (value.length - size);
-        short otherOffset = (short) (other.value.length - other.size);
         short diff = (short) (size - other.size);
 
         if (diff == 0) {
-            return Util.arrayCompare(value, offset, other.value, otherOffset, size) == 0;
+            return Util.arrayCompare(value, (short) 0, other.value, (short) 0, size) == 0;
         }
 
 
         if (diff < 0) {
-            short end = (short) (otherOffset - diff);
-            for (short i = otherOffset; i < end; ++i) {
+            short end = (short) -diff;
+            for (short i = 0; i < end; ++i) {
                 if (other.value[i] != (byte) 0) {
                     return false;
                 }
             }
-            return Util.arrayCompare(value, offset, other.value, end, size) == 0;
+            return Util.arrayCompare(value, (short) 0, other.value, end, size) == 0;
         }
 
-        short end = (short) (offset + diff);
-        for (short i = offset; i < end; ++i) {
+        short end = diff;
+        for (short i = (short) 0; i < end; ++i) {
             if (value[i] != (byte) 0) {
                 return false;
             }
         }
-        return Util.arrayCompare(value, end, other.value, otherOffset, other.size) == 0;
+        return Util.arrayCompare(value, end, other.value, (short) 0, other.size) == 0;
     }
 
     /**

@@ -51,7 +51,10 @@ public class Integer {
      * @param other integer to copy from
      */
     public Integer(Integer other) {
-        allocate(other.getSize(), other.getSign(), other.getMagnitude_b(), (short) 0, other.rm);
+        rm.lock(rm.ARRAY_A);
+        short len = magnitude.copyToByteArray(rm.ARRAY_A, (short) 0);
+        allocate(len, other.getSign(), rm.ARRAY_A, (short) 0, other.rm);
+        rm.unlock(rm.ARRAY_A);
     }
 
     /**
@@ -65,7 +68,10 @@ public class Integer {
     public Integer(byte sign, BigNat magnitude, boolean copy, ResourceManager rm) {
         if (copy) {
             // Copy from provided BigNat
-            allocate(magnitude.length(), sign, magnitude.asByteArray(), (short) 0, rm);
+            rm.lock(rm.ARRAY_A);
+            short len = magnitude.copyToByteArray(rm.ARRAY_A, (short) 0);
+            allocate(len, sign, rm.ARRAY_A, (short) 0, rm);
+            rm.unlock(rm.ARRAY_A);
         } else {
             // Use directly provided BigNat as storage - no allocation
             initialize(sign, magnitude, rm);
@@ -169,16 +175,6 @@ public class Integer {
     }
 
     /**
-     * Returns internal array as byte array. No copy is performed so change of
-     * values in array also changes this integer
-     *
-     * @return byte array with magnitude
-     */
-    public byte[] getMagnitude_b() {
-        return this.magnitude.asByteArray();
-    }
-
-    /**
      * Returns magnitude as Bignat. No copy is performed so change of Bignat also changes this integer
      *
      * @return Bignat representing magnitude
@@ -208,7 +204,7 @@ public class Integer {
         //Store sign
         outBuffer[outBufferOffset] = sign;
         //Store magnitude
-        Util.arrayCopyNonAtomic(this.getMagnitude_b(), (short) 0, outBuffer, (short) (outBufferOffset + 1), this.getSize());
+        magnitude.copyToByteArray(outBuffer, (short) (outBufferOffset + 1));
         return (short) (this.getSize() + 1);
     }
 

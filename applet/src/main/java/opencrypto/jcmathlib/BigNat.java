@@ -231,8 +231,9 @@ public class BigNat extends BigNatInternal {
                 // Simulator fails when reusing the original object
                 rm.expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, rm.MAX_EXP_BIT_LENGTH, false);
             }
-            rm.expPub.setExponent(exp.asByteArray(), (short) 0, exp.length());
             rm.lock(tmpBuffer);
+            short len = exp.copyToByteArray(tmpBuffer, (short) 0);
+            rm.expPub.setExponent(tmpBuffer, (short) 0, len);
             if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
                 if (OperationSupport.getInstance().RSA_APPEND_MOD) {
                     mod.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
@@ -242,8 +243,8 @@ public class BigNat extends BigNatInternal {
                 rm.expPub.setModulus(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
                 modLength = rm.MAX_EXP_LENGTH;
             } else {
-                rm.expPub.setModulus(mod.asByteArray(), (short) 0, mod.length());
-                modLength = mod.length();
+                modLength = mod.copyToByteArray(tmpBuffer, (short) 0);
+                rm.expPub.setModulus(tmpBuffer, (short) 0, modLength);
             }
             rm.expCiph.init(rm.expPub, Cipher.MODE_DECRYPT);
         } else {
@@ -255,8 +256,9 @@ public class BigNat extends BigNatInternal {
                 // Simulator fails when reusing the original object
                 rm.expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, rm.MAX_EXP_BIT_LENGTH, false);
             }
-            rm.expPriv.setExponent(exp.asByteArray(), (short) 0, exp.length());
             rm.lock(tmpBuffer);
+            short len = exp.copyToByteArray(tmpBuffer, (short) 0);
+            rm.expPriv.setExponent(tmpBuffer, (short) 0, len);
             if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
                 if (OperationSupport.getInstance().RSA_APPEND_MOD) {
                     mod.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
@@ -267,8 +269,8 @@ public class BigNat extends BigNatInternal {
                 rm.expPriv.setModulus(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
                 modLength = rm.MAX_EXP_LENGTH;
             } else {
-                rm.expPriv.setModulus(mod.asByteArray(), (short) 0, mod.length());
-                modLength = mod.length();
+                modLength = mod.copyToByteArray(tmpBuffer, (short) 0);
+                rm.expPriv.setModulus(tmpBuffer, (short) 0, modLength);
             }
             rm.expCiph.init(rm.expPriv, Cipher.MODE_DECRYPT);
         }

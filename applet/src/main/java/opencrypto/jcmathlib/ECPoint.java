@@ -148,15 +148,6 @@ public class ECPoint {
     }
 
     /**
-     * Returns the Y coordinate of this point in form of BigNat object.
-     *
-     * @param yCopy BigNat object which will be set with value of this point
-     */
-    public void getY(BigNat yCopy) {
-        yCopy.setSize(getY(yCopy.asByteArray(), (short) 0));
-    }
-
-    /**
      * Double this point. Pure implementation without KeyAgreement.
      */
     public void swDouble() {
@@ -317,8 +308,10 @@ public class ECPoint {
         // x_r = lambda^2 - x_p - x_q
         xR.lock();
         if (samePoint) {
-            short len = multXKA(ResourceManager.TWO, xR.asByteArray(), (short) 0);
-            xR.setSize(len);
+            rm.lock(pointBuffer);
+            short len = multXKA(ResourceManager.TWO, pointBuffer, (short) 0);
+            xR.fromByteArray(pointBuffer, (short) 0, len);
+            rm.unlock(pointBuffer);
         } else {
             xR.clone(lambda);
             xR.modSq(curve.pBN);
@@ -354,7 +347,7 @@ public class ECPoint {
      * @param other point to be added to this.
      */
     private void hwAdd(ECPoint other) {
-        byte[] pointBuffer = rm.POINT_ARRAY_B;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);
         setW(pointBuffer, (short) 0, multAndAddKA(ResourceManager.ONE_COORD, other, pointBuffer, (short) 0));
@@ -403,7 +396,7 @@ public class ECPoint {
      */
     public void multAndAdd(BigNat scalar, ECPoint point) {
         if (OperationSupport.getInstance().EC_HW_ADD) {
-            byte[] pointBuffer = rm.POINT_ARRAY_B;
+            byte[] pointBuffer = rm.POINT_ARRAY_A;
 
             rm.lock(pointBuffer);
             setW(pointBuffer, (short) 0, multAndAddKA(scalar, point, pointBuffer, (short) 0));
@@ -423,12 +416,13 @@ public class ECPoint {
      * @param outBufferOffset offset in the output buffer
      */
     private short multAndAddKA(BigNat scalar, ECPoint point, byte[] outBuffer, short outBufferOffset) {
-        byte[] pointBuffer = rm.POINT_ARRAY_A;
+        byte[] pointBuffer = rm.POINT_ARRAY_B;
 
         rm.lock(pointBuffer);
-        short len = this.getW(pointBuffer, (short) 0);
+        short len = getW(pointBuffer, (short) 0);
         curve.disposablePriv.setG(pointBuffer, (short) 0, len);
-        curve.disposablePriv.setS(scalar.asByteArray(), (short) 0, scalar.length());
+        len = scalar.copyToByteArray(pointBuffer, (short) 0);
+        curve.disposablePriv.setS(pointBuffer, (short) 0, len);
         rm.ecAddKA.init(curve.disposablePriv);
 
         len = point.getW(pointBuffer, (short) 0);
@@ -443,7 +437,7 @@ public class ECPoint {
      * @param scalar value of scalar for multiplication
      */
     public void multXY(BigNat scalar) {
-        byte[] pointBuffer = rm.POINT_ARRAY_B;
+        byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);
         short len = multXYKA(scalar, pointBuffer, (short) 0);
@@ -462,13 +456,14 @@ public class ECPoint {
      * @return length of resulting value (in bytes)
      */
     public short multXYKA(BigNat scalar, byte[] outBuffer, short outBufferOffset) {
-        byte[] pointBuffer = rm.POINT_ARRAY_A;
-
-        curve.disposablePriv.setS(scalar.asByteArray(), (short) 0, scalar.length());
-        rm.ecMultKA.init(curve.disposablePriv);
+        byte[] pointBuffer = rm.POINT_ARRAY_B;
 
         rm.lock(pointBuffer);
-        short len = getW(pointBuffer, (short) 0);
+        short len = scalar.copyToByteArray(pointBuffer, (short) 0);
+        curve.disposablePriv.setS(pointBuffer, (short) 0, len);
+        rm.ecMultKA.init(curve.disposablePriv);
+
+        len = getW(pointBuffer, (short) 0);
         len = rm.ecMultKA.generateSecret(pointBuffer, (short) 0, len, outBuffer, outBufferOffset);
         rm.unlock(pointBuffer);
         return len;
@@ -487,9 +482,11 @@ public class ECPoint {
         BigNat y1 = rm.EC_BN_D;
         BigNat y2 = rm.EC_BN_B;
 
+        rm.lock(pointBuffer);
+        short len = multXKA(scalar, pointBuffer, (short) 0);
         x.lock();
-        short len = multXKA(scalar, x.asByteArray(), (short) 0);
-        x.setSize(len);
+        x.fromByteArray(pointBuffer, (short) 0, len);
+        rm.unlock(pointBuffer);
 
         //Y^2 = X^3 + XA + B = x(x^2+A)+B
         ySq.lock();
@@ -516,9 +513,10 @@ public class ECPoint {
         y1.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
 
         // Check if public point <x, y_1> corresponds to the "secret" (i.e., our scalar)
-        curve.disposablePriv.setS(scalar.asByteArray(), (short) 0, scalar.length());
-        curve.disposablePub.setW(pointBuffer, (short) 0, curve.POINT_SIZE);
         rm.lock(resultBuffer);
+        len = scalar.copyToByteArray(resultBuffer, (short) 0);
+        curve.disposablePriv.setS(resultBuffer, (short) 0, len);
+        curve.disposablePub.setW(pointBuffer, (short) 0, curve.POINT_SIZE);
         if (!SignVerifyECDSA(curve.disposablePriv, curve.disposablePub, rm.verifyEcdsa, resultBuffer)) { // If verification fails, then pick the <x, y_2>
             y2.lock();
             y2.clone(curve.pBN); // y_2 = p - y_1
@@ -545,15 +543,16 @@ public class ECPoint {
      * @return length of resulting value (in bytes)
      */
     private short multXKA(BigNat scalar, byte[] outBuffer, short outBufferOffset) {
-        byte[] pointBuffer = rm.POINT_ARRAY_A;
+        byte[] pointBuffer = rm.POINT_ARRAY_B;
         // NOTE: potential problem on real cards (j2e) - when small scalar is used (e.g., BigNat.TWO), operation sometimes freezes
-        curve.disposablePriv.setS(scalar.asByteArray(), (short) 0, scalar.length());
+        rm.lock(pointBuffer);
+        short len = scalar.copyToByteArray(pointBuffer, (short) 0);
+        curve.disposablePriv.setS(pointBuffer, (short) 0, len);
 
         rm.ecMultKA.init(curve.disposablePriv);
 
-        rm.lock(pointBuffer);
-        short len = getW(pointBuffer, (short) 0);
-        len = rm.ecMultKA.generateSecret(pointBuffer, (short) 0, len, outBuffer, outBufferOffset);
+        len = getW(pointBuffer, (short) 0);
+        rm.ecMultKA.generateSecret(pointBuffer, (short) 0, len, outBuffer, outBufferOffset);
         rm.unlock(pointBuffer);
         // Return always length of whole coordinate X instead of len - some real cards returns shorter value equal to SHA-1 output size although PLAIN results is filled into buffer (GD60) 
         return curve.COORD_SIZE;
@@ -719,8 +718,8 @@ public class ECPoint {
             x.unlock();
 
             p.lock();
-            byte parity = (byte) ((y.asByteArray()[(short) (curve.COORD_SIZE - 1)] & 0xff) % 2);
-            if ((parity == 0 && point[offset] != (byte) 0x02) || (parity == 1 && point[offset] != (byte) 0x03)) {
+            boolean odd = y.isOdd();
+            if ((!odd && point[offset] != (byte) 0x02) || (odd && point[offset] != (byte) 0x03)) {
                 p.clone(curve.pBN);
                 p.subtract(y);
                 p.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (curve.COORD_SIZE + 1));
@@ -772,8 +771,8 @@ public class ECPoint {
             y.modAdd(curve.bBN, curve.pBN);
             y.modSqrt(curve.pBN);
             p.lock();
-            byte parity = (byte) ((y.asByteArray()[(short) (curve.COORD_SIZE - 1)] & 0xff) % 2);
-            if ((parity == 0 && output[offset] != (byte) 0x02) || (parity == 1 && output[offset] != (byte) 0x03)) {
+            boolean odd = y.isOdd();
+            if ((!odd && output[offset] != (byte) 0x02) || (odd && output[offset] != (byte) 0x03)) {
                 p.clone(curve.pBN);
                 p.subtract(y);
                 p.prependZeros(curve.COORD_SIZE, output, (short) (offset + curve.COORD_SIZE + 1));
