@@ -154,13 +154,13 @@ public class BigNatInternal {
      */
     public void shrink() {
         short i;
-        for (i = 0; i < size; i++) { // Find first non-zero byte
-            if (value[(short) (i + this.offset)] != 0) {
+        for (i = offset; i < value.length; i++) { // Find first non-zero byte
+            if (value[i] != 0) {
                 break;
             }
         }
 
-        short newSize = (short) (size - i);
+        short newSize = (short) (value.length - i);
         if (newSize < 0) {
             ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDRESIZE);
         }
@@ -203,26 +203,27 @@ public class BigNatInternal {
      */
     public void copy(BigNatInternal other) {
         short thisStart, otherStart, len;
-        if (size >= other.size) {
-            thisStart = (short) (size - other.size);
-            otherStart = 0;
+        short diff = (short) (size - other.size);
+        if (diff >= 0) {
+            thisStart = (short) (diff + offset);
+            otherStart = other.offset;
             len = other.size;
 
-            if (thisStart > 0) {
-                Util.arrayFillNonAtomic(value, offset, thisStart, (byte) 0);
+            if (diff > 0) {
+                Util.arrayFillNonAtomic(value, offset, diff, (byte) 0);
             }
         } else {
-            thisStart = 0;
-            otherStart = (short) (other.size - size);
+            thisStart = offset;
+            otherStart = (short) (other.offset - diff);
             len = size;
             // Verify here that other have leading zeroes up to otherStart
-            for (short i = 0; i < otherStart; i++) {
-                if (other.value[(short) (i + other.offset)] != 0) {
+            for (short i = other.offset; i < otherStart; i++) {
+                if (other.value[i] != 0) {
                     ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDCOPYOTHER);
                 }
             }
         }
-        Util.arrayCopyNonAtomic(other.value, (short) (other.offset + otherStart), value, (short) (this.offset + thisStart), len);
+        Util.arrayCopyNonAtomic(other.value, otherStart, value, thisStart, len);
     }
 
     /**
@@ -286,17 +287,17 @@ public class BigNatInternal {
      * Returns true if this is lesser than other shifted by a given number of digits.
      */
     private boolean isLesser(BigNatInternal other, short shift, short start) {
-        short j = (short) (other.size + shift - size + start);
+        short j = (short) (other.size + shift - size + start + other.offset);
 
-        for (short i = start; i < j; ++i) {
-            if (other.value[(short) (i + other.offset)] != 0) {
+        for (short i = (short) (start + other.offset); i < j; ++i) {
+            if (other.value[i] != 0) {
                 return true;
             }
         }
 
-        for (short i = start; i < size; i++, j++) {
-            short thisValue = (short) (value[(short) (i + offset)] & DIGIT_MASK);
-            short otherValue = (j >= 0 && j < other.size) ? (short) (other.value[(short) (j + other.offset)] & DIGIT_MASK) : (short) 0;
+        for (short i = (short) (start + offset); i < (short) value.length; i++, j++) {
+            short thisValue = (short) (value[i] & DIGIT_MASK);
+            short otherValue = (j >= other.offset && j < (short) other.value.length) ? (short) (other.value[j] & DIGIT_MASK) : (short) 0;
             if (thisValue < otherValue) {
                 return true; // CTO
             }
@@ -344,9 +345,9 @@ public class BigNatInternal {
      * Increment this BigNat.
      */
     public void increment() {
-        for (short i = (short) (size - 1); i >= 0; i--) {
-            short tmp = (short) (value[(short) (i + offset)] & 0xff);
-            value[(short) (i + offset)] = (byte) (tmp + 1);
+        for (short i = (short) (value.length - 1); i >= offset; i--) {
+            short tmp = (short) (value[i] & 0xff);
+            value[i] = (byte) (tmp + 1);
             if (tmp < 255) {
                 break; // CTO
             }
@@ -358,9 +359,9 @@ public class BigNatInternal {
      */
     public void decrement() {
         short tmp;
-        for (short i = (short) (size - 1); i >= 0; i--) {
-            tmp = (short) (value[(short) (i + offset)] & 0xff);
-            value[(short) (i + offset)] = (byte) (tmp - 1);
+        for (short i = (short) (value.length - 1); i >= offset; i--) {
+            tmp = (short) (value[i] & 0xff);
+            value[i] = (byte) (tmp - 1);
             if (tmp != 0) {
                 break; // CTO
             }
@@ -397,18 +398,18 @@ public class BigNatInternal {
      */
     private byte add(BigNatInternal other, short shift, short multiplier) {
         short acc = 0;
-        short i = (short) (other.size - 1);
-        short j = (short) (size - 1 - shift);
-        for (; i >= 0 && j >= 0; i--, j--) {
-            acc += (short) ((short) (value[(short) (j + this.offset)] & DIGIT_MASK) + (short) (multiplier * (other.value[(short) (i + other.offset)] & DIGIT_MASK)));
+        short i = (short) (other.size - 1 + other.offset);
+        short j = (short) (size - 1 - shift + offset);
+        for (; i >= other.offset && j >= offset; i--, j--) {
+            acc += (short) ((short) (value[j] & DIGIT_MASK) + (short) (multiplier * (other.value[i] & DIGIT_MASK)));
 
-            value[(short) (j + this.offset)] = (byte) (acc & DIGIT_MASK);
+            value[j] = (byte) (acc & DIGIT_MASK);
             acc = (short) ((acc >> DIGIT_LEN) & DIGIT_MASK);
         }
 
-        for (; acc > 0 && j >= 0; --j) {
-            acc += (short) (value[(short) (j + this.offset)] & DIGIT_MASK);
-            value[(short) (j + this.offset)] = (byte) (acc & DIGIT_MASK);
+        for (; acc > 0 && j >= offset; --j) {
+            acc += (short) (value[j] & DIGIT_MASK);
+            value[j] = (byte) (acc & DIGIT_MASK);
             acc = (short) ((acc >> DIGIT_LEN) & DIGIT_MASK);
         }
 
@@ -431,13 +432,13 @@ public class BigNatInternal {
      */
     private void subtract(BigNatInternal other, short shift, short multiplier) {
         short acc = 0;
-        short i = (short) (size - 1 - shift);
-        short j = (short) (other.size - 1);
-        for (; i >= 0 && j >= 0; i--, j--) {
-            acc += (short) (multiplier * (other.value[(short) (j + other.offset)] & DIGIT_MASK));
-            short tmp = (short) ((value[(short) (i + this.offset)] & DIGIT_MASK) - (acc & DIGIT_MASK));
+        short i = (short) (size - 1 - shift + offset);
+        short j = (short) (other.size - 1 + other.offset);
+        for (; i >= offset && j >= other.offset; i--, j--) {
+            acc += (short) (multiplier * (other.value[j] & DIGIT_MASK));
+            short tmp = (short) ((value[i] & DIGIT_MASK) - (acc & DIGIT_MASK));
 
-            value[(short) (i + this.offset)] = (byte) (tmp & DIGIT_MASK);
+            value[i] = (byte) (tmp & DIGIT_MASK);
             acc = (short) ((acc >> DIGIT_LEN) & DIGIT_MASK);
             if (tmp < 0) {
                 acc++;
@@ -445,9 +446,9 @@ public class BigNatInternal {
         }
 
         // deal with carry as long as there are digits left in this
-        for (; i >= 0 && acc != 0; --i) {
-            short tmp = (short) ((value[(short) (i + this.offset)] & DIGIT_MASK) - (acc & DIGIT_MASK));
-            value[(short) (i + this.offset)] = (byte) (tmp & DIGIT_MASK);
+        for (; i >= offset && acc != 0; --i) {
+            short tmp = (short) ((value[i] & DIGIT_MASK) - (acc & DIGIT_MASK));
+            value[i] = (byte) (tmp & DIGIT_MASK);
             acc = (short) ((acc >> DIGIT_LEN) & DIGIT_MASK);
             if (tmp < 0) {
                 acc++;
@@ -462,8 +463,8 @@ public class BigNatInternal {
      * @param y right operand
      */
     public void mult(BigNatInternal x, BigNatInternal y) {
-        for (short i = (short) (y.size - 1); i >= 0; i--) {
-            add(x, (short) (y.size - 1 - i), (short) (y.value[(short) (i + y.offset)] & DIGIT_MASK));
+        for (short i = (short) (y.value.length - 1); i >= y.offset; i--) {
+            add(x, (short) (y.value.length - 1 - i), (short) (y.value[i] & DIGIT_MASK));
         }
     }
 
@@ -476,11 +477,11 @@ public class BigNatInternal {
     protected void shiftRight(short bits, short carry) {
         // assumes 0 <= bits < 8
         short mask = (short) ((short) (1 << bits) - 1); // lowest `bits` bits set to 1
-        for (short i = 0; i < size; i++) {
-            short current = (short) (value[(short) (i + this.offset)] & 0xff);
+        for (short i = offset; i < (short) value.length; i++) {
+            short current = (short) (value[i] & 0xff);
             short previous = current;
             current >>= bits;
-            value[(short) (i + this.offset)] = (byte) (current | carry);
+            value[i] = (byte) (current | carry);
             carry = (short) (previous & mask);
             carry <<= (short) (8 - bits);
         }
@@ -508,22 +509,23 @@ public class BigNatInternal {
             quotient.zero();
         }
 
-        short divisorIndex = 0;
-        while (divisor.value[(short) (divisorIndex + divisor.offset)] == 0) {
+        short divisorIndex = divisor.offset;
+        while (divisor.value[divisorIndex] == 0) {
             divisorIndex++;
         }
 
-        short divisorShift = (short) (size - divisor.size + divisorIndex);
+        short divisorShift = (short) (size - divisor.size + divisorIndex - divisor.offset);
         short divisionRound = 0;
-        short firstDivisorDigit = (short) (divisor.value[(short) (divisorIndex + divisor.offset)] & DIGIT_MASK);
+        short firstDivisorDigit = (short) (divisor.value[divisorIndex] & DIGIT_MASK);
         short divisorBitShift = (short) (highestOneBit((short) (firstDivisorDigit + 1)) - 1);
-        byte secondDivisorDigit = divisorIndex < (short) (divisor.size - 1) ? divisor.value[(short) (divisorIndex + 1 + divisor.offset)] : 0;
-        byte thirdDivisorDigit = divisorIndex < (short) (divisor.size - 2) ? divisor.value[(short) (divisorIndex + 2 + divisor.offset)] : 0;
+        byte secondDivisorDigit = divisorIndex < (short) (divisor.value.length - 1) ? divisor.value[(short) (divisorIndex + 1)] : 0;
+        byte thirdDivisorDigit = divisorIndex < (short) (divisor.value.length - 2) ? divisor.value[(short) (divisorIndex + 2)] : 0;
 
         while (divisorShift >= 0) {
             while (!isLesser(divisor, divisorShift, (short) (divisionRound > 0 ? divisionRound - 1 : 0))) {
-                short dividentDigits = divisionRound == 0 ? 0 : (short) ((short) (value[(short) (divisionRound - 1 + this.offset)]) << DIGIT_LEN);
-                dividentDigits |= (short) (value[(short) (divisionRound + this.offset)] & DIGIT_MASK);
+                short divisionRoundOffset = (short) (divisionRound + offset);
+                short dividentDigits = divisionRound == 0 ? 0 : (short) ((short) (value[(short) (divisionRoundOffset - 1)]) << DIGIT_LEN);
+                dividentDigits |= (short) (value[(short) (divisionRound + offset)] & DIGIT_MASK);
 
                 short divisorDigit;
                 if (dividentDigits < 0) {
@@ -534,8 +536,8 @@ public class BigNatInternal {
                     short bitShift = dividentBitShift <= divisorBitShift ? dividentBitShift : divisorBitShift;
 
                     dividentDigits = shiftBits(
-                            dividentDigits, divisionRound < (short) (size - 1) ? value[(short) (divisionRound + 1 + this.offset)] : 0,
-                            divisionRound < (short) (size - 2) ? value[(short) (divisionRound + 2 + this.offset)] : 0,
+                            dividentDigits, divisionRound < (short) (size - 1) ? value[(short) (divisionRoundOffset + 1)] : 0,
+                            divisionRound < (short) (size - 2) ? value[(short) (divisionRoundOffset + 2)] : 0,
                             bitShift
                     );
                     divisorDigit = shiftBits(firstDivisorDigit, secondDivisorDigit, thirdDivisorDigit, bitShift);
@@ -549,8 +551,9 @@ public class BigNatInternal {
                 subtract(divisor, divisorShift, multiple);
 
                 if (quotient != null) {
-                    short quotientDigit = (short) ((quotient.value[(short) (quotient.size - 1 - divisorShift + quotient.offset)] & DIGIT_MASK) + multiple);
-                    quotient.value[(short) (quotient.size - 1 - divisorShift + quotient.offset)] = (byte) quotientDigit;
+                    short divisorShiftOffset = (short) (divisorShift - quotient.offset);
+                    short quotientDigit = (short) ((quotient.value[(short) (quotient.size - 1 - divisorShiftOffset)] & DIGIT_MASK) + multiple);
+                    quotient.value[(short) (quotient.size - 1 - divisorShiftOffset)] = (byte) quotientDigit;
                 }
             }
             divisionRound++;
