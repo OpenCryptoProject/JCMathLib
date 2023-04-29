@@ -63,7 +63,7 @@ public class ResourceManager {
         MAX_SQ_LENGTH = (short) (MAX_SQ_BIT_LENGTH / 8);
         MAX_EXP_LENGTH = (short) (MAX_EXP_BIT_LENGTH / 8);
         MAX_BIGNAT_SIZE = (short) ((short) (MAX_EXP_BIT_LENGTH / 8) + 1);
-        MAX_COORD_SIZE = (short) (MAX_POINT_SIZE / 2);
+        MAX_COORD_SIZE = (short) ((short) (MAX_POINT_SIZE / 2) + 1);
 
         memAlloc = new ObjectAllocator();
         memAlloc.setAllAllocatorsRAM();
