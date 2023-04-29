@@ -107,6 +107,7 @@ public class ResourceManager {
         THREE = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
         THREE.setValue((byte) 3);
         ONE_COORD = new BigNat(MAX_COORD_SIZE, JCSystem.MEMORY_TYPE_PERSISTENT, this);
+        ONE_COORD.setSize((short) (MAX_POINT_SIZE / 2));
         ONE_COORD.setValue((byte) 1);
         // ECC Helpers
         if (OperationSupport.getInstance().EC_HW_XY) {
