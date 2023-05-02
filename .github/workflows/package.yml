@@ -2,7 +2,7 @@ name: Package JCMathLib
 
 on:
   push:
-    branches: ['master']
+    branches: ['master', 'ints']
 
 jobs:
   package:
