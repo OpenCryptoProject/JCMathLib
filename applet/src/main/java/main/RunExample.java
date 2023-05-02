@@ -1,6 +1,6 @@
 package main;
 
-import opencrypto.jcmathlib.ECExample;
+import opencrypto.jcmathlib.Example;
 import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.utils.AIDUtil;
 import javacard.framework.AID;
@@ -12,8 +12,8 @@ public class RunExample {
         CardSimulator simulator = new CardSimulator();
 
         // 2. install applet
-        AID appletAID = AIDUtil.create("ECExample".getBytes());
-        simulator.installApplet(appletAID, ECExample.class);
+        AID appletAID = AIDUtil.create("Example".getBytes());
+        simulator.installApplet(appletAID, Example.class);
 
         // 3. select applet
         simulator.selectApplet(appletAID);

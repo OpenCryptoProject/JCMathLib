@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 DIR = "./applet/src/main/java/opencrypto/jcmathlib/"
 
 CURVES = {"SecP256r1", "SecP256k1", "SecP512r1"}
-FILTERED_FILES = {"UnitTests.java", "ECExample.java", "Integer.java"}
+FILTERED_FILES = {"UnitTests.java", "Example.java", "Integer.java"}
 
 
 def load_imports(files):

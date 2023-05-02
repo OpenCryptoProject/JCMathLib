@@ -159,7 +159,7 @@ javacard {
         //     packageName 'opencrypto.jcmathlib'
         //     version '0.1'
         //     aid '4a:43:4d:61:74:68:4c:69:62'
-        //     output 'ec_example.cap'
+        //     output 'example.cap'
         //     sources 'src/main/java/opencrypto'
 
         //     targetsdk JC304
@@ -169,7 +169,7 @@ javacard {
 
         //     //noinspection GroovyAssignabilityCheck
         //     applet {
-        //         className 'opencrypto.jcmathlib.ECExample'
+        //         className 'opencrypto.jcmathlib.Example'
         //         aid '4a:43:4d:61:74:68:4c:69:62:45:43'
         //     }
 
