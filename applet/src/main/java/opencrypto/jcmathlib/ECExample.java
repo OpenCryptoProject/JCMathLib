@@ -44,6 +44,7 @@ public class ECExample extends Applet {
     public boolean select() {
         if (initialized) {
             rm.refreshAfterReset();
+            curve.updateAfterReset();
         }
         return true;
     }
