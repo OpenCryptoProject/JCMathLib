@@ -169,14 +169,14 @@ public class ECPoint {
         lambda.lock();
         lambda.clone(pX);
         lambda.modSq(curve.pBN);
-        lambda.modMult(lambda, ResourceManager.THREE, curve.pBN);
+        lambda.modMult(ResourceManager.THREE, curve.pBN);
         lambda.modAdd(curve.aBN, curve.pBN);
 
         tmp.lock();
         tmp.clone(pY);
         tmp.modAdd(tmp, curve.pBN);
         tmp.modInv(curve.pBN);
-        lambda.modMult(lambda, tmp, curve.pBN);
+        lambda.modMult(tmp, curve.pBN);
         tmp.clone(lambda);
         tmp.modSq(curve.pBN);
         tmp.modSub(pX, curve.pBN);
@@ -185,7 +185,7 @@ public class ECPoint {
 
         tmp.modSub(pX, curve.pBN);
         pX.unlock();
-        tmp.modMult(tmp, lambda, curve.pBN);
+        tmp.modMult(lambda, curve.pBN);
         lambda.unlock();
         tmp.modAdd(pY, curve.pBN);
         tmp.modNegate(curve.pBN);
@@ -266,11 +266,11 @@ public class ECPoint {
             // (3(x_p^2)+a)
             nominator.clone(xP);
             nominator.modSq(curve.pBN);
-            nominator.modMult(nominator, ResourceManager.THREE, curve.pBN);
+            nominator.modMult(ResourceManager.THREE, curve.pBN);
             nominator.modAdd(curve.aBN, curve.pBN);
             // (2y_p)
             denominator.clone(yP);
-            denominator.modMult(yP, ResourceManager.TWO, curve.pBN);
+            denominator.modMult(ResourceManager.TWO, curve.pBN);
             denominator.modInv(curve.pBN);
 
         } else {
@@ -297,8 +297,8 @@ public class ECPoint {
 
         lambda.lock();
         lambda.setSizeToMax(false);
-        lambda.zero();
-        lambda.modMult(nominator, denominator, curve.pBN);
+        lambda.copy(nominator);
+        lambda.modMult(denominator, curve.pBN);
         nominator.unlock();
         denominator.unlock();
 
@@ -325,7 +325,7 @@ public class ECPoint {
         yR.clone(xP);
         xP.unlock();
         yR.modSub(xR, curve.pBN);
-        yR.modMult(yR, lambda, curve.pBN);
+        yR.modMult(lambda, curve.pBN);
         lambda.unlock();
         yR.modSub(yP, curve.pBN);
         yP.unlock();
@@ -493,7 +493,7 @@ public class ECPoint {
         ySq.clone(x);
         ySq.modExp(ResourceManager.TWO, curve.pBN);
         ySq.modAdd(curve.aBN, curve.pBN);
-        ySq.modMult(ySq, x, curve.pBN);
+        ySq.modMult(x, curve.pBN);
         ySq.modAdd(curve.bBN, curve.pBN);
         y1.lock();
         y1.clone(ySq);
@@ -601,20 +601,20 @@ public class ECPoint {
      * @param x the x coordinate
      */
     private void fromX(BigNat x) {
-        BigNat y_sq = rm.EC_BN_C;
+        BigNat ySq = rm.EC_BN_C;
         BigNat y = rm.EC_BN_D;
         byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         //Y^2 = X^3 + XA + B = x(x^2+A)+B
-        y_sq.lock();
-        y_sq.clone(x);
-        y_sq.modSq(curve.pBN);
-        y_sq.modAdd(curve.aBN, curve.pBN);
-        y_sq.modMult(y_sq, x, curve.pBN);
-        y_sq.modAdd(curve.bBN, curve.pBN);
+        ySq.lock();
+        ySq.clone(x);
+        ySq.modSq(curve.pBN);
+        ySq.modAdd(curve.aBN, curve.pBN);
+        ySq.modMult(x, curve.pBN);
+        ySq.modAdd(curve.bBN, curve.pBN);
         y.lock();
-        y.clone(y_sq);
-        y_sq.unlock();
+        y.clone(ySq);
+        ySq.unlock();
         y.modSqrt(curve.pBN);
 
         // Construct public key with <x, y_1>
@@ -708,7 +708,7 @@ public class ECPoint {
             y.clone(x);
             y.modSq(curve.pBN);
             y.modAdd(curve.aBN, curve.pBN);
-            y.modMult(y, x, curve.pBN);
+            y.modMult(x, curve.pBN);
             y.modAdd(curve.bBN, curve.pBN);
             y.modSqrt(curve.pBN);
 
@@ -766,7 +766,7 @@ public class ECPoint {
             y.clone(x);
             y.modSq(curve.pBN);
             y.modAdd(curve.aBN, curve.pBN);
-            y.modMult(y, x, curve.pBN);
+            y.modMult(x, curve.pBN);
             x.unlock();
             y.modAdd(curve.bBN, curve.pBN);
             y.modSqrt(curve.pBN);

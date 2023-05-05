@@ -78,11 +78,9 @@ public class BigNat extends BigNatInternal {
         if (!OperationSupport.getInstance().RSA_SQ) {
             BigNat tmp = rm.BN_E;
             tmp.lock();
-            tmp.setSize(this.length());
+            tmp.setSize(length());
             tmp.copy(this);
-            setSizeToMax(true);
-            super.mult(tmp, tmp);
-            shrink();
+            super.mult(tmp);
             return;
         }
         if ((short) (rm.MAX_SQ_LENGTH - 1) < (short) (2 * length())) {
@@ -111,17 +109,15 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
-     * Computes x * y and stores the result into this.
+     * Computes this * other and stores the result into this.
      */
-    public void mult(BigNat x, BigNat y) {
-        if (OperationSupport.getInstance().RSA_CHECK_ONE && x.isOne()) {
-            clone(y);
+    public void mult(BigNat other) {
+        if (OperationSupport.getInstance().RSA_CHECK_ONE && isOne()) {
+            clone(other);
             return;
         }
-        if (!OperationSupport.getInstance().RSA_SQ || x.length() <= (short) 16) {
-            setSizeToMax(true);
-            super.mult(x, y);
-            shrink();
+        if (!OperationSupport.getInstance().RSA_SQ || length() <= (short) 16) {
+            super.mult(other);
             return;
         }
 
@@ -129,17 +125,17 @@ public class BigNat extends BigNatInternal {
         BigNat tmp = rm.BN_G;
 
         result.lock();
-        result.clone(x);
-        result.add(y);
+        result.clone(this);
+        result.add(other);
         result.sq();
 
         tmp.lock();
-        if (x.isLesser(y)) {
-            tmp.clone(y);
-            tmp.subtract(x);
+        if (isLesser(other)) {
+            tmp.clone(other);
+            tmp.subtract(this);
         } else {
-            tmp.clone(x);
-            tmp.subtract(y);
+            tmp.clone(this);
+            tmp.subtract(other);
         }
         tmp.sq();
 
@@ -147,7 +143,9 @@ public class BigNat extends BigNatInternal {
         tmp.unlock();
         result.shiftRight((short) 2);
 
+        setSizeToMax(false);
         copy(result);
+        shrink();
         result.unlock();
     }
 
@@ -303,26 +301,27 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
-     * Multiplication of BigNats x and y computed modulo mod. The result is stored to this.
+     * Multiplication of this and other modulo mod. The result is stored to this.
      */
-    public void modMult(BigNat x, BigNat y, BigNat mod) {
+    public void modMult(BigNat other, BigNat mod) {
         BigNat tmp = rm.BN_D;
         BigNat result = rm.BN_E;
 
         setSize(mod.length());
-        if (OperationSupport.getInstance().RSA_CHECK_ONE && x.isOne()) {
-            copy(y);
+        if (OperationSupport.getInstance().RSA_CHECK_ONE && isOne()) {
+            copy(other);
             return;
         }
 
         result.lock();
         if (!OperationSupport.getInstance().RSA_SQ) {
             result.setSizeToMax(false);
-            result.mult(x, y);
+            result.copy(this);
+            result.mult(other);
             result.mod(mod);
         } else {
-            result.clone(x);
-            result.modAdd(y, mod);
+            result.clone(this);
+            result.modAdd(other, mod);
 
             result.resize(mod.length());
             short carry = (byte) 0;
@@ -333,7 +332,7 @@ public class BigNat extends BigNatInternal {
 
             tmp.lock();
             tmp.clone(result);
-            tmp.modSub(y, mod);
+            tmp.modSub(other, mod);
 
             result.modSq(mod);
             tmp.modSq(mod);
@@ -352,7 +351,7 @@ public class BigNat extends BigNatInternal {
         if (OperationSupport.getInstance().RSA_SQ) {
             modExp(ResourceManager.TWO, mod);
         } else {
-            modMult(this, this, mod);
+            modMult(this, mod);
         }
     }
 
@@ -390,7 +389,8 @@ public class BigNat extends BigNatInternal {
             s.increment();
             // TODO replace with modMult(s, q, p)
             tmp.setSizeToMax(false);
-            tmp.mult(s, q);
+            tmp.clone(s);
+            tmp.mult(q);
             tmp.mod(p);
             tmp.shrink();
         }

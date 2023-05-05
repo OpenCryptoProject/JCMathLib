@@ -491,10 +491,10 @@ public class UnitTests extends Applet {
 
         bn1.setSize(p1);
         bn2.setSize((short) (dataLen - p1));
-        bn3.setSize(dataLen);
         bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, p1);
         bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) (dataLen - p1));
-        bn3.mult(bn1, bn2);
+        bn3.clone(bn1);
+        bn3.mult(bn2);
         short len = bn3.copyToByteArray(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -534,7 +534,8 @@ public class UnitTests extends Applet {
         mul2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), (short) (dataLen - p1));
         boolean previous = OperationSupport.getInstance().RSA_SQ;
         OperationSupport.getInstance().RSA_SQ = false;
-        product.mult(mul1, mul2);
+        product.clone(mul1);
+        product.mult(mul2);
         OperationSupport.getInstance().RSA_SQ = previous;
         short len = product.copyToByteArray(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
@@ -596,7 +597,7 @@ public class UnitTests extends Applet {
         bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, p1);
         bn2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), p2);
         bn3.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1 + p2), (short) (dataLen - p1 - p2));
-        bn1.modMult(bn1, bn2, bn3);
+        bn1.modMult(bn2, bn3);
         short len = bn1.copyToByteArray(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }

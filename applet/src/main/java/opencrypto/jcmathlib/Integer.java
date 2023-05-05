@@ -330,8 +330,8 @@ public class Integer {
         }
 
         tmp.lock();
-        tmp.setSize(this.magnitude.length());
-        tmp.mult(this.getMagnitude(), other.getMagnitude());
+        tmp.clone(this.magnitude);
+        tmp.mult(other.getMagnitude());
         this.magnitude.copy(tmp);
         tmp.unlock();
     }

@@ -96,7 +96,7 @@ public class Example extends Applet {
         scalar1.setValue((byte) 42); // Set the first scalar to 42
         scalar2.fromByteArray(SCALAR_TEST_VALUE, (short) 0, (short) SCALAR_TEST_VALUE.length); // Set the second scalar to a predefined value
         scalar1.modSq(curve.rBN); // Square the first scalar modulo curve order
-        scalar1.modMult(scalar1, scalar2, curve.rBN); // Multiply the two scalars modulo curve order
+        scalar1.modMult(scalar2, curve.rBN); // Multiply the two scalars modulo curve order
 
         point1.multiplication(scalar1); // Multiply the resulting point by the resulting scalar
 

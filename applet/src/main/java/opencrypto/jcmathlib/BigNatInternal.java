@@ -457,15 +457,18 @@ public class BigNatInternal {
     }
 
     /**
-     * Multiplies x and y using software multiplications and stores results into this.
-     *
-     * @param x left operand
-     * @param y right operand
+     * Multiplies this and other using software multiplications and stores results into this.
      */
-    public void mult(BigNatInternal x, BigNatInternal y) {
-        for (short i = (short) (y.value.length - 1); i >= y.offset; i--) {
-            add(x, (short) (y.value.length - 1 - i), (short) (y.value[i] & DIGIT_MASK));
+    public void mult(BigNatInternal other) {
+        BigNatInternal tmp = rm.BN_F;
+        tmp.lock();
+        tmp.clone(this);
+        setSizeToMax(true);
+        for (short i = (short) (other.value.length - 1); i >= other.offset; i--) {
+            add(tmp, (short) (other.value.length - 1 - i), (short) (other.value[i] & DIGIT_MASK));
         }
+        shrink();
+        tmp.unlock();
     }
 
     /**
