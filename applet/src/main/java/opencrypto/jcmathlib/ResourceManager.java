@@ -62,8 +62,8 @@ public class ResourceManager {
         }
         MAX_SQ_LENGTH = (short) (MAX_SQ_BIT_LENGTH / 8);
         MAX_EXP_LENGTH = (short) (MAX_EXP_BIT_LENGTH / 8);
-        MAX_BIGNAT_SIZE = (short) ((short) (MAX_EXP_BIT_LENGTH / 8) + 1);
-        MAX_COORD_SIZE = (short) ((short) (MAX_POINT_SIZE / 2) + 1);
+        MAX_BIGNAT_SIZE = (short) (MAX_EXP_BIT_LENGTH / 8);
+        MAX_COORD_SIZE = (short) (MAX_POINT_SIZE / 2);
 
         memAlloc = new ObjectAllocator();
         memAlloc.setAllAllocatorsRAM();
@@ -107,7 +107,6 @@ public class ResourceManager {
         THREE = new BigNat((short) 1, JCSystem.MEMORY_TYPE_PERSISTENT, this);
         THREE.setValue((byte) 3);
         ONE_COORD = new BigNat(MAX_COORD_SIZE, JCSystem.MEMORY_TYPE_PERSISTENT, this);
-        ONE_COORD.setSize((short) (MAX_POINT_SIZE / 2));
         ONE_COORD.setValue((byte) 1);
         // ECC Helpers
         if (OperationSupport.getInstance().EC_HW_XY) {

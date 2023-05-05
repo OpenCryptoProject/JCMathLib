@@ -10,33 +10,20 @@ import javacard.framework.Util;
  */
 public class BigNatInternal {
     protected final ResourceManager rm;
-    private final boolean ALLOW_RUNTIME_REALLOCATION = false;
     private static final short DIGIT_MASK = 0xff, DIGIT_LEN = 8, DOUBLE_DIGIT_LEN = 16, POSITIVE_DOUBLE_DIGIT_MASK = 0x7fff;
 
     private byte[] value;
     private short size; // The current size of internal representation in bytes.
     private short offset;
-    private byte allocatorType;
 
     /**
-     * Construct a BigNat of a given size in bytes.
+     * Construct a BigNat of at least a given size in bytes.
      */
     public BigNatInternal(short size, byte allocatorType, ResourceManager rm) {
         this.rm = rm;
-        allocateStorageArray(size, allocatorType);
-    }
-
-    /**
-     * Allocates required underlying storage array.
-     *
-     * @param maxSize maximum size of this BigNat in bytes
-     * @param allocatorType type of allocator storage
-     */
-    private void allocateStorageArray(short maxSize, byte allocatorType) {
-        this.offset = 0;
-        this.size = maxSize;
-        this.allocatorType = allocatorType;
-        this.value = rm.memAlloc.allocateByteArray(maxSize, allocatorType);
+        this.offset = 1;
+        this.size = size;
+        this.value = rm.memAlloc.allocateByteArray((short) (size + 1), allocatorType);
     }
 
     /**
@@ -109,10 +96,7 @@ public class BigNatInternal {
      */
     public void resize(short newSize) {
         if (newSize > (short) value.length) {
-            if (!ALLOW_RUNTIME_REALLOCATION) {
-                ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED);
-            }
-            allocateStorageArray(newSize, allocatorType);
+            ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED);
         }
 
         short diff = (short) (newSize - size);
@@ -231,10 +215,7 @@ public class BigNatInternal {
      */
     public void clone(BigNatInternal other) {
         if (other.size > (short) value.length) {
-            if (!ALLOW_RUNTIME_REALLOCATION) {
-                ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED);
-            }
-            allocateStorageArray(other.length(), allocatorType);
+            ISOException.throwIt(ReturnCodes.SW_BIGNAT_REALLOCATIONNOTALLOWED);
         }
 
         short diff = (short) ((short) value.length - other.size);
