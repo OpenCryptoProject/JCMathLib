@@ -125,7 +125,8 @@ public class BigNat extends BigNatInternal {
         BigNat tmp = rm.BN_G;
 
         result.lock();
-        result.clone(this);
+        result.setSize((short) ((length() > other.length() ? length() : other.length()) + 1));
+        result.copy(this);
         result.add(other);
         result.sq();
 
@@ -307,23 +308,20 @@ public class BigNat extends BigNatInternal {
         BigNat tmp = rm.BN_D;
         BigNat result = rm.BN_E;
 
-        setSize(mod.length());
         if (OperationSupport.getInstance().RSA_CHECK_ONE && isOne()) {
             copy(other);
             return;
         }
 
         result.lock();
-        if (!OperationSupport.getInstance().RSA_SQ) {
-            result.setSizeToMax(false);
-            result.copy(this);
+        if (!OperationSupport.getInstance().RSA_SQ || OperationSupport.getInstance().RSA_EXTRA_MOD) {
+            result.clone(this);
             result.mult(other);
             result.mod(mod);
         } else {
             result.clone(this);
             result.modAdd(other, mod);
 
-            result.resize(mod.length());
             short carry = (byte) 0;
             if (result.isOdd()) {
                 carry = result.add(mod);
@@ -340,6 +338,7 @@ public class BigNat extends BigNatInternal {
             result.modSub(tmp, mod);
             tmp.unlock();
         }
+        setSize(mod.length());
         copy(result);
         result.unlock();
     }

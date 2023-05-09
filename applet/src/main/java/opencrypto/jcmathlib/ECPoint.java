@@ -296,8 +296,7 @@ public class ECPoint {
         }
 
         lambda.lock();
-        lambda.setSizeToMax(false);
-        lambda.copy(nominator);
+        lambda.clone(nominator);
         lambda.modMult(denominator, curve.pBN);
         nominator.unlock();
         denominator.unlock();
