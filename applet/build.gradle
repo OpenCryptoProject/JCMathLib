@@ -1,5 +1,5 @@
 group 'test-applet'
-version '1.0-SNAPSHOT'
+version '2.0'
 
 // Buildscript configuration for the javacard-gradle plugin.
 // Do not modify this particular block. Dependencies for the project are lower.
@@ -58,7 +58,7 @@ dependencies {
     testImplementation(group: 'com.klinec', name: 'javacard-tools', version: '1.0.4') {
         exclude group: "com.klinec", module: "jcardsim"
     }
-    
+
     // Include plugin as it has bundled GP & other tools.
     // Alternative: include GP manually, but the included
     // version has to be compatible with the plugin.
@@ -128,7 +128,7 @@ javacard {
         //noinspection GroovyAssignabilityCheck
         cap {
             packageName 'opencrypto.jcmathlib'
-            version '0.1'
+            version project.version
             aid '4a:43:4d:61:74:68:4c:69:62'
             output 'unit_tests.cap'
             sources 'src/main/java/opencrypto'
@@ -157,7 +157,7 @@ javacard {
         // When both cap configurations are present, task installJavaCard cannot be used
         // cap {
         //     packageName 'opencrypto.jcmathlib'
-        //     version '0.1'
+        //     version project.version
         //     aid '4a:43:4d:61:74:68:4c:69:62'
         //     output 'example.cap'
         //     sources 'src/main/java/opencrypto'
