@@ -60,6 +60,20 @@ public class UnitTests extends Applet {
     public final static byte INS_EC_MUL_ADD = (byte) 0x49;
     public final static byte INS_EC_ENCODE = (byte) 0x4a;
 
+    // Specific codes to propagate exceptions caught
+    // lower byte of exception is value as defined in JCSDK/api_classic/constant-values.htm
+    public final static short SW_Exception                      = (short) 0xff01;
+    public final static short SW_ArrayIndexOutOfBoundsException = (short) 0xff02;
+    public final static short SW_ArithmeticException            = (short) 0xff03;
+    public final static short SW_ArrayStoreException            = (short) 0xff04;
+    public final static short SW_NullPointerException           = (short) 0xff05;
+    public final static short SW_NegativeArraySizeException     = (short) 0xff06;
+    public final static short SW_CryptoException_prefix         = (short) 0xf100;
+    public final static short SW_SystemException_prefix         = (short) 0xf200;
+    public final static short SW_PINException_prefix            = (short) 0xf300;
+    public final static short SW_TransactionException_prefix    = (short) 0xf400;
+    public final static short SW_CardRuntimeException_prefix    = (short) 0xf500;
+
     boolean initialized = false;
 
     short[] memoryInfo;
@@ -284,27 +298,27 @@ public class UnitTests extends Applet {
         } catch (ISOException e) {
             throw e; // Our exception from code, just re-emit
         } catch (ArrayIndexOutOfBoundsException e) {
-            ISOException.throwIt(ReturnCodes.SW_ArrayIndexOutOfBoundsException);
+            ISOException.throwIt(SW_ArrayIndexOutOfBoundsException);
         } catch (ArithmeticException e) {
-            ISOException.throwIt(ReturnCodes.SW_ArithmeticException);
+            ISOException.throwIt(SW_ArithmeticException);
         } catch (ArrayStoreException e) {
-            ISOException.throwIt(ReturnCodes.SW_ArrayStoreException);
+            ISOException.throwIt(SW_ArrayStoreException);
         } catch (NullPointerException e) {
-            ISOException.throwIt(ReturnCodes.SW_NullPointerException);
+            ISOException.throwIt(SW_NullPointerException);
         } catch (NegativeArraySizeException e) {
-            ISOException.throwIt(ReturnCodes.SW_NegativeArraySizeException);
+            ISOException.throwIt(SW_NegativeArraySizeException);
         } catch (CryptoException e) {
-            ISOException.throwIt((short) (ReturnCodes.SW_CryptoException_prefix | e.getReason()));
+            ISOException.throwIt((short) (SW_CryptoException_prefix | e.getReason()));
         } catch (SystemException e) {
-            ISOException.throwIt((short) (ReturnCodes.SW_SystemException_prefix | e.getReason()));
+            ISOException.throwIt((short) (SW_SystemException_prefix | e.getReason()));
         } catch (PINException e) {
-            ISOException.throwIt((short) (ReturnCodes.SW_PINException_prefix | e.getReason()));
+            ISOException.throwIt((short) (SW_PINException_prefix | e.getReason()));
         } catch (TransactionException e) {
-            ISOException.throwIt((short) (ReturnCodes.SW_TransactionException_prefix | e.getReason()));
+            ISOException.throwIt((short) (SW_TransactionException_prefix | e.getReason()));
         } catch (CardRuntimeException e) {
-            ISOException.throwIt((short) (ReturnCodes.SW_CardRuntimeException_prefix | e.getReason()));
+            ISOException.throwIt((short) (SW_CardRuntimeException_prefix | e.getReason()));
         } catch (Exception e) {
-            ISOException.throwIt(ReturnCodes.SW_Exception);
+            ISOException.throwIt(SW_Exception);
         }
     }
 
