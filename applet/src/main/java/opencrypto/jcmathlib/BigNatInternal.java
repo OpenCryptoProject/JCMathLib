@@ -179,7 +179,7 @@ public class BigNatInternal {
     public void setValue(short newValue) {
         zero();
         value[(short) (value.length - 1)] = (byte) (newValue & DIGIT_MASK);
-        value[(short) (value.length - 2)] = (byte) (newValue & (short) (DIGIT_MASK << 8));
+        value[(short) (value.length - 2)] = (byte) ((short) (newValue >> 8) & DIGIT_MASK);
     }
 
     /**

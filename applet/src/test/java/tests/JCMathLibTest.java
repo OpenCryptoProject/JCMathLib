@@ -332,6 +332,17 @@ public class JCMathLibTest extends BaseTest {
         }
 
         @Test
+        public void bigNatSetValue() throws Exception {
+            CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SET_VALUE, 0, 0, new byte[]{0x12, 0x34, 0x56});
+            ResponseAPDU resp = statefulCard.transmit(cmd);
+
+            Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+            Assertions.assertEquals(0x12, resp.getData()[0]);
+            Assertions.assertEquals(0x3456, Util.getShort(resp.getData(), 1));
+            statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
+        }
+
+        @Test
         public void bigNatModSqrt() throws Exception {
             BigInteger num = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger mod = new BigInteger(1, SecP256r1.p);
