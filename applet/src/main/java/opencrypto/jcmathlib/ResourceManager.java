@@ -19,7 +19,7 @@ public class ResourceManager {
     Cipher sqCiph, modSqCiph, expCiph;
     RSAPublicKey sqPub, modSqPub, expPub;
     RSAPrivateKey sqPriv, modSqPriv, expPriv;
-    BigNat fixedModSqMod;
+    BigNat fixedMod;
 
     byte[] ARRAY_A, ARRAY_B, POINT_ARRAY_A, POINT_ARRAY_B, HASH_ARRAY;
 
@@ -158,7 +158,7 @@ public class ResourceManager {
         if (!OperationSupport.getInstance().RSA_SQ) {
             return; // modSq engine is not used
         }
-        fixedModSqMod = mod;
+        fixedMod = mod;
         if (mod == null) {
             return;
         }

@@ -40,7 +40,7 @@ def package_file(file, keep_locks=False):
                 continue
             if re.search(r"import .*;", line) or re.search(r"package .*;", line):
                 continue
-            if not keep_locks and re.search(r"\.(un)?lock\(.*\)", line) or re.search(r"registerLock\(", line):
+            if not keep_locks and re.search(r"(un)?lock\(.*\)", line) or re.search(r"registerLock\(", line):
                 continue
             lines.append(
                 ("    " + line.replace("public class ", "public static class ")).rstrip())

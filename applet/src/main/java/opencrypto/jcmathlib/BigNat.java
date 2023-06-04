@@ -207,7 +207,7 @@ public class BigNat extends BigNatInternal {
         if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
             modLength = rm.MAX_EXP_LENGTH;
         } else {
-            modLength = rm.fixedModSqMod.length();
+            modLength = rm.fixedMod.length();
         }
 
         prependZeros(modLength, tmpBuffer, (short) 0);
@@ -224,9 +224,9 @@ public class BigNat extends BigNatInternal {
         tmpMod.fromByteArray(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
 
         if (OperationSupport.getInstance().RSA_EXTRA_MOD) {
-            tmpMod.mod(rm.fixedModSqMod);
+            tmpMod.mod(rm.fixedMod);
         }
-        setSize(rm.fixedModSqMod.length());
+        setSize(rm.fixedMod.length());
         copy(tmpMod);
     }
 
@@ -383,7 +383,7 @@ public class BigNat extends BigNatInternal {
      */
     public void modSq(BigNat mod) {
         if (OperationSupport.getInstance().RSA_SQ) {
-            if (rm.fixedModSqMod != null && rm.fixedModSqMod == mod) {
+            if (rm.fixedMod != null && rm.fixedMod == mod) {
                 modSqFixed();
             } else {
                 modExp(ResourceManager.TWO, mod);
