@@ -16,9 +16,10 @@ public class ResourceManager {
     KeyAgreement ecMultKA;
     KeyAgreement ecAddKA;
     Signature verifyEcdsa;
-    Cipher sqCiph, expCiph;
-    RSAPublicKey sqPub, expPub;
-    RSAPrivateKey sqPriv, expPriv;
+    Cipher sqCiph, modSqCiph, expCiph;
+    RSAPublicKey sqPub, modSqPub, expPub;
+    RSAPrivateKey sqPriv, modSqPriv, expPriv;
+    BigNat fixedModSqMod;
 
     byte[] ARRAY_A, ARRAY_B, POINT_ARRAY_A, POINT_ARRAY_B, HASH_ARRAY;
 
@@ -127,12 +128,15 @@ public class ResourceManager {
         if (OperationSupport.getInstance().RSA_SQ) {
             Util.arrayFillNonAtomic(ARRAY_A, (short) 0, MAX_SQ_LENGTH, (byte) 0xff);
             sqCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
+            modSqCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
             if (OperationSupport.getInstance().RSA_PUB) {
+                modSqPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MAX_EXP_BIT_LENGTH, false);
                 sqPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MAX_SQ_BIT_LENGTH, false);
                 sqPub.setExponent(CONST_TWO, (short) 0, (short) CONST_TWO.length);
                 sqPub.setModulus(ARRAY_A, (short) 0, MAX_SQ_LENGTH);
                 sqCiph.init(sqPub, Cipher.MODE_ENCRYPT);
             } else {
+                modSqPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MAX_EXP_BIT_LENGTH, false);
                 sqPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MAX_SQ_BIT_LENGTH, false);
                 sqPriv.setExponent(CONST_TWO, (short) 0, (short) CONST_TWO.length);
                 sqPriv.setModulus(ARRAY_A, (short) 0, MAX_SQ_LENGTH);
@@ -144,6 +148,64 @@ public class ResourceManager {
         expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MAX_EXP_BIT_LENGTH, false);
         expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MAX_EXP_BIT_LENGTH, false);
         expCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
+    }
+
+    /**
+     * Preloads modSq engine with a given mod. Can increase performance when the same mod is used repeatedly. The
+     * provided mod is assumed to be fixed.
+     */
+    public void fixModSqMod(BigNat mod) {
+        if (!OperationSupport.getInstance().RSA_SQ) {
+            return; // modSq engine is not used
+        }
+        fixedModSqMod = mod;
+        if (mod == null) {
+            return;
+        }
+        BigNat tmpMod = BN_F;
+        byte[] tmpBuffer = ARRAY_A;
+
+        tmpMod.lock();
+        lock(ARRAY_A);
+        tmpMod.setSize(MAX_EXP_LENGTH);
+        if (OperationSupport.getInstance().RSA_PUB) {
+            if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
+                modSqPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MAX_EXP_BIT_LENGTH, false);
+            }
+            modSqPub.setExponent(ResourceManager.CONST_TWO, (short) 0, (short) ResourceManager.CONST_TWO.length);
+            if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
+                if (OperationSupport.getInstance().RSA_APPEND_MOD) {
+                    mod.appendZeros(MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+                } else {
+                    mod.prependZeros(MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+                }
+                modSqPub.setModulus(tmpBuffer, (short) 0, MAX_EXP_LENGTH);
+            } else {
+                short modLength = mod.copyToByteArray(tmpBuffer, (short) 0);
+                modSqPub.setModulus(tmpBuffer, (short) 0, modLength);
+            }
+            modSqCiph.init(modSqPub, Cipher.MODE_DECRYPT);
+        } else {
+            if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
+                modSqPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MAX_EXP_BIT_LENGTH, false);
+            }
+            modSqPriv.setExponent(ResourceManager.CONST_TWO, (short) 0, (short) ResourceManager.CONST_TWO.length);
+            if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
+                if (OperationSupport.getInstance().RSA_APPEND_MOD) {
+                    mod.appendZeros(MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+                } else {
+                    mod.prependZeros(MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+
+                }
+                modSqPriv.setModulus(tmpBuffer, (short) 0, MAX_EXP_LENGTH);
+            } else {
+                short modLength = mod.copyToByteArray(tmpBuffer, (short) 0);
+                modSqPriv.setModulus(tmpBuffer, (short) 0, modLength);
+            }
+            modSqCiph.init(modSqPriv, Cipher.MODE_DECRYPT);
+        }
+        unlock(ARRAY_A);
+        tmpMod.unlock();
     }
 
     /**

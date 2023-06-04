@@ -196,6 +196,41 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
+     * Square this mod a modulus fixed with fixModSqMod method.
+     */
+    private void modSqFixed() {
+        BigNat tmpMod = rm.BN_F;
+        byte[] tmpBuffer = rm.ARRAY_A;
+        short modLength;
+
+        tmpMod.setSize(rm.MAX_EXP_LENGTH);
+        if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
+            modLength = rm.MAX_EXP_LENGTH;
+        } else {
+            modLength = rm.fixedModSqMod.length();
+        }
+
+        prependZeros(modLength, tmpBuffer, (short) 0);
+        short len = rm.modSqCiph.doFinal(tmpBuffer, (short) 0, modLength, tmpBuffer, (short) 0);
+
+        if (len != rm.MAX_EXP_LENGTH) {
+            if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
+                Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, tmpBuffer, (short) (rm.MAX_EXP_LENGTH - len), len);
+                Util.arrayFillNonAtomic(tmpBuffer, (short) 0, (short) (rm.MAX_EXP_LENGTH - len), (byte) 0);
+            } else {
+                ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
+            }
+        }
+        tmpMod.fromByteArray(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
+
+        if (OperationSupport.getInstance().RSA_EXTRA_MOD) {
+            tmpMod.mod(rm.fixedModSqMod);
+        }
+        setSize(rm.fixedModSqMod.length());
+        copy(tmpMod);
+    }
+
+    /**
      * Computes (this ^ exp % mod) using RSA algorithm and store results into this.
      */
     public void modExp(BigNat exp, BigNat mod) {
@@ -348,7 +383,11 @@ public class BigNat extends BigNatInternal {
      */
     public void modSq(BigNat mod) {
         if (OperationSupport.getInstance().RSA_SQ) {
-            modExp(ResourceManager.TWO, mod);
+            if (rm.fixedModSqMod != null && rm.fixedModSqMod == mod) {
+                modSqFixed();
+            } else {
+                modExp(ResourceManager.TWO, mod);
+            }
         } else {
             modMult(this, mod);
         }
