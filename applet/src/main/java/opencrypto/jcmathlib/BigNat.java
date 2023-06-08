@@ -354,14 +354,20 @@ public class BigNat extends BigNatInternal {
             result.mult(other);
             result.mod(mod);
         } else {
-            result.clone(this);
-            result.modAdd(other, mod);
+            result.setSize((short) (mod.length() + 1));
+            result.copy(this);
+            result.add(other);
 
             short carry = (byte) 0;
             if (result.isOdd()) {
-                carry = result.add(mod);
+                if (result.isLesser(mod)) {
+                    carry = result.add(mod);
+                } else {
+                    result.subtract(mod);
+                }
             }
             result.shiftRight((short) 1, carry);
+            result.resize(mod.length());
 
             tmp.lock();
             tmp.clone(result);
