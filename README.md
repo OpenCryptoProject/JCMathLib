@@ -44,21 +44,50 @@ use**.
 
 ## Getting Started
 
-Before using JCMathLib in your projects, you should test that it works properly on your smartcard. For that, you may
-want to run UnitTests. If you plan to work only with a simulator, you can skip to the last step
+Clone this repository: 
+
+```
+git clone --recurse-submodules https://github.com/OpenCryptoProject/JCMathLib.git
+```
+
+For compilation for JavaCards, you need to obtain JavaCard SDKs, which are included as submodule. If your libs-sdks folder is empty, run:
+
+```
+git submodule update --init --recursive
+```
+
+Before using JCMathLib in your projects, you should test that it works properly on your smartcard. For that, you may want to run UnitTests. If you plan to work only with a simulator, you can skip to the last step
 of [the following section](#running-unit-tests).
 
 ### Running unit tests
 
-Set your card type in the `UnitTests` class and also change the JavaCard API version in `applet/build.gradle` file if
-you wish to run the code on cards with a JavaCard API version different from 3.0.5. Then you can build the applet by
-running the following command.
+1. Set your card type in the `JCMathLib/applet/src/main/java/opencrypto/jcmathlib/UnitTests` class. The supported options are listed in class `OperationSupport.{SIMULATOR, JCOP21, JCOP3_P60, JCOP4_P71, GD60, GD70, SECORA)`.
+
+```java
+public class UnitTests extends Applet {
+    public final static short CARD_TYPE = OperationSupport.SIMULATOR; // TODO set your card here
+```
+
+2. (OPTIONAL depending on card seleted in step 1.) Change the JavaCard API version in `applet/build.gradle` file if you wish to run the code on cards with a JavaCard API version different from 3.0.5. 
+
+```
+// JC310b43 supports compilation targeting for lower API versions.
+// Here you can specify path to the SDK you want to use.
+// Only JC304 and higher are supported for targeting.
+// If JC310b43 is not used, targetsdk cannot be set.
+targetsdk JC305
+```
+If you would like to build for lower versions, comment line with `targetsdk JC305` and set `final def JC_SELECTED = JC310b43` to other value like `final def JC_SELECTED = JC222`.
+
+
+
+3. Build the applet by running the following command.
 
 ```
 ./gradlew buildJavaCard
 ```
 
-If the build completes successfully, you may install it on a card by running the following command. In case you
+4. If the build completes successfully, you may install it on a card by running the following command. In case you
 encounter some issues, you may want to try using [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro)
 directly and install the built cap file `applet/build/javacard/unit_tests.cap`.
 
