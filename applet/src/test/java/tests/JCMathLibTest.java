@@ -659,7 +659,13 @@ public class JCMathLibTest extends BaseTest {
     }
 
     @AfterEach
-    public void tearDownMethod() {
+    public void tearDownMethod() throws Exception {
+        if (statefulCard != null) {
+            statefulCard.disconnect(true);
+        }
+        this.setCardType(UnitTests.CARD_TYPE == OperationSupport.SIMULATOR ? CardType.JCARDSIMLOCAL : CardType.PHYSICAL);
+        this.setSimulateStateful(true);
+        statefulCard = connect();
         atr = Util.toHex(statefulCard.atr().getBytes());
     }
 }
