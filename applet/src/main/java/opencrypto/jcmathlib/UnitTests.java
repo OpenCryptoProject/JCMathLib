@@ -18,6 +18,12 @@ import javacard.security.CryptoException;
  */
 public class UnitTests extends Applet {
     public final static short CARD_TYPE = OperationSupport.SIMULATOR; // TODO set your card
+    //public final static short CARD_TYPE = OperationSupport.JCOP21;
+    //public final static short CARD_TYPE = OperationSupport.SECORA;
+    //public final static short CARD_TYPE = OperationSupport.JCOP3_P60;
+    //public final static short CARD_TYPE = OperationSupport.JCOP4_P71;
+    //public final static short CARD_TYPE = OperationSupport.GD60;
+    //public final static short CARD_TYPE = OperationSupport.GD70;
 
     public final static byte CLA_OC_UT = (byte) 0xB0;
     public final static byte INS_CLEANUP = (byte) 0x03;

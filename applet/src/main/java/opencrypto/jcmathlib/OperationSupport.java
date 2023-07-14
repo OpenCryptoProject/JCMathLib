@@ -8,13 +8,13 @@ package opencrypto.jcmathlib;
 public class OperationSupport {
     private static OperationSupport instance;
 
-    public static final short SIMULATOR = 0x0000;
-    public static final short JCOP21 = 0x0001;
-    public static final short JCOP3_P60 = 0x0002;
-    public static final short JCOP4_P71 = 0x0003;
-    public static final short GD60 = 0x0004;
-    public static final short GD70 = 0x0005;
-    public static final short SECORA = 0x0006;
+    public static final short SIMULATOR = 0x0000;   // jCardSim.org simulator
+    public static final short JCOP21 = 0x0001;      // NXP J2E145G
+    public static final short JCOP3_P60 = 0x0002;   // NXP JCOP3 J3H145 P60
+    public static final short JCOP4_P71 = 0x0003;   // NXP JCOP4 J3Rxxx P71
+    public static final short GD60 = 0x0004;        // G+D Sm@rtcafe 6.0
+    public static final short GD70 = 0x0005;        // G+D Sm@rtcafe 7.0
+    public static final short SECORA = 0x0006;      // Infineon Secora ID S
 
     public short MIN_RSA_BIT_LENGTH = 512;
     public boolean DEFERRED_INITIALIZATION = false;
