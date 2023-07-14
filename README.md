@@ -61,25 +61,33 @@ of [the following section](#running-unit-tests).
 
 ### Running unit tests
 
-1. Set your card type in the `JCMathLib/applet/src/main/java/opencrypto/jcmathlib/UnitTests` class. The supported options are listed in class `OperationSupport.{SIMULATOR, JCOP21, JCOP3_P60, JCOP4_P71, GD60, GD70, SECORA)`.
+1. Set your card type in the `JCMathLib/applet/src/main/java/opencrypto/jcmathlib/UnitTests` class. The supported options are listed in class `OperationSupport.{SIMULATOR, JCOP21, JCOP3_P60, JCOP4_P71, GD60, GD70, SECORA}`.
 
 ```java
 public class UnitTests extends Applet {
     public final static short CARD_TYPE = OperationSupport.SIMULATOR; // TODO set your card here
 ```
 
-2. (OPTIONAL depending on card seleted in step 1.) Change the JavaCard API version in `applet/build.gradle` file if you wish to run the code on cards with a JavaCard API version different from 3.0.5. 
+2. (OPTIONAL depending on card selected in step 1.) Change the JavaCard API version in `applet/build.gradle` file if you wish to run the code on cards with a JavaCard API version different from 3.0.5. 
 
 ```
 // JC310b43 supports compilation targeting for lower API versions.
 // Here you can specify path to the SDK you want to use.
 // Only JC304 and higher are supported for targeting.
 // If JC310b43 is not used, targetsdk cannot be set.
-targetsdk JC305
+targetsdk JC305  <----
 ```
-If you would like to build for lower versions, comment line with `targetsdk JC305` and set `final def JC_SELECTED = JC310b43` to other value like `final def JC_SELECTED = JC222`.
+If you would like to build for lower versions, comment out line with `targetsdk JC305` and set `final def JC_SELECTED = JC310b43` to other value like `final def JC_SELECTED = JC222`.
 
-
+The list of settings is summarized here:
+| Card | OperationSupport value | JC_SELECTED value | targetsdk value | Notes |
+| [jCardSim simulator](https://github.com/licel/jcardsim/) | SIMULATOR | -- | -- | |
+| [NXP J2E145G](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/NXP_J2E145G_ICFabDate_2013_025_ALGSUPPORT__3b_f9_13_00_00_81_31_fe_45_4a_43_4f_50_32_34_32_52_33_a2_(provided_by_PetrS_and_Lukas_Malina).csv) | JCOP21 | JC_SELECTED = JC222 | //targetsdk=JC305 | |
+| [NXP JCOP3 J3H145 P60](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/NXP_JCOP3_J3H145_SECID_P60_ALGSUPPORT__3b_11_95_80_(provided_by_Luka_Logar_and_Rowland_Watkins_and_PetrS).csv) | JCOP3_P60 | JC_SELECTED = JC310b43 | targetsdk=JC304 | |
+| [NXP JCOP4 J3Rxxx P71](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/NXP_JCOP4_J3R180_P71_ALGSUPPORT__3b_fa_18_00_ff_10_00_4a_54_61_78_43_6f_72_65_56_31_(provided_by_PetrS).csv) | JCOP4_P71 | JC_SELECTED = JC310b43 | targetsdk=JC305 | |
+| [G+D Sm@rtcafe 6.0](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/G%2BD_Smartcafe_6.0_80K_ICFabDate_2015_024_ALGSUPPORT__3b_fe_18_00_00_80_31_fe_45_53_43_45_36_30_2d_43_44_30_38_31_2d_6e_46_a9_(provided_by_PetrS).csv) | GD60 | JC_SELECTED = JC303 | //targetsdk=JC305 | |
+| [G+D Sm@rtcafe 7.0](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/G%2BD_SmartCafe_7.0_215K_USB_Token_S_ALGSUPPORT__3b_f9_96_00_00_81_31_fe_45_53_43_45_37_20_0e_00_20_20_28_(provided_by_PetrS).csv) | GD70 | JC_SELECTED = JC_SELECTED = JC310b43 | targetsdk=JC304 | |
+| [Infineon Secora ID S](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/Infineon_SECORA_ID_S_(SCP02_with_RSA2k_JC305_GP230_NOT_FOR_SALE_-_PROTOTYPE_ONLY)_ALGSUPPORT__3b_b8_97_00_c0_08_31_fe_45_ff_ff_13_57_30_50_23_00_6a_(provided_by_Thoth).csv) | SECORA | JC_SELECTED = JC310b43 | targetsdk=JC305 | (may require AES256 GP keys) |
 
 3. Build the applet by running the following command.
 
@@ -99,11 +107,11 @@ If the installation completes successfully, you can run the tests. If the `UnitT
 following command will try to run the tests with a connected card. Otherwise, it will run the tests just in a simulator.
 
 ```
-./gradlew test
+./gradlew --rerun-tasks test
 ```
 
 If you have multiple readers connected to your device, you may need to adjust the reader
-index (`runCfg.setTargetReaderIndex` in `BaseTest`).
+index (`runCfg.setTargetReaderIndex` in `JCMathLib/applet/src/test/java/tests/BaseTest`).
 
 ### Example usage
 
