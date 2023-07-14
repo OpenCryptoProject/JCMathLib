@@ -18,6 +18,9 @@ import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.math.ec.ECPoint;
 import org.junit.jupiter.api.*;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -644,14 +647,31 @@ public class JCMathLibTest extends BaseTest {
     public static void tearDownClass() {
         // Iterating over the HashMap
         TreeMap<String, Long> sortedMap = new TreeMap<>(perfMap);
-        System.out.printf("\n\nPERFORMANCE SUMMARY (ATR=%s)\n", atr);
-        System.out.println("-----------------------------------------------------------------");
+        StringBuilder contentBuilder = new StringBuilder();
+        //contentBuilder.append(String.format("\n\nPERFORMANCE SUMMARY (ATR=%s)\n", atr));
+        //System.out.printf("| Operation (time in ms) | %s |\n", atr);
+        contentBuilder.append(String.format("| Operation (time in ms) | %s |\n", atr));
+
+        //System.out.println("| --- | --- |");
+        contentBuilder.append("| --- | --- |\n");
+        //System.out.println("-----------------------------------------------------------------");
         for (Map.Entry<String, Long> entry : sortedMap.entrySet()) {
             String key = entry.getKey();
             Long value = entry.getValue();
-            System.out.printf("| %-50s | %-5s ms |%n", key, value);
+            //System.out.printf("| %-50s | %s |%n", key, value);
+            contentBuilder.append(String.format("| %-50s | %s |\n", key, value));
         }
+        System.out.printf("\n\nPERFORMANCE SUMMARY (ATR=%s)\n", atr);
+        System.out.println(contentBuilder.toString());
         System.out.println("-----------------------------------------------------------------");
+
+        // Save the formatted content to a file
+        String filePath = atr + ".csv";
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            writer.write(contentBuilder.toString().replace("|", ",|,"));
+        } catch (IOException e) {
+            System.out.println("An error occurred while saving the file: " + e.getMessage());
+        }
     }
 
     @BeforeEach
