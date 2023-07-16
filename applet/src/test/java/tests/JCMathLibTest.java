@@ -63,6 +63,7 @@ public class JCMathLibTest extends BaseTest {
     class ECCTest {
         @Test
         public void eccGen() throws Exception {
+            perfMap.put("eccGen/INS_EC_GEN", new Long(-1));
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_GEN, 0, 0, new byte[1]);
             ResponseAPDU resp = statefulCard.transmit(cmd);
             perfMap.put("eccGen/INS_EC_GEN", statefulCard.getLastTransmitTime());
@@ -72,6 +73,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccAdd() throws Exception {
+            perfMap.put("eccAdd/INS_EC_ADD", new Long(-1));
             ECPoint point1 = randECPoint();
             ECPoint point2 = randECPoint();
             ECPoint sum = point1.add(point2);
@@ -85,6 +87,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccNegation() throws Exception {
+            perfMap.put("eccNegation/INS_EC_NEG", new Long(-1));
             CardManager cardMngr = connect();
             ECPoint point = randECPoint();
             ECPoint negated = point.negate();
@@ -98,6 +101,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccMultiplyGenerator() throws Exception {
+            perfMap.put("eccMultiplyGenerator/INS_EC_MUL", new Long(-1));
             ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256r1");
             ECPoint point = ecSpec.getG();
             BigInteger scalar = randomBigNat(256);
@@ -113,6 +117,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccMultiplyRandom() throws Exception {
+            perfMap.put("eccMultiplyRandom/INS_EC_MUL", new Long(-1));
             ECPoint point = randECPoint();
             BigInteger scalar = randomBigNat(256);
             ECPoint result = point.multiply(scalar);
@@ -127,6 +132,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccIsEqual() throws Exception {
+            perfMap.put("eccIsEqual/INS_EC_COMPARE", new Long(-1));
             ECPoint point1 = randECPoint();
             ECPoint point2 = randECPoint();
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_COMPARE, point1.getEncoded(false).length, point2.getEncoded(false).length, Util.concat(point1.getEncoded(false), point2.getEncoded(false)));
@@ -138,6 +144,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccDoubleGenerator() throws Exception {
+            perfMap.put("eccDoubleGenerator/INS_EC_DBL", new Long(-1));
             ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256r1");
             ECPoint point = ecSpec.getG();
             ECPoint doubled = point.add(point);
@@ -152,6 +159,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccDoubleRandom() throws Exception {
+            perfMap.put("eccDoubleRandom/INS_EC_DBL", new Long(-1));
             ECPoint point = randECPoint();
             ECPoint doubled = point.add(point);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_DBL, 0, 0, point.getEncoded(false));
@@ -165,6 +173,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccFromX() throws Exception {
+            perfMap.put("eccFromX/INS_EC_FROM_X", new Long(-1));
             CardManager cardMngr = connect();
             ECPoint point = randECPoint();
             ECPoint negated = point.negate();
@@ -180,6 +189,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccIsYEven() throws Exception {
+            perfMap.put("eccIsYEven/INS_EC_IS_Y_EVEN", new Long(-1));
             CardManager cardMngr = connect();
             ECPoint point = randECPoint();
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_IS_Y_EVEN, point.getEncoded(false).length, 0, point.getEncoded(false));
@@ -193,6 +203,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccMultRandomAndAdd() throws Exception {
+            perfMap.put("eccMultRandomAndAdd/INS_EC_MUL_ADD", new Long(-1));
             ECPoint point1 = randECPoint();
             ECPoint point2 = randECPoint();
             BigInteger scalar = randomBigNat(256);
@@ -209,6 +220,10 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void eccEncode() throws Exception {
+            perfMap.put("eccEncode(uncompressed_in_out)/INS_EC_ENCODE", new Long(-1));
+            perfMap.put("eccEncode(compressed_out)/INS_EC_ENCODE", new Long(-1));
+            perfMap.put("eccEncode(compressed_in)/INS_EC_ENCODE", new Long(-1));
+            perfMap.put("eccEncode(compressed_in_out)/INS_EC_ENCODE", new Long(-1));
             CardManager cardMngr = connect();
             ECPoint point = randECPoint();
 
@@ -257,6 +272,7 @@ public class JCMathLibTest extends BaseTest {
     class BigNatTest {
         @Test
         public void bigNatStorage() throws Exception {
+            perfMap.put("bigNatStorage/INS_BN_STR", new Long(-1));
             BigInteger num = randomBigNat(BIGNAT_BIT_LENGTH);
             byte[] data = Util.concat(new byte[]{}, num.toByteArray());
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_STR, 0, 0, data);
@@ -270,6 +286,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatAddition() throws Exception {
+            perfMap.put("bigNatAddition/INS_BN_ADD", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
             BigInteger result = num1.add(num2);
@@ -284,6 +301,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatSubtraction() throws Exception {
+            perfMap.put("bigNatSubtraction/INS_BN_SUB", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
             BigInteger result = num1.subtract(num2);
@@ -298,6 +316,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatMultiplication() throws Exception {
+            perfMap.put("bigNatMultiplication/INS_BN_MUL", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger result = num1.multiply(num2);
@@ -312,6 +331,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatSq() throws Exception {
+            perfMap.put("bigNatSq/INS_BN_SQ", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger result = num1.multiply(num1);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQ, 0, 0, num1.toByteArray());
@@ -325,12 +345,13 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatShiftRight() throws Exception {
+            perfMap.put("bigNatShiftRight(8b)/INS_BN_SHIFT_RIGHT", new Long(-1));
             for (int bits = 0; bits < 8; ++bits) {
                 BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
                 BigInteger result = num1.shiftRight(bits);
                 CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SHIFT_RIGHT, bits, 0, num1.toByteArray());
                 ResponseAPDU resp = statefulCard.transmit(cmd);
-                perfMap.put("bigNatShiftRight/INS_BN_SHIFT_RIGHT", statefulCard.getLastTransmitTime());
+                perfMap.put("bigNatShiftRight(8b)/INS_BN_SHIFT_RIGHT", statefulCard.getLastTransmitTime());
 
                 Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
                 Assertions.assertEquals(result, new BigInteger(1, resp.getData()));
@@ -340,6 +361,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatMultiplicationSlow() throws Exception {
+            perfMap.put("bigNatMultiplicationSlow/INS_BN_MUL_SCHOOL", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger result = num1.multiply(num2);
@@ -354,6 +376,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatMod() throws Exception {
+            perfMap.put("bigNatMod/INS_BN_MOD", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH - 1);
             BigInteger result = num1.mod(num2);
@@ -368,6 +391,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatSetValue() throws Exception {
+            perfMap.put("bigNatSetValue/INS_BN_SET_VALUE", new Long(-1));
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SET_VALUE, 0, 0, new byte[]{0x12, 0x34, 0x56});
             ResponseAPDU resp = statefulCard.transmit(cmd);
             perfMap.put("bigNatSetValue/INS_BN_SET_VALUE", statefulCard.getLastTransmitTime());
@@ -380,6 +404,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatModSqrt() throws Exception {
+            perfMap.put("bigNatModSqrt/INS_BN_SQRT_MOD", new Long(-1));
             BigInteger num = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger mod = new BigInteger(1, SecP256r1.p);
             // Sample num until we get a quadratic residue
@@ -399,6 +424,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatModAdd() throws Exception {
+            perfMap.put("bigNatModAdd/INS_BN_ADD_MOD", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num3 = new BigInteger(1, SecP256r1.r);
@@ -415,6 +441,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatModSub() throws Exception {
+            perfMap.put("bigNatModSub/INS_BN_SUB_MOD", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num3 = new BigInteger(1, SecP256r1.r);
@@ -430,6 +457,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatModMult() throws Exception {
+            perfMap.put("bigNatModMult/INS_BN_MUL_MOD", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num3 = new BigInteger(1, SecP256r1.r);
@@ -445,6 +473,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatModExp() throws Exception {
+            perfMap.put("bigNatModExp/INS_BN_EXP_MOD", new Long(-1));
             // Test multiple configurations (to check for OperationSupport.RSA_KEY_REFRESH)
             for (int i = 0; i < 3; ++i) {
                 BigInteger base = randomBigNat(256);
@@ -463,6 +492,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatModSq() throws Exception {
+            perfMap.put("bigNatModSq/INS_BN_SQ_MOD", new Long(-1));
             BigInteger base = randomBigNat(256);
             BigInteger exp = BigInteger.valueOf(2);
             BigInteger mod = new BigInteger(1, SecP256r1.r);
@@ -478,6 +508,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void bigNatModInv() throws Exception {
+            perfMap.put("bigNatModInv/INS_BN_INV_MOD", new Long(-1));
             BigInteger base = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger mod = new BigInteger(1, SecP256r1.r);
             BigInteger result = base.modInverse(mod);
@@ -495,6 +526,7 @@ public class JCMathLibTest extends BaseTest {
     class IntegerTest {
         @Test
         public void integerStorage() throws Exception {
+            perfMap.put("integerStorage/INS_INT_STR", new Long(-1));
             int num = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_INT_STR, 0, 0, intToBytes(num));
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -506,6 +538,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void integerAddition() throws Exception {
+            perfMap.put("integerAddition/INS_INT_ADD", new Long(-1));
             int num1 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
             int num2 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
             int result = num1 + num2;
@@ -520,6 +553,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void integerSubtraction() throws Exception {
+            perfMap.put("integerSubtraction/INS_INT_SUB", new Long(-1));
             int num1 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
             int num2 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
             int result = num1 - num2;
@@ -534,6 +568,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void integerMultiplication() throws Exception {
+            perfMap.put("integerMultiplication/INS_INT_MUL", new Long(-1));
             int num1 = ThreadLocalRandom.current().nextInt(0, (int) (Math.sqrt(Integer.MAX_VALUE)));
             int num2 = ThreadLocalRandom.current().nextInt(0, (int) (Math.sqrt(Integer.MAX_VALUE)));
             int result = num1 * num2;
@@ -548,6 +583,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void integerDivision() throws Exception {
+            perfMap.put("integerDivision/INS_INT_DIV", new Long(-1));
             int num1 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
             int num2 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
             int result = num1 / num2;
@@ -562,6 +598,7 @@ public class JCMathLibTest extends BaseTest {
 
         @Test
         public void integerModulo() throws Exception {
+            perfMap.put("integerModulo/INS_INT_MOD", new Long(-1));
             int num1 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
             int num2 = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE);
             int result = num1 % num2;
