@@ -1,248 +1,177 @@
 [![MIT licensed](https://img.shields.io/github/license/OpenCryptoProject/JCMathLib)](https://github.com/OpenCryptoProject/JCMathLib/blob/master/LICENSE) 
 
 <p align="center">
-    <img src="README-rsrc/logo.png">
+    <img src=".github/resources/logo.png">
 </p>
 
-The JCMathLib is an open-source library for Java Card platform which provides objects and operations otherwise missing from standard Java Card API. Namely, we focus on adding support for low-level operations like addition or multiplication of points on elliptic curves in resource efficient way. As a bonus, we provide tooling for [shared memory management](https://github.com/OpenCryptoProject/JCMathLib/wiki/Main-components) and [performance optimization](https://github.com/OpenCryptoProject/JCProfiler).
+JCMathLib is an open-source library for the JavaCard platform that aims to enable low-level cryptographic computations
+unavailable in the standard JavaCard API. In particular, it focuses on providing efficient modular arithmetic and
+elliptic curve operations.
 
-The project comes in three parts:
-* **JCMathLib** - the javacard library itself (on-card code)
-* **JCMathLibExamples** - the simple testing Java client (PC-side client code with simple examples)
-* **JCMathLibTests** - the client to thoroughly test all operations and measure performance (PC-side client)
+If you want to get into the technical details of JCMathLib, you can find them in this
+paper: https://arxiv.org/abs/1810.01662.
 
-If you want get into the math and the technical details explaining why things in JCMathLib work the way they do, you can find our paper here: https://arxiv.org/abs/1810.01662
+## Table of Contents
 
-If you want to cite this library:
+- [Features and Limitations](#features-and-limitations)
+- [Getting Started](#getting-started)
+- [Integration With Your Applet](#integration-with-your-applet)
+- [Community](#community)
+
+## Features and Limitations
+
+JCMathLib includes the following features:
+
+- BigNat arithmetic including modular operations
+- Elliptic curve point addition and multiplication
+- Option to accelerate computation by utilizing `int` native type on smartcards that support it (
+  branch `ints`)
+- No dependencies on proprietary interfaces (only public JavaCard API)
+- Selection of appropriate algorithm implementation based on the card's algorithm support (`OperationSupport`)
+- Resource management (`ObjectAllocator`, `ObjectLocker`)
+- Predefined common elliptic curves (`SecP256r1`, `SecP256k1`, `SecP512r1`)
+- Tool for packaging JCMathLib into a single file for easy integration
+
+Although higher-level cryptographic primitives and protocols can be constructed using JCMathLib, they are not included
+in the library. In case you need a higher-level implementation, you may try looking for projects building on top
+of JCMathLib (e.g., see [our users](#our-users)).
+
+As JCMathLib is implemented for the JavaCard Platform and relies only on public JavaCard API, it is not as efficient
+as a native implementation could be. This approach has a number of advantages, like easy portability and the possibility
+to open-source code. However, it makes it much harder (if not impossible) to perform the operations in constant time,
+and we do not aim to. The library is thus vulnerable to timing side-channel attacks and **is NOT suited for production
+use**.
+
+## Getting Started
+
+Clone this repository:
+
 ```
-@article{2020-jcmathlib-cybercert,
-    Title = {JCMathLib: Wrapper Cryptographic Library for Transparent and Certifiable JavaCard Applets},
-    Author = {Vasilios Mavroudis and Petr Svenda},
-    Conference = {2020 IEEE European Symposium on Security and Privacy Workshops},
-    Year = {2020},
-    Pages = {89--96},
-    Publisher = {IEEE},
-}
+git clone --recurse-submodules https://github.com/OpenCryptoProject/JCMathLib.git
 ```
 
+For compilation for JavaCards, you need to obtain JavaCard SDKs, which are included as submodule. If you did not use `--recurse-submodules` in the previous command and your libs-sdks folder is empty, run:
 
-### Project supporters
-JCMathLib is kindly supported by: 
-<p align="center"></br>
-<a href="https://www.javacardos.com/javacardforum/?ws=opencryptojc"> <img src="README-rsrc/javacardos.png" width="300"></a>
+```
+git submodule update --init --recursive
+```
+
+Before using JCMathLib in your projects, you should test that it works properly on your smartcard. For that, you may want to run UnitTests. If you plan to work only with a simulator, you can skip to the last step of [the following section](#running-unit-tests).
+
+### Running unit tests
+
+1. Set your card type in the `JCMathLib/applet/src/main/java/opencrypto/jcmathlib/UnitTests` class. The supported options are listed in class `OperationSupport.{SIMULATOR, JCOP21, JCOP3_P60, JCOP4_P71, GD60, GD70, SECORA}`.
+
+```java
+public class UnitTests extends Applet {
+    public final static short CARD_TYPE = OperationSupport.SIMULATOR; // TODO set your card here
+```
+
+2. OPTIONAL (depending on card selected in step 1). Change the JavaCard API version in `applet/build.gradle` file if you wish to run the code on cards with a JavaCard API version different from 3.0.5.
+
+```
+// JC310b43 supports building also for lower versions (cap.targetsdk).
+// If another SDK is selected, please comment the cap.targetsdk setting.
+final def JC_SELECTED = JC310b43 <----
+...
+// JC310b43 supports compilation targeting for lower API versions.
+// Here you can specify path to the SDK you want to use.
+// Only JC304 and higher are supported for targeting.
+// If JC310b43 is not used, targetsdk cannot be set.
+targetsdk JC305  <----
+```
+If you would like to build for lower versions, comment out line with `targetsdk JC305` and set `final def JC_SELECTED = JC310b43` to other value like `final def JC_SELECTED = JC222`.
+
+The list of settings is summarized here:
+| Card | `OperationSupport` | `JC_SELECTED` | `targetsdk` | Notes |
+| ---  | --- | --- | --- | --- |
+| [jCardSim simulator](https://github.com/licel/jcardsim/) | SIMULATOR | -- | -- | (JavaCard API settings are ignored) |
+| [NXP J2E145G](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/NXP_J2E145G_ICFabDate_2013_025_ALGSUPPORT__3b_f9_13_00_00_81_31_fe_45_4a_43_4f_50_32_34_32_52_33_a2_(provided_by_PetrS_and_Lukas_Malina).csv) | JCOP21 | JC303 | remove | |
+| [NXP JCOP3 J3H145 P60](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/NXP_JCOP3_J3H145_SECID_P60_ALGSUPPORT__3b_11_95_80_(provided_by_Luka_Logar_and_Rowland_Watkins_and_PetrS).csv) | JCOP3_P60 | JC310b43 | JC304 | |
+| [NXP JCOP4 J3Rxxx P71](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/NXP_JCOP4_J3R180_P71_ALGSUPPORT__3b_fa_18_00_ff_10_00_4a_54_61_78_43_6f_72_65_56_31_(provided_by_PetrS).csv) | JCOP4_P71 | JC310b43 | JC305 | |
+| [G+D Sm@rtcafe 6.0](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/G%2BD_Smartcafe_6.0_80K_ICFabDate_2015_024_ALGSUPPORT__3b_fe_18_00_00_80_31_fe_45_53_43_45_36_30_2d_43_44_30_38_31_2d_6e_46_a9_(provided_by_PetrS).csv) | GD60 | JC303 | remove | |
+| [G+D Sm@rtcafe 7.0](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/G%2BD_SmartCafe_7.0_215K_USB_Token_S_ALGSUPPORT__3b_f9_96_00_00_81_31_fe_45_53_43_45_37_20_0e_00_20_20_28_(provided_by_PetrS).csv) | GD70 | JC310b43 | JC304 | |
+| [Infineon Secora ID S](https://github.com/crocs-muni/jcalgtest_results/blob/main/javacard/Profiles/results/Infineon_SECORA_ID_S_(SCP02_with_RSA2k_JC305_GP230_NOT_FOR_SALE_-_PROTOTYPE_ONLY)_ALGSUPPORT__3b_b8_97_00_c0_08_31_fe_45_ff_ff_13_57_30_50_23_00_6a_(provided_by_Thoth).csv) | SECORA | JC310b43 | JC305 | (may require AES256 GP keys) |
+
+3. Build the applet by running the following command.
+
+```
+./gradlew buildJavaCard
+```
+
+4. If the build completes successfully, you may install it on a card by running the following command. In case you
+encounter some issues, you may want to try using [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro)
+directly and install the built cap file `applet/build/javacard/unit_tests.cap`.
+
+```
+./gradlew installJavaCard
+```
+
+If the installation completes successfully, you can run the tests. If the `UnitTests` contain your card type, the
+following command will try to run the tests with a connected card. Otherwise, it will run the tests just in a simulator.
+
+```
+./gradlew --rerun-tasks test
+```
+
+If you have multiple readers connected to your device, you may need to adjust the reader
+index (`runCfg.setTargetReaderIndex` in `JCMathLib/applet/src/test/java/tests/BaseTest`).
+
+### Example usage
+
+For an example usage of the library, see the [`Example`](applet/src/main/java/opencrypto/jcmathlib/Example.java) applet.
+
+## Integration With Your Applet
+
+To enable easy integration of JCMathLib with your applet, we provide a Python script that bundles JCMathLib into a
+single `.java` that can be included in your code.
+
+The script provides the following interface, allowing to specify which parts of JCMathLib to include (to save memory).
+
+```
+$ python package.py -h
+usage: package.py [-h] [-d DIR] [-k] [-c {SecP256k1,SecP256r1,SecP512r1} [{SecP256k1,SecP256r1,SecP512r1} ...]] [-p PACKAGE] [-o OUTPUT]
+
+Package the JCMathLib library into a single file.
+
+options:
+  -h, --help            show this help message and exit
+  -d DIR, --dir DIR     Directory to package
+  -k, --keep-locks      Keep locks
+  -c {SecP256k1,SecP256r1,SecP512r1} [{SecP256k1,SecP256r1,SecP512r1} ...], --curves {SecP256k1,SecP256r1,SecP512r1} [{SecP256k1,SecP256r1,SecP512r1} ...]
+                        Curves to include
+  -p PACKAGE, --package PACKAGE
+                        Package name
+  -o OUTPUT, --output OUTPUT
+                        Output file
+```
+
+For example, to bundle JCMathLib for your applet `test` in which you use curve `SecP256k1`, use the following. The
+output will be stored in `jcmathlib.java` file.
+
+```
+$ python package.py -p test -c SecP256k1 -o jcmathlib.java
+```
+
+## Community
+
+JCMathLib is kindly supported by:
+
+<p align="center">
+<a href="https://www.javacardos.com/javacardforum/?ws=opencryptojc"><img src=".github/resources/javacardos.png" width="300"></a>
 </p>
 
+### How to contribute
 
-## Quickstart 
+We welcome all contributions, but we especially appreciate contributions in the following form:
 
-### Example Applet Compilation, Upload and Use
+- **Code improvements.** If you discover a bug or have an idea for improving the code, please, submit the change in a [Pull Request](https://github.com/OpenCryptoProject/JCMathLib/pulls).
+- **Features.** If you wish certain feature was included in JCMathLib, let us know via [Issues](https://github.com/OpenCryptoProject/JCMathLib/issues) or implement it yourself and submit a [Pull Request](https://github.com/OpenCryptoProject/JCMathLib/pulls).
+- **Testing on cards.** If you have a smart card model that is not yet included in JCMathLib and you manage to get it working, please, create a pull request with the corresponding `OperationSupport` configuration and include information about the smart card. Also consider submitting your card results to [JCAlgTest](https://jcalgtest.cz/).
 
-Install [Apache Ant](https://ant.apache.org/).
-
-Download the whole repo and open command line in project's root directory.
-
-
-To compile the repo, navigate in the JCMathLib directory and run:
-
-```
-ant -f jcbuild.xml unittests
-```
-This will generate an output similar to this:
-
-```
->ant -f jcbuild.xml unittests
-Buildfile: C:\Users\pc\Desktop\JCMathLib\JCMathLib\jcbuild.xml
-
-unittests:
-      [cap] INFO: using JavaCard 3.0.1 SDK in ext\java_card_kit-3_0_3-win
-      [cap] INFO: Setting package name to opencrypto.jcmathlib
-      [cap] Building CAP with 1 applet from package opencrypto.jcmathlib (AID: 556E697454657374)
-      [cap] opencrypto.jcmathlib.OCUnitTests 556E69745465737473
-  [compile] Compiling files from C:\Users\pc\Desktop\JCMathLib\JCMathLib\src\opencrypto\jcmathlib
-  [compile] Compiling 17 source files to C:\Users\pc\AppData\Local\Temp\jccpro2108652080958352651
-  [convert] [ INFO: ] Converter [v3.0.3]
-  [convert] [ INFO: ]     Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
-  [convert]
-  [convert]
-  [convert] [ INFO: ] conversion completed with 0 errors and 0 warnings.
- [javacard] NB! Please use JavaCard SDK 3.0.5u3 or later for verifying!
-   [verify] Verification passed
-      [cap] CAP saved to C:\Users\pc\Desktop\JCMathLib\JCMathLib\!uploader\jcmathlib_unittests.cap
-```
-
-If you are using windows and you get the error message ```No usable JavaCard SDK referenced```, edit jcbuild.xml to use one of the Windows SDKs. To download a compatible JDK please use 1.8.0-152 (8u152, https://www.oracle.com/technetwork/java/javase/downloads/java-archive-javase8-2177648.html) and set your Java path to it.
-
-
-**Upload and Install Applet to Card**
-
-From the '!uploader' directory,  use [GlobalPlatformPro](https://github.com/martinpaljak/GlobalPlatformPro) to upload jcmathlib_example.cap.
-```
-gp -install jcmathlib_unittests.cap -v
-```
-This will generate an output similar to this:
-```
->gp -install jcmathlib_unittests.cap -v
-Reader: Generic EMV Smartcard Reader 0
-...
-CAP file (v2.1) generated on Tue Jul 25 14:34:17 CEST 2017
-By Sun Microsystems Inc. converter 1.3 with JDK 1.8.0_65 (Oracle Corporation)
-Package: opencrypto.jcmathlib v0.0
-Applet: UnitTests with AID 556E69745465737473
-Import: A0000000620001 v1.0
-Import: A0000000620101 v1.3
-Import: A0000000620102 v1.3
-Import: A0000000620201 v1.3
-Installing applet from package opencrypto.jcmathlib
-```
-If applet is already installed, you can uninstall it first using the *-uninstall* switch.
-
-**Trigger EC operations in process() method: 'gp -apdu '**
-```
-gp --apdu 00a4040009556e69745465737473 --apdu 0b000000 -d
-```
-(which results in output similar to this)
-```
->gp --apdu 00a4040009556e69745465737473 --apdu 0b000000 -d
-# Detected readers from SunPCSC
-[*] Generic EMV Smartcard Reader 0
-SCardConnect("Generic EMV Smartcard Reader 0", T=*) -> T=1, 3BF91300008131FE454A434F503234325233A2
-SCardBeginTransaction("Generic EMV Smartcard Reader 0")
-A>> T=1 (4+0009) 00A40400 09 556E69745465737473
-A<< (0000+2) (21ms) 9000
-A>> T=1 (4+0000) 0B000000      <---------------- THIS COMMAND TRIGGERED OUR EC OPERATIONS!
-A<< (0000+2) (8s378ms) 9000
-...
-SCardEndTransaction()
-SCardDisconnect("Generic EMV Smartcard Reader 0", false)
-```
-
-The code below shows a very simple applet demonstrating the use of the ECPoint class and other basic operations. Notice that memory allocation is happening only in the applet's constructor. This is common (and good) Java Card development practice.
-
-```java
-package opencrypto.jcmathlib;
-
-public class ECExample extends javacard.framework.Applet {
-    ECConfig        ecc = null;
-    ECCurve         curve = null;
-    ECPoint         point1 = null;
-    ECPoint         point2 = null;
-    
-    final static byte[] ECPOINT_TEST_VALUE = {(byte)0x04, (byte) 0x3B, (byte) 0xC1, (byte) 0x5B, (byte) 0xE5, (byte) 0xF7, (byte) 0x52, (byte) 0xB3, (byte) 0x27, (byte) 0x0D, (byte) 0xB0, (byte) 0xAE, (byte) 0xF2, (byte) 0xBC, (byte) 0xF0, (byte) 0xEC, (byte) 0xBD, (byte) 0xB5, (byte) 0x78, (byte) 0x8F, (byte) 0x88, (byte) 0xE6, (byte) 0x14, (byte) 0x32, (byte) 0x30, (byte) 0x68, (byte) 0xC4, (byte) 0xC4, (byte) 0x88, (byte) 0x6B, (byte) 0x43, (byte) 0x91, (byte) 0x4C, (byte) 0x22, (byte) 0xE1, (byte) 0x67, (byte) 0x68, (byte) 0x3B, (byte) 0x32, (byte) 0x95, (byte) 0x98, (byte) 0x31, (byte) 0x19, (byte) 0x6D, (byte) 0x41, (byte) 0x88, (byte) 0x0C, (byte) 0x9F, (byte) 0x8C, (byte) 0x59, (byte) 0x67, (byte) 0x60, (byte) 0x86, (byte) 0x1A, (byte) 0x86, (byte) 0xF8, (byte) 0x0D, (byte) 0x01, (byte) 0x46, (byte) 0x0C, (byte) 0xB5, (byte) 0x8D, (byte) 0x86, (byte) 0x6C, (byte) 0x09};
-
-    final static byte[] SCALAR_TEST_VALUE = {(byte) 0xE8, (byte) 0x05, (byte) 0xE8, (byte) 0x02, (byte) 0xBF, (byte) 0xEC, (byte) 0xEE, (byte) 0x91, (byte) 0x9B, (byte) 0x3D, (byte) 0x3B, (byte) 0xD8, (byte) 0x3C, (byte) 0x7B, (byte) 0x52, (byte) 0xA5, (byte) 0xD5, (byte) 0x35, (byte) 0x4C, (byte) 0x4C, (byte) 0x06, (byte) 0x89, (byte) 0x80, (byte) 0x54, (byte) 0xB9, (byte) 0x76, (byte) 0xFA, (byte) 0xB1, (byte) 0xD3, (byte) 0x5A, (byte) 0x10, (byte) 0x91};
-
-
-    public ECExample() {
-        // Pre-allocate all helper structures
-        ecc = new ECConfig((short) 256); 
-        // Pre-allocate standard SecP256r1 curve and two EC points on this curve
-        curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r);
-        point1 = new ECPoint(curve, ecc.ech);
-        point2 = new ECPoint(curve, ecc.ech);
-    }
-    // Installation of our applet
-    public static void install(byte[] bArray, short bOffset, byte bLength) {
-        new ECExample().register();
-    }
-    public boolean select() {
-        // Restore values which were cleared after card reset 
-        ecc.refreshAfterReset(); 
-        return true;
-    }
-    
-    // NOTE: very simple EC usage example - no cla/ins, no communication with host...    
-    public void process(javacard.framework.APDU apdu) {
-        if (selectingApplet()) { return; } // Someone is going to use our applet!
-        
-        // Generate first point at random
-        point1.randomize(); 
-        // Set second point to predefined value
-        point2.setW(ECPOINT_TEST_VALUE, (short) 0, (short) ECPOINT_TEST_VALUE.length); 
-        // Add two points together 
-        point1.add(point2); 
-        // Multiply point by large scalar
-        point1.multiplication(SCALAR_TEST_VALUE, (short) 0, (short) SCALAR_TEST_VALUE.length); 
-    }
-}
-```
-### Run Example Client
-Browse into the JCMathLibExamples directory and run:
-
-```ant -f build.xml compile```
-
-This will compile the Java testing client. In the case of errors during the compilation, edit build.xml for your setup (e.g., use the Windows versions of the dependencies). If the compilation succeeds, then run:
-
-```ant -f build.xml run```
-
-The run task uses the "noverify" flag for the JVM. If this generates an error in your setup, you can edit the relevant section in build.xml.
-
-## Example Code
-```java
-package opencrypto.jcmathlib; 
-
- // ... in applet's constructor
- // Pre-allocate all helper structures
- ECConfig ecc = new ECConfig((short) 256); 
- // Pre-allocate standard SecP256r1 curve and two EC points on this curve
- ECCurve curve = new ECCurve(false, SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r);
- ECPoint point1 = new ECPoint(curve, ecc.ech);
- ECPoint point2 = new ECPoint(curve, ecc.ech);
-    
- // ... in standard Java Card applet code
- // Generate first point at random
- point1.randomize(); 
- // Set second point to predefined value
- point2.setW(ECPOINT_TEST_VALUE, (short) 0, (short) ECPOINT_TEST_VALUE.length); 
- // Add two points together 
- point1.add(point2); 
- // Multiply point by large scalar
- point1.multiplication(SCALAR_TEST_VALUE, (short) 0, (short) SCALAR_TEST_VALUE.length); 
-```
-
-## FAQ
-**Q:** Hold on, I thought elliptic curves are already supported on smart cards, right? <br>
-**A:** Definitely not on each one. Take a look at [jcalgtest.org](http://jcalgtest.org) - out of 65 cards listed, only about 1/3 have some support. 
-
-**Q:** I will just download some 3rd party implementation like Bouncy Castle and run it on a card. So why are you developing this library?<br>
-**A:** Not that easy. The most Java Cards don't support *BigInteger* and usually not even *int* datatype. Even if you will change the code and finally compile, it will be impractically slow due to card's 40MHz CPU and 3KB RAM. That's why smart card manufacturers add dedicated coprocessor to speed up operations like modular multiplication (RSA) or elliptic curve point manipulation (ECC).
-
-**Q:** So if there is cryptographic coprocessor, I can do decrypt, sign or run key establishment directly on the card, right?<br>
-**A:** Yes, usually in the order of hundreds of milliseconds for asymmetric crypto. But if you like to build something fancier like multi-party secure communication protocols, blind signatures or attribute-based crypto which requires low-level operations, you are out of luck with standard Java Card API.
-
-**Q:** ECPoint is not included in standard Java Card API? <br>
-**A:** No, it is not supported. You can still get ECPoint operations you want via additional manufacturer proprietary API which usually means also signing NDA and get bound to a particular manufacturer.   
-
-**Q:** How your library can provide ECPoint if the port from Bouncy Castle is not a viable option?<br>
-**A:** We use card's fast co-processors in unintended ways (raw RSA for fast multiplication, ECDH KeyAgreement for point multiplication...)  and combine with software-only snippets to construct the required operations running as fast possible.   
-
-**Q:** So you provide these missing operations in an efficient way. Are there any disadvantages with respect to a manufacturer's native implementation? <br>
-**A:** We are slower if an operation requires computing lot of additional steps in a software-only manner. Also, native implementation is more resistant against side-channel and fault induction attacks.       
-
-**Q:** Do you support ECPoint operations on cards which are complete without the EC support?  <br>
-**A:** No, we need at least ECDH key agreement operation and new EC key pair generation supported on a target card. However, you can use fast operations with big numbers (Bignat, BigInteger - part of JCMathLib) even on cards without EC support. 
-
-**Q:** Sounds good, how can I start to fiddle with the JCMathLibrary library?<br>
-**A:** Buy [suitable](https://www.fi.muni.cz/~xsvenda/jcalgtest/) JavaCard for $10-20 with EC support ([buyers'guide](https://github.com/martinpaljak/GlobalPlatformPro/tree/master/docs/JavaCardBuyersGuide#javacard-buyers-guide-of-2015)), download this library source code, compile example project with [ant-javacard](https://github.com/martinpaljak/ant-javacard) and start playing. Don't forget to read [wiki](https://github.com/mavroudisv/JCMathLib/wiki) for examples and tutorials. 
-
-## Advantages and potential drawbacks
-**Advantages:**
-  * Availability of low-level ECPoint operations (not included in standard javacard API) without a need to use a proprietary API (which usually requires signing a non-disclosure agreement).
-  * Code portability between smart cards from different manufacturers. 
-  * Possibility to use open-source simulator [JCardSim](https://jcardsim.org/) instead of vendor-specific one.
-  
-**Potential drawbacks (in comparison to vendor-specific API):**
-  * Slower speed for some EC operations like addition or scalar multiplication (see [wiki](https://github.com/OpenCryptoProject/JCMathLib/wiki#performance-and-memory-overhead) for times measured on real cards
-  * RAM memory overhead (about 1kB for fastest performance). Is configurable with an option to place all temporary objects in EEPROM (slower performance). 
-  * Lower resilience against various side-channel and fault-induction attacks.
-
-
-## Future work
-* Additional optimizations and methods (remainder_divide is particular target)
-* Support for other curves like Ed25519
-* Long-term vision: support for easy transfer of the Bouncy Castle-enabled crypto code to Java Card environment
-
-### Happy users
-(If you can't find yourself here, please let us know via [Issues](https://github.com/OpenCryptoProject/JCMathLib/issues))
+### Our users
   * [Myst](https://github.com/OpenCryptoProject/Myst): Secure Multiparty Key Generation, Signature and Decryption JavaCard applet and host application 
   * [BioID](https://eprint.iacr.org/2019/894.pdf): a Privacy-Friendly Identity Document
+  * [JCEd25519](https://github.com/dufkan/JCEd25519): a JavaCard implementation of Ed25519 signing
 
+(If you can't find yourself here, please let us know via [Issues](https://github.com/OpenCryptoProject/JCMathLib/issues))

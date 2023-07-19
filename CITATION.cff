@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Mavroudis"
+  given-names: "Vasilios"
+- family-names: "Svenda"
+  given-names: "Petr"
+- family-names: "Dufka"
+  given-names: "Antonin"
+title: "JCMathLib"
+version: 2.0
+url: "https://github.com/OpenCryptoProject/JCMathLib"
+preferred-citation:
+  type: conference-paper
+  authors:
+  - family-names: "Mavroudis"
+    given-names: "Vasilios"
+  - family-names: "Svenda"
+    given-names: "Petr"
+  title: "JCMathLib: Wrapper Cryptographic Library for Transparent and Certifiable JavaCard Applets"
+  conference: "2020 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW)"
+  start: 89
+  end: 96
+  doi: "10.1109/EuroSPW51379.2020.00022"
+  publisher: "IEEE"
