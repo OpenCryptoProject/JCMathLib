@@ -420,8 +420,8 @@ public class ECPoint {
         rm.lock(pointBuffer);
         short len = getW(pointBuffer, (short) 0);
         curve.disposablePriv.setG(pointBuffer, (short) 0, len);
-        len = scalar.copyToByteArray(pointBuffer, (short) 0);
-        curve.disposablePriv.setS(pointBuffer, (short) 0, len);
+        scalar.prependZeros((short) curve.r.length, pointBuffer, (short) 0);
+        curve.disposablePriv.setS(pointBuffer, (short) 0, (short) curve.r.length);
         rm.ecAddKA.init(curve.disposablePriv);
 
         len = point.getW(pointBuffer, (short) 0);
@@ -458,11 +458,11 @@ public class ECPoint {
         byte[] pointBuffer = rm.POINT_ARRAY_B;
 
         rm.lock(pointBuffer);
-        short len = scalar.copyToByteArray(pointBuffer, (short) 0);
-        curve.disposablePriv.setS(pointBuffer, (short) 0, len);
+        scalar.prependZeros((short) curve.r.length, pointBuffer, (short) 0);
+        curve.disposablePriv.setS(pointBuffer, (short) 0, (short) curve.r.length);
         rm.ecMultKA.init(curve.disposablePriv);
 
-        len = getW(pointBuffer, (short) 0);
+        short len = getW(pointBuffer, (short) 0);
         len = rm.ecMultKA.generateSecret(pointBuffer, (short) 0, len, outBuffer, outBufferOffset);
         rm.unlock(pointBuffer);
         return len;
