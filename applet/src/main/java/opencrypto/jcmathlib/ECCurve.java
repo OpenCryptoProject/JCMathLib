@@ -1,7 +1,6 @@
 package opencrypto.jcmathlib;
 
 import javacard.framework.JCSystem;
-import javacard.framework.Util;
 import javacard.security.ECPrivateKey;
 import javacard.security.ECPublicKey;
 import javacard.security.KeyBuilder;
@@ -56,8 +55,8 @@ public class ECCurve {
         disposablePair = newKeyPair(null);
         disposablePriv = (ECPrivateKey) disposablePair.getPrivate();
         disposablePub = (ECPublicKey) disposablePair.getPublic();
-    }    
-    
+    }
+
     /**
      * Refresh critical information stored in RAM for performance reasons after a card reset (RAM was cleared).
      */

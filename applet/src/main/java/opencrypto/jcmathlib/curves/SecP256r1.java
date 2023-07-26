@@ -1,6 +1,10 @@
 package opencrypto.jcmathlib;
 
-public class SecP256r1 {
+public class SecP256r1 extends ECCurve {
+    public SecP256r1(ResourceManager rm) {
+        super(p, a, b, G, r, rm);
+    }
+
     public final static byte[] p = {
             (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
             (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01,

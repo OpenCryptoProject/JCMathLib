@@ -120,7 +120,7 @@ public class UnitTests extends Applet {
 
 
         // Pre-allocate test objects (no new allocation for every tested operation)
-        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, rm);
+        curve = new SecP256r1(rm);
         memoryInfoOffset = snapshotAvailableMemory((short) 3, memoryInfo, memoryInfoOffset);
         customG = new byte[(short) SecP256r1.G.length];
         Util.arrayCopyNonAtomic(SecP256r1.G, (short) 0, customG, (short) 0, (short) SecP256r1.G.length);

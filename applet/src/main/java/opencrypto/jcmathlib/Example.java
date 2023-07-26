@@ -59,7 +59,7 @@ public class Example extends Applet {
         // Allocate resources for a required elliptic curve size (in bits)
         rm = new ResourceManager((short) 256);
         // Allocate SecP256r1 curve and two EC points on this curve
-        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, rm);
+        curve = new SecP256k1(rm);
         point1 = new ECPoint(curve);
         point2 = new ECPoint(curve);
         // Allocate two BigNats large enough to hold scalars of the elliptic curve
