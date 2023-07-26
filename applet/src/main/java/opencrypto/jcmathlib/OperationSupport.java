@@ -33,6 +33,9 @@ public class OperationSupport {
     public boolean EC_HW_X = true;
     public boolean EC_HW_ADD = false;
     public boolean EC_SW_DOUBLE = false;
+    public boolean EC_PRECISE_BITLENGTH = true;
+    public boolean EC_SET_COFACTOR = false;
+    public boolean EC_GEN = true;
 
     private OperationSupport() {
     }
@@ -51,12 +54,14 @@ public class OperationSupport {
                 EC_HW_XY = true;
                 EC_HW_ADD = true;
                 EC_SW_DOUBLE = true;
+                EC_PRECISE_BITLENGTH = false;
                 break;
             case JCOP21:
                 RSA_PUB = true;
                 RSA_EXTRA_MOD = true;
                 RSA_APPEND_MOD = true;
                 EC_SW_DOUBLE = true;
+                EC_GEN = false;
                 break;
             case GD60:
                 RSA_PUB = true;

@@ -47,7 +47,21 @@ public class ECPoint {
      * Generates new random point value.
      */
     public void randomize() {
-        pointKeyPair.genKeyPair();
+        if (OperationSupport.getInstance().EC_GEN) {
+            pointKeyPair.genKeyPair(); // Fails for some curves on some cards
+        } else {
+            BigNat tmp = rm.EC_BN_A;
+            rm.lock(rm.ARRAY_A);
+            rm.rng.generateData(rm.ARRAY_A, (short) 0, (short) (curve.KEY_BIT_LENGTH / 8 + 16));
+            tmp.lock();
+            tmp.fromByteArray(rm.ARRAY_A, (short) 0, (short) (curve.KEY_BIT_LENGTH / 8 + 16));
+            tmp.mod(curve.rBN);
+            tmp.shrink();
+            rm.unlock(rm.ARRAY_A);
+            point.setW(curve.G, (short) 0, (short) curve.G.length);
+            multiplication(tmp);
+            tmp.unlock();
+        }
     }
 
     /**
@@ -513,8 +527,8 @@ public class ECPoint {
 
         // Check if public point <x, y_1> corresponds to the "secret" (i.e., our scalar)
         rm.lock(resultBuffer);
-        len = scalar.copyToByteArray(resultBuffer, (short) 0);
-        curve.disposablePriv.setS(resultBuffer, (short) 0, len);
+        scalar.prependZeros((short) curve.r.length, resultBuffer, (short) 0);
+        curve.disposablePriv.setS(resultBuffer, (short) 0, (short) curve.r.length);
         curve.disposablePub.setW(pointBuffer, (short) 0, curve.POINT_SIZE);
         if (!SignVerifyECDSA(curve.disposablePriv, curve.disposablePub, rm.verifyEcdsa, resultBuffer)) { // If verification fails, then pick the <x, y_2>
             y2.lock();
@@ -545,12 +559,12 @@ public class ECPoint {
         byte[] pointBuffer = rm.POINT_ARRAY_B;
         // NOTE: potential problem on real cards (j2e) - when small scalar is used (e.g., BigNat.TWO), operation sometimes freezes
         rm.lock(pointBuffer);
-        short len = scalar.copyToByteArray(pointBuffer, (short) 0);
-        curve.disposablePriv.setS(pointBuffer, (short) 0, len);
+        scalar.prependZeros((short) curve.r.length, pointBuffer, (short) 0);
+        curve.disposablePriv.setS(pointBuffer, (short) 0, (short) curve.r.length);
 
         rm.ecMultKA.init(curve.disposablePriv);
 
-        len = getW(pointBuffer, (short) 0);
+        short len = getW(pointBuffer, (short) 0);
         rm.ecMultKA.generateSecret(pointBuffer, (short) 0, len, outBuffer, outBufferOffset);
         rm.unlock(pointBuffer);
         // Return always length of whole coordinate X instead of len - some real cards returns shorter value equal to SHA-1 output size although PLAIN results is filled into buffer (GD60) 

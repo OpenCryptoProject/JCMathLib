@@ -12,6 +12,7 @@ import javacardx.crypto.Cipher;
 public class ResourceManager {
     public ObjectAllocator memAlloc;
 
+    RandomData rng;
     MessageDigest hashEngine;
     KeyAgreement ecMultKA;
     KeyAgreement ecAddKA;
@@ -23,6 +24,7 @@ public class ResourceManager {
 
     byte[] ARRAY_A, ARRAY_B, POINT_ARRAY_A, POINT_ARRAY_B, HASH_ARRAY;
 
+    static byte[] CONST_ONE = {0x01};
     static byte[] CONST_TWO = {0x02};
 
     BigNat BN_WORD;
@@ -148,6 +150,8 @@ public class ResourceManager {
         expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, MAX_EXP_BIT_LENGTH, false);
         expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, MAX_EXP_BIT_LENGTH, false);
         expCiph = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
+
+        rng = RandomData.getInstance(RandomData.ALG_SECURE_RANDOM);
     }
 
     /**
