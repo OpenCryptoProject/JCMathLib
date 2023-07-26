@@ -405,41 +405,31 @@ public class BigNat extends BigNatInternal {
      */
     public void modSqrt(BigNat p) {
         BigNat s = rm.BN_A;
-        BigNat exp = rm.BN_A;
+        BigNat exp = rm.BN_G;
         BigNat p1 = rm.BN_B;
         BigNat q = rm.BN_C;
         BigNat tmp = rm.BN_D;
-        BigNat z = rm.BN_E;
+        BigNat z = rm.EC_BN_E; // TODO temporary workaround to avoid allocating another BigNat
+        BigNat i = rm.BN_G;
+        BigNat t = rm.BN_B;
+        BigNat b = rm.BN_C;
 
-        // 1. By factoring out powers of 2, find Q and S such that p-1=Q2^S p-1=Q*2^S and Q is odd
+        // 1. Find Q and S such that p - 1 = Q * 2^S and Q is odd
         p1.lock();
         p1.clone(p);
         p1.decrement();
 
-        // Compute Q
+        s.lock();
+        s.setSize((short) 1); // assumes S < 256
+        s.zero();
+
         q.lock();
         q.clone(p1);
-        q.shiftRight((short) 1); // Q /= 2
 
-        // Compute S
-        s.lock();
-        s.setSize(p.length());
-        s.zero();
-        tmp.lock();
-        tmp.setSize(p.length());
-        tmp.zero();
-
-        while (!tmp.equals(q)) {
+        while (!q.isOdd()) {
             s.increment();
-            // TODO replace with modMult(s, q, p)
-            tmp.setSizeToMax(false);
-            tmp.clone(s);
-            tmp.mult(q);
-            tmp.mod(p);
-            tmp.shrink();
+            q.shiftRight((short) 1);
         }
-        tmp.unlock();
-        s.unlock();
 
         // 2. Find the first quadratic non-residue z by brute-force search
         exp.lock();
@@ -451,23 +441,97 @@ public class BigNat extends BigNatInternal {
         z.setSize(p.length());
         z.setValue((byte) 1);
         tmp.lock();
+        tmp.setSize(p.length());
         tmp.setValue((byte) 1);
 
         while (!tmp.equals(p1)) {
             z.increment();
             tmp.copy(z);
-            tmp.modExp(exp, p);
+            tmp.modExp(exp, p); // Euler's criterion
         }
         p1.unlock();
         tmp.unlock();
-        z.unlock();
+
+        // 3. Compute the first candidate
         exp.copy(q);
-        q.unlock();
         exp.increment();
         exp.shiftRight((short) 1);
+
+        t.lock();
+        t.copy(this);
+        t.modExp(q, p);
+
+        if (t.isZero()) {
+            z.unlock();
+            s.unlock();
+            t.unlock();
+            exp.unlock();
+            q.unlock();
+            zero();
+            return;
+        }
 
         mod(p);
         modExp(exp, p);
         exp.unlock();
+
+        if (t.isOne()) {
+            z.unlock();
+            s.unlock();
+            t.unlock();
+            q.unlock();
+            return;
+        }
+
+        // 4. Search for further candidates
+        z.modExp(q, p);
+        q.unlock();
+
+        while(true) {
+            tmp.lock();
+            tmp.copy(t);
+            i.lock();
+            i.setSize(p.length());
+            i.zero();
+
+            do {
+                tmp.modSq(p);
+                i.increment();
+            } while (!tmp.isOne());
+
+            tmp.unlock();
+
+            b.lock();
+            b.copy(z);
+            s.subtract(i);
+            s.decrement();
+
+            tmp.lock();
+            tmp.setValue((byte) 1);
+            while(!s.isZero()) {
+                tmp.shiftLeft((short) 1);
+                s.decrement();
+            }
+            b.modExp(tmp, p);
+            tmp.unlock();
+            s.copy(i);
+            i.unlock();
+            z.copy(b);
+            z.modSq(p);
+            t.modMult(z, p);
+            modMult(b, p);
+            b.unlock();
+
+            if(t.isZero()) {
+                zero();
+                break;
+            }
+            if(t.isOne()) {
+                break;
+            }
+        }
+        z.unlock();
+        s.unlock();
+        t.unlock();
     }
 }
