@@ -91,10 +91,6 @@ public class UnitTests extends Applet {
     ECPoint point1;
     ECPoint point2;
 
-    byte[] customG;
-    ECCurve customCurve;
-    ECPoint customPoint;
-
     BigNat bn1;
     BigNat bn2;
     BigNat bn3;
@@ -122,15 +118,11 @@ public class UnitTests extends Applet {
         // Pre-allocate test objects (no new allocation for every tested operation)
         curve = new SecP256r1(rm);
         memoryInfoOffset = snapshotAvailableMemory((short) 3, memoryInfo, memoryInfoOffset);
-        customG = new byte[(short) SecP256r1.G.length];
-        Util.arrayCopyNonAtomic(SecP256r1.G, (short) 0, customG, (short) 0, (short) SecP256r1.G.length);
-        customCurve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, customG, SecP256r1.r, rm);
 
         memoryInfoOffset = snapshotAvailableMemory((short) 5, memoryInfo, memoryInfoOffset);
         point1 = new ECPoint(curve);
         memoryInfoOffset = snapshotAvailableMemory((short) 6, memoryInfo, memoryInfoOffset);
         point2 = new ECPoint(curve);
-        customPoint = new ECPoint(customCurve);
 
         // Testing BigNat objects used in tests
         memoryInfoOffset = snapshotAvailableMemory((short) 7, memoryInfo, memoryInfoOffset);
@@ -354,9 +346,6 @@ public class UnitTests extends Applet {
         if (curve != null) {
             curve.updateAfterReset();
         }
-        if (customCurve != null) {
-            customCurve.updateAfterReset();
-        }
         if (rm != null) {
             rm.refreshAfterReset();
             rm.unlockAll();
@@ -366,10 +355,10 @@ public class UnitTests extends Applet {
     void testEcDbl(APDU apdu) {
         byte[] apduBuffer = apdu.getBuffer();
 
-        customPoint.setW(apduBuffer, ISO7816.OFFSET_CDATA, customCurve.POINT_SIZE);
-        customPoint.makeDouble();
+        point1.setW(apduBuffer, ISO7816.OFFSET_CDATA, curve.POINT_SIZE);
+        point1.makeDouble();
 
-        short len = customPoint.getW(apduBuffer, (short) 0);
+        short len = point1.getW(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
