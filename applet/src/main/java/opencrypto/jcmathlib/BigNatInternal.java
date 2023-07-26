@@ -456,7 +456,7 @@ public class BigNatInternal {
      * Right bit shift with carry
      *
      * @param bits number of bits to shift by
-     * @param carry XORed into the highest byte
+     * @param carry ORed into the highest byte
      */
     protected void shiftRight(short bits, short carry) {
         // assumes 0 <= bits < 8
@@ -478,6 +478,39 @@ public class BigNatInternal {
      */
     public void shiftRight(short bits) {
         shiftRight(bits, (short) 0);
+    }
+
+    /**
+     * Left bit shift with carry
+     *
+     * @param bits number of bits to shift by
+     * @param carry ORed into the lowest byte
+     */
+    protected void shiftLeft(short bits, short carry) {
+        // assumes 0 <= bits < 8
+        short mask = (short) ((-1 << (8 - bits)) & 0xff); // highest `bits` bits set to 1
+        for (short i = (short) (value.length - 1); i >= offset; --i) {
+            short current = (short) (value[i] & 0xff);
+            short previous = current;
+            current <<= bits;
+            value[i] = (byte) (current | carry);
+            carry = (short) (previous & mask);
+            carry >>= (8 - bits);
+        }
+
+        if (carry != 0) {
+            setSize((short) (size + 1));
+            value[offset] = (byte) carry;
+        }
+    }
+
+    /**
+     * Right bit shift
+     *
+     * @param bits number of bits to shift by
+     */
+    public void shiftLeft(short bits) {
+        shiftLeft(bits, (short) 0);
     }
 
     /**
