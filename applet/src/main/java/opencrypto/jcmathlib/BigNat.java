@@ -45,7 +45,7 @@ public class BigNat extends BigNatInternal {
         tmpOther.clone(other);
 
         // TODO: optimise?
-        while (!other.isZero()) {
+        while (!other.equals((byte) 0)) {
             tmp.clone(tmpOther);
             mod(tmpOther);
             tmpOther.clone(this);
@@ -66,7 +66,7 @@ public class BigNat extends BigNatInternal {
         tmp.clone(a);
 
         tmp.gcd(b);
-        boolean result = tmp.isOne();
+        boolean result = tmp.equals((byte) 1);
         tmp.unlock();
         return result;
     }
@@ -112,7 +112,7 @@ public class BigNat extends BigNatInternal {
      * Computes this * other and stores the result into this.
      */
     public void mult(BigNat other) {
-        if (OperationSupport.getInstance().RSA_CHECK_ONE && isOne()) {
+        if (OperationSupport.getInstance().RSA_CHECK_ONE && equals((byte) 1)) {
             clone(other);
             return;
         }
@@ -236,6 +236,12 @@ public class BigNat extends BigNatInternal {
     public void modExp(BigNat exp, BigNat mod) {
         if (!OperationSupport.getInstance().RSA_EXP)
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
+        if (OperationSupport.getInstance().RSA_CHECK_EXP_ONE && exp.equals((byte) 1))
+            return;
+        if (!OperationSupport.getInstance().RSA_SQ && exp.equals((byte) 2)) {
+            modMult(this, mod);
+            return;
+        }
 
         BigNat tmpMod = rm.BN_F; // modExp is called from modSqrt => requires BN_F not being locked when modExp is called
         byte[] tmpBuffer = rm.ARRAY_A;
@@ -343,7 +349,7 @@ public class BigNat extends BigNatInternal {
         BigNat tmp = rm.BN_D;
         BigNat result = rm.BN_E;
 
-        if (OperationSupport.getInstance().RSA_CHECK_ONE && isOne()) {
+        if (OperationSupport.getInstance().RSA_CHECK_ONE && equals((byte) 1)) {
             copy(other);
             return;
         }
@@ -404,13 +410,11 @@ public class BigNat extends BigNatInternal {
      * the two roots) is stored to this.
      */
     public void modSqrt(BigNat p) {
-        BigNat s = rm.BN_A;
         BigNat exp = rm.BN_G;
         BigNat p1 = rm.BN_B;
         BigNat q = rm.BN_C;
         BigNat tmp = rm.BN_D;
-        BigNat z = rm.EC_BN_E; // TODO temporary workaround to avoid allocating another BigNat
-        BigNat i = rm.BN_G;
+        BigNat z = rm.BN_A;
         BigNat t = rm.BN_B;
         BigNat b = rm.BN_C;
 
@@ -419,15 +423,12 @@ public class BigNat extends BigNatInternal {
         p1.clone(p);
         p1.decrement();
 
-        s.lock();
-        s.setSize((short) 1); // assumes S < 256
-        s.zero();
-
         q.lock();
         q.clone(p1);
 
+        short s = 0;
         while (!q.isOdd()) {
-            s.increment();
+            ++s;
             q.shiftRight((short) 1);
         }
 
@@ -453,17 +454,16 @@ public class BigNat extends BigNatInternal {
         tmp.unlock();
 
         // 3. Compute the first candidate
-        exp.copy(q);
+        exp.clone(q);
         exp.increment();
         exp.shiftRight((short) 1);
 
         t.lock();
-        t.copy(this);
+        t.clone(this);
         t.modExp(q, p);
 
-        if (t.isZero()) {
+        if (t.equals((byte) 0)) {
             z.unlock();
-            s.unlock();
             t.unlock();
             exp.unlock();
             q.unlock();
@@ -475,9 +475,8 @@ public class BigNat extends BigNatInternal {
         modExp(exp, p);
         exp.unlock();
 
-        if (t.isOne()) {
+        if (t.equals((byte) 1)) {
             z.unlock();
-            s.unlock();
             t.unlock();
             q.unlock();
             return;
@@ -489,49 +488,46 @@ public class BigNat extends BigNatInternal {
 
         while(true) {
             tmp.lock();
-            tmp.copy(t);
-            i.lock();
-            i.setSize(p.length());
-            i.zero();
+            tmp.clone(t);
+            short i = 0;
 
             do {
                 tmp.modSq(p);
-                i.increment();
-            } while (!tmp.isOne());
+                ++i;
+            } while (!tmp.equals((byte) 1));
 
             tmp.unlock();
 
             b.lock();
-            b.copy(z);
-            s.subtract(i);
-            s.decrement();
+            b.clone(z);
+            s -= i;
+            --s;
 
             tmp.lock();
+            tmp.setSize((short) 1);
             tmp.setValue((byte) 1);
-            while(!s.isZero()) {
+            while(s != 0) {
                 tmp.shiftLeft((short) 1);
-                s.decrement();
+                --s;
             }
             b.modExp(tmp, p);
             tmp.unlock();
-            s.copy(i);
-            i.unlock();
-            z.copy(b);
+            s = i;
+            z.clone(b);
             z.modSq(p);
             t.modMult(z, p);
             modMult(b, p);
             b.unlock();
 
-            if(t.isZero()) {
+            if(t.equals((byte) 0)) {
                 zero();
                 break;
             }
-            if(t.isOne()) {
+            if(t.equals((byte) 1)) {
                 break;
             }
         }
         z.unlock();
-        s.unlock();
         t.unlock();
     }
 }

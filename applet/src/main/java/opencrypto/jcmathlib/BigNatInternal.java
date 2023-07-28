@@ -227,30 +227,6 @@ public class BigNatInternal {
     }
 
     /**
-     * Test equality with zero.
-     */
-    public boolean isZero() {
-        for (short i = offset; i < value.length; i++) {
-            if (value[i] != 0) {
-                return false; // CTO
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Test equality with one.
-     */
-    public boolean isOne() {
-        for (short i = offset; i < (short) (value.length - 1); i++) {
-            if (value[i] != 0) {
-                return false; // CTO
-            }
-        }
-        return value[(short) (value.length - 1)] == (byte) 0x01;
-    }
-
-    /**
      * Check if stored BigNat is odd.
      */
     public boolean isOdd() {
@@ -320,6 +296,18 @@ public class BigNatInternal {
             }
         }
         return Util.arrayCompare(value, end, other.value, other.offset, other.size) == 0;
+    }
+
+    /**
+     * Test equality with a byte.
+     */
+    public boolean equals(byte b) {
+        for (short i = offset; i < (short) (value.length - 1); i++) {
+            if (value[i] != 0) {
+                return false; // CTO
+            }
+        }
+        return value[(short) (value.length - 1)] == b;
     }
 
     /**
