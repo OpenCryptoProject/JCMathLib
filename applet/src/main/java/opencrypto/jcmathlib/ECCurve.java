@@ -38,8 +38,8 @@ public class ECCurve {
             for (short i = 0; i < (short) p.length; ++i) {
                 bits -= 8;
                 if (p[i] != (byte) 0x00) {
-                    byte tmp = p[i];
-                    while (tmp != (byte) 0x00) {
+                    short tmp = (short) (p[i] & 0xff);
+                    while (tmp != (short) 0x00) {
                         tmp >>= (short) 1;
                         ++bits;
                     }

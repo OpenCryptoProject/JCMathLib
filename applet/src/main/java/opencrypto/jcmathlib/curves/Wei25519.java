@@ -1,10 +1,6 @@
 package opencrypto.jcmathlib;
 
-public class Wei25519 extends ECCurve {
-    public Wei25519(ResourceManager rm) {
-        super(p, a, b, G, r, k, rm);
-    }
-
+public class Wei25519 {
     public final static short k = 8;
 
     public final static byte[] p = {

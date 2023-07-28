@@ -1,10 +1,6 @@
 package opencrypto.jcmathlib;
 
-public class SecP512r1 extends ECCurve {
-    public SecP512r1(ResourceManager rm) {
-        super(p, a, b, G, r, k, rm);
-    }
-
+public class SecP512r1 {
     public final static short k = 1;
 
     public final static byte[] p = {

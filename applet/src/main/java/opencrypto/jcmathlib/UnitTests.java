@@ -117,7 +117,7 @@ public class UnitTests extends Applet {
 
 
         // Pre-allocate test objects (no new allocation for every tested operation)
-        curve = new SecP256r1(rm);
+        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, SecP256r1.k, rm);
         memoryInfoOffset = snapshotAvailableMemory((short) 3, memoryInfo, memoryInfoOffset);
 
         memoryInfoOffset = snapshotAvailableMemory((short) 5, memoryInfo, memoryInfoOffset);
