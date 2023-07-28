@@ -68,7 +68,7 @@ public class BaseTest {
         // System.setProperty("com.licel.jcardsim.randomdata.secure", "1");
 
         runCfg.setTestCardType(cardType);
-        runCfg.setTargetReaderIndex(0);
+        runCfg.setTargetReaderIndex(2);
         if (cardType == CardType.REMOTE){
             runCfg.setRemoteAddress("http://127.0.0.1:9901");
 

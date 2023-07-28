@@ -114,8 +114,12 @@ public class ECCurve {
         pubKey.setR(r, (short) 0, (short) r.length);
         pubKey.setK(OperationSupport.getInstance().EC_SET_COFACTOR ? k : (short) 1);
 
-        privKey.setS(ResourceManager.CONST_ONE, (short) 0, (short) 1);
-        pubKey.setW(G, (short) 0, (short) G.length);
+        if (OperationSupport.getInstance().EC_GEN) {
+            keyPair.genKeyPair();
+        } else {
+            privKey.setS(ResourceManager.CONST_ONE, (short) 0, (short) 1);
+            pubKey.setW(G, (short) 0, (short) G.length);
+        }
 
         return keyPair;
     }

@@ -94,6 +94,7 @@ public class OperationSupport {
                 RSA_EXTRA_MOD = true;
                 RSA_APPEND_MOD = true;
                 EC_HW_XY = true;
+                EC_PRECISE_BITLENGTH = false;
                 break;
             default:
                 break;
