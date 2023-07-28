@@ -36,6 +36,7 @@ public class OperationSupport {
     public boolean EC_PRECISE_BITLENGTH = true;
     public boolean EC_SET_COFACTOR = false;
     public boolean EC_GEN = true;
+    public boolean EC_HW_X_ECDSA = true;
 
     private OperationSupport() {
     }
@@ -61,7 +62,8 @@ public class OperationSupport {
                 RSA_EXTRA_MOD = true;
                 RSA_APPEND_MOD = true;
                 EC_SW_DOUBLE = true;
-                EC_GEN = false;
+                // EC_GEN = false; // required by Wei25519
+                // EC_HW_X_ECDSA = false; // required by Wei25519
                 break;
             case GD60:
                 RSA_PUB = true;
