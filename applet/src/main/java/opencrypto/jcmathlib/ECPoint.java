@@ -571,6 +571,7 @@ public class ECPoint {
 
             // λ = (y_1 - y_2)/(x_1 - x_2)
             lambda.modMult(denominator, curve.pBN);
+            denominator.unlock();
 
             // x_3 = λ^2 - x_1 - x_2
             lambda.modSq(curve.pBN);
