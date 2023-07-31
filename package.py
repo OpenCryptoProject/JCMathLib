@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 
 DIR = "."
 
-CURVES = {"SecP256r1", "SecP256k1", "SecP512r1"}
+CURVES = {"SecP256r1", "SecP256k1", "SecP512r1", "Wei25519"}
 FILTERED_FILES = {"UnitTests.java", "Example.java", "Integer.java"}
 
 
