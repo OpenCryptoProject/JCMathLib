@@ -11,6 +11,20 @@ elliptic curve operations.
 If you want to get into the technical details of JCMathLib, you can find them in this
 paper: https://arxiv.org/abs/1810.01662.
 
+When citing our work, please use the following reference: 
+
+```
+@inproceedings{mavroudis2020jcmathlib,
+  title={JCMathLib: wrapper cryptographic library for transparent and certifiable JavaCard applets},
+  author={Mavroudis, Vasilios and Svenda, Petr},
+  booktitle={2020 IEEE European Symposium on Security and Privacy Workshops (EuroS\&PW)},
+  pages={89--96},
+  year={2020},
+  organization={IEEE}
+}
+```
+
+
 ## Table of Contents
 
 - [Features and Limitations](#features-and-limitations)
