@@ -152,7 +152,7 @@ options:
   -h, --help            show this help message and exit
   -d DIR, --dir DIR     Directory to package
   -k, --keep-locks      Keep locks
-  -c {SecP256k1,SecP256r1,SecP512r1} [{SecP256k1,SecP256r1,SecP512r1} ...], --curves {SecP256k1,SecP256r1,SecP512r1} [{SecP256k1,SecP256r1,SecP512r1} ...]
+  -c {SecP256k1,SecP256r1,SecP512r1,Wei25519} [{SecP256k1,SecP256r1,SecP512r1,Wei25519} ...], --curves {SecP256k1,SecP256r1,SecP512r1,Wei25519} [{SecP256k1,SecP256r1,SecP512r1,Wei25519} ...]
                         Curves to include
   -p PACKAGE, --package PACKAGE
                         Package name
@@ -160,11 +160,11 @@ options:
                         Output file
 ```
 
-For example, to bundle JCMathLib for your applet `test` in which you use curve `SecP256k1`, use the following. The
+For example, to bundle JCMathLib for your applet `test` in which you use curve `SecP256r1`, use the following. The
 output will be stored in `jcmathlib.java` file.
 
 ```
-$ python package.py -p test -c SecP256k1 -o jcmathlib.java
+$ python package.py -p test -c SecP256r1 -o jcmathlib.java
 ```
 
 ## Community
