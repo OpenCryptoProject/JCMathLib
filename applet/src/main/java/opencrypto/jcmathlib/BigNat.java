@@ -44,7 +44,7 @@ public class BigNat extends BigNatInternal {
         tmpOther.clone(other);
 
         // TODO: optimise?
-        while (!other.equals((byte) 0)) {
+        while (!other.isZero()) {
             tmp.clone(tmpOther);
             mod(tmpOther);
             tmpOther.clone(this);
@@ -65,7 +65,7 @@ public class BigNat extends BigNatInternal {
         tmp.clone(a);
 
         tmp.gcd(b);
-        boolean result = tmp.equals((byte) 1);
+        boolean result = tmp.isOne();
         tmp.unlock();
         return result;
     }
@@ -111,7 +111,7 @@ public class BigNat extends BigNatInternal {
      * Computes this * other and stores the result into this.
      */
     public void mult(BigNat other) {
-        if (OperationSupport.getInstance().RSA_CHECK_ONE && equals((byte) 1)) {
+        if (OperationSupport.getInstance().RSA_CHECK_ONE && isOne()) {
             clone(other);
             return;
         }
@@ -235,9 +235,9 @@ public class BigNat extends BigNatInternal {
     public void modExp(BigNat exp, BigNat mod) {
         if (!OperationSupport.getInstance().RSA_EXP)
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
-        if (OperationSupport.getInstance().RSA_CHECK_EXP_ONE && exp.equals((byte) 1))
+        if (OperationSupport.getInstance().RSA_CHECK_EXP_ONE && exp.isOne())
             return;
-        if (!OperationSupport.getInstance().RSA_SQ && exp.equals((byte) 2)) {
+        if (!OperationSupport.getInstance().RSA_SQ && exp.isTwo()) {
             modMult(this, mod);
             return;
         }
@@ -348,7 +348,7 @@ public class BigNat extends BigNatInternal {
         BigNat tmp = rm.BN_D;
         BigNat result = rm.BN_E;
 
-        if (OperationSupport.getInstance().RSA_CHECK_ONE && equals((byte) 1)) {
+        if (OperationSupport.getInstance().RSA_CHECK_ONE && isOne()) {
             copy(other);
             return;
         }
@@ -402,6 +402,21 @@ public class BigNat extends BigNatInternal {
         } else {
             modMult(this, mod);
         }
+    }
+
+    /**
+     * Checks whether this BigNat is a quadratic residue modulo p.
+     * @param p modulo
+     */
+    public boolean isQuadraticResidue(BigNat p) {
+        BigNat tmp = rm.BN_A;
+        BigNat exp = rm.BN_B;
+        tmp.clone(this);
+        exp.clone(p);
+        exp.decrement();
+        exp.shiftRight((short) 1);
+        tmp.modExp(exp, p);
+        return tmp.isOne();
     }
 
     /**
@@ -461,7 +476,7 @@ public class BigNat extends BigNatInternal {
         t.clone(this);
         t.modExp(q, p);
 
-        if (t.equals((byte) 0)) {
+        if (t.isZero()) {
             z.unlock();
             t.unlock();
             exp.unlock();
@@ -474,7 +489,7 @@ public class BigNat extends BigNatInternal {
         modExp(exp, p);
         exp.unlock();
 
-        if (t.equals((byte) 1)) {
+        if (t.isOne()) {
             z.unlock();
             t.unlock();
             q.unlock();
@@ -493,7 +508,7 @@ public class BigNat extends BigNatInternal {
             do {
                 tmp.modSq(p);
                 ++i;
-            } while (!tmp.equals((byte) 1));
+            } while (!tmp.isOne());
 
             tmp.unlock();
 
@@ -518,11 +533,11 @@ public class BigNat extends BigNatInternal {
             modMult(b, p);
             b.unlock();
 
-            if(t.equals((byte) 0)) {
+            if(t.isZero()) {
                 zero();
                 break;
             }
-            if(t.equals((byte) 1)) {
+            if(t.isOne()) {
                 break;
             }
         }
