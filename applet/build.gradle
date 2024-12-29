@@ -1,5 +1,5 @@
 group 'test-applet'
-version '2.0'
+version '2.1'
 
 // Buildscript configuration for the javacard-gradle plugin.
 // Do not modify this particular block. Dependencies for the project are lower.
