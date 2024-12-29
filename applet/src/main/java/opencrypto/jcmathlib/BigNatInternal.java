@@ -511,7 +511,7 @@ public class BigNatInternal {
      */
     public void remainderDivide(BigNatInternal divisor, BigNatInternal quotient) {
         if (quotient != null) {
-            quotient.zero();
+            quotient.setSizeToMax(true);
         }
 
         short divisorIndex = divisor.offset;
@@ -563,6 +563,10 @@ public class BigNatInternal {
             }
             divisionRound++;
             divisorShift--;
+        }
+
+        if (quotient != null) {
+            quotient.shrink();
         }
     }
 

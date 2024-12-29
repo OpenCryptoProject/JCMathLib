@@ -28,7 +28,6 @@ public class BigNat extends BigNatInternal {
         tmp.lock();
         tmp.clone(this);
         tmp.remainderDivide(other, this);
-        copy(tmp);
         tmp.unlock();
     }
 
