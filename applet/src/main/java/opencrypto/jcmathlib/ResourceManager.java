@@ -41,7 +41,14 @@ public class ResourceManager {
     public final short MAX_COORD_SIZE;
 
     public ResourceManager(short maxEcLength) {
+        this(maxEcLength, (short) 0);
+    }
+
+    public ResourceManager(short maxEcLength, short maxRsaLength) {
         short min = OperationSupport.getInstance().MIN_RSA_BIT_LENGTH;
+        if (min < maxRsaLength) {
+            min = maxRsaLength;
+        }
         if (maxEcLength <= (short) 256) {
             MAX_EXP_BIT_LENGTH = (short) 512 < min ? min : (short) 512;
             MAX_SQ_BIT_LENGTH = (short) 768 < min ? min : (short) 768;
@@ -70,9 +77,9 @@ public class ResourceManager {
 
         memAlloc = new ObjectAllocator();
         memAlloc.setAllAllocatorsRAM();
+        // memAlloc.setAllAllocatorsEEPROM();
+        // memAlloc.setAllocatorsTradeoff();
         // if required, memory for helper objects and arrays can be in persistent memory to save RAM (or some tradeoff)
-        // ObjectAllocator.setAllAllocatorsEEPROM();
-        // ObjectAllocator.setAllocatorsTradeoff();
 
 
         ARRAY_A = memAlloc.allocateByteArray(MAX_SQ_LENGTH, memAlloc.getAllocatorType(ObjectAllocator.ARRAY_A));
@@ -93,7 +100,7 @@ public class ResourceManager {
         BN_B = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_B), this);
         BN_C = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_C), this);
         BN_D = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_D), this);
-        BN_E = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_E), this);
+        BN_E = new BigNat((short) (2 * MAX_BIGNAT_SIZE), memAlloc.getAllocatorType(ObjectAllocator.BN_E), this);
         BN_F = new BigNat(MAX_SQ_LENGTH, memAlloc.getAllocatorType(ObjectAllocator.BN_F), this);
         BN_G = new BigNat(MAX_SQ_LENGTH, memAlloc.getAllocatorType(ObjectAllocator.BN_G), this);
 
