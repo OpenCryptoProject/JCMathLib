@@ -1,6 +1,8 @@
 package opencrypto.jcmathlib;
 
 public class SecP256k1 {
+    public final static short k = 1;
+
     public final static byte[] p = {
             (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
             (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,

@@ -28,7 +28,6 @@ public class BigNat extends BigNatInternal {
         tmp.lock();
         tmp.clone(this);
         tmp.remainderDivide(other, this);
-        copy(tmp);
         tmp.unlock();
     }
 
@@ -236,6 +235,12 @@ public class BigNat extends BigNatInternal {
     public void modExp(BigNat exp, BigNat mod) {
         if (!OperationSupport.getInstance().RSA_EXP)
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
+        if (OperationSupport.getInstance().RSA_CHECK_EXP_ONE && exp.isOne())
+            return;
+        if (!OperationSupport.getInstance().RSA_SQ && exp.isTwo()) {
+            modMult(this, mod);
+            return;
+        }
 
         BigNat tmpMod = rm.BN_F; // modExp is called from modSqrt => requires BN_F not being locked when modExp is called
         byte[] tmpBuffer = rm.ARRAY_A;
@@ -400,46 +405,46 @@ public class BigNat extends BigNatInternal {
     }
 
     /**
+     * Checks whether this BigNat is a quadratic residue modulo p.
+     * @param p modulo
+     */
+    public boolean isQuadraticResidue(BigNat p) {
+        BigNat tmp = rm.BN_A;
+        BigNat exp = rm.BN_B;
+        tmp.clone(this);
+        exp.clone(p);
+        exp.decrement();
+        exp.shiftRight((short) 1);
+        tmp.modExp(exp, p);
+        return tmp.isOne();
+    }
+
+    /**
      * Computes square root of provided BigNat which MUST be prime using Tonelli Shanks Algorithm. The result (one of
      * the two roots) is stored to this.
      */
     public void modSqrt(BigNat p) {
-        BigNat s = rm.BN_A;
-        BigNat exp = rm.BN_A;
+        BigNat exp = rm.BN_G;
         BigNat p1 = rm.BN_B;
         BigNat q = rm.BN_C;
         BigNat tmp = rm.BN_D;
-        BigNat z = rm.BN_E;
+        BigNat z = rm.BN_A;
+        BigNat t = rm.BN_B;
+        BigNat b = rm.BN_C;
 
-        // 1. By factoring out powers of 2, find Q and S such that p-1=Q2^S p-1=Q*2^S and Q is odd
+        // 1. Find Q and S such that p - 1 = Q * 2^S and Q is odd
         p1.lock();
         p1.clone(p);
         p1.decrement();
 
-        // Compute Q
         q.lock();
         q.clone(p1);
-        q.shiftRight((short) 1); // Q /= 2
 
-        // Compute S
-        s.lock();
-        s.setSize(p.length());
-        s.zero();
-        tmp.lock();
-        tmp.setSize(p.length());
-        tmp.zero();
-
-        while (!tmp.equals(q)) {
-            s.increment();
-            // TODO replace with modMult(s, q, p)
-            tmp.setSizeToMax(false);
-            tmp.clone(s);
-            tmp.mult(q);
-            tmp.mod(p);
-            tmp.shrink();
+        short s = 0;
+        while (!q.isOdd()) {
+            ++s;
+            q.shiftRight((short) 1);
         }
-        tmp.unlock();
-        s.unlock();
 
         // 2. Find the first quadratic non-residue z by brute-force search
         exp.lock();
@@ -451,23 +456,92 @@ public class BigNat extends BigNatInternal {
         z.setSize(p.length());
         z.setValue((byte) 1);
         tmp.lock();
+        tmp.setSize(p.length());
         tmp.setValue((byte) 1);
 
         while (!tmp.equals(p1)) {
             z.increment();
             tmp.copy(z);
-            tmp.modExp(exp, p);
+            tmp.modExp(exp, p); // Euler's criterion
         }
         p1.unlock();
         tmp.unlock();
-        z.unlock();
-        exp.copy(q);
-        q.unlock();
+
+        // 3. Compute the first candidate
+        exp.clone(q);
         exp.increment();
         exp.shiftRight((short) 1);
+
+        t.lock();
+        t.clone(this);
+        t.modExp(q, p);
+
+        if (t.isZero()) {
+            z.unlock();
+            t.unlock();
+            exp.unlock();
+            q.unlock();
+            zero();
+            return;
+        }
 
         mod(p);
         modExp(exp, p);
         exp.unlock();
+
+        if (t.isOne()) {
+            z.unlock();
+            t.unlock();
+            q.unlock();
+            return;
+        }
+
+        // 4. Search for further candidates
+        z.modExp(q, p);
+        q.unlock();
+
+        while(true) {
+            tmp.lock();
+            tmp.clone(t);
+            short i = 0;
+
+            do {
+                tmp.modSq(p);
+                ++i;
+            } while (!tmp.isOne());
+
+            tmp.unlock();
+
+            b.lock();
+            b.clone(z);
+            s -= i;
+            --s;
+
+            tmp.lock();
+            tmp.setSize((short) 1);
+            tmp.setValue((byte) 1);
+            while(s != 0) {
+                tmp.shiftLeft((short) 1);
+                --s;
+            }
+            b.modExp(tmp, p);
+            tmp.unlock();
+            s = i;
+            z.clone(b);
+            z.modSq(p);
+            t.modMult(z, p);
+            modMult(b, p);
+            b.unlock();
+
+            if(t.isZero()) {
+                zero();
+                break;
+            }
+            if(t.isOne()) {
+                break;
+            }
+        }
+        z.unlock();
+        t.unlock();
     }
 }

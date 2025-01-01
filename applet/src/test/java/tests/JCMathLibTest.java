@@ -8,19 +8,18 @@ import javacard.framework.ISO7816;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
-import opencrypto.jcmathlib.OperationSupport;
-import opencrypto.jcmathlib.UnitTests;
-import opencrypto.jcmathlib.SecP256r1;
-import org.bouncycastle.jce.ECNamedCurveTable;
+import opencrypto.jcmathlib.*;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECParameterSpec;
+import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.ECPoint;
 import org.junit.jupiter.api.*;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.Integer;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -39,9 +38,22 @@ public class JCMathLibTest extends BaseTest {
     public static Map<String, Long> perfMap = new HashMap<>();
     public static String atr;
 
+    public static ECParameterSpec CURVE_SPEC = null;
+    public static byte[] CURVE_P = SecP256r1.p;
+    public static byte[] CURVE_R = SecP256r1.r;
+    public static byte[] CURVE_A = SecP256r1.a;
+    public static byte[] CURVE_B = SecP256r1.b;
+    public static byte[] CURVE_G = SecP256r1.G;
+    public static short CURVE_K = SecP256r1.k;
+
     public JCMathLibTest() throws Exception {
         this.setCardType(UnitTests.CARD_TYPE == OperationSupport.SIMULATOR ? CardType.JCARDSIMLOCAL : CardType.PHYSICAL);
         this.setSimulateStateful(true);
+        ECCurve curve = new ECCurve.Fp(new BigInteger(1, CURVE_P), new BigInteger(1, CURVE_A), new BigInteger(1, CURVE_B));
+        BigInteger x = new BigInteger(1, Arrays.copyOfRange(CURVE_G, 1, CURVE_G.length / 2 + 1));
+        BigInteger y = new BigInteger(1, Arrays.copyOfRange(CURVE_G, 1 + CURVE_G.length / 2, CURVE_G.length));
+        CURVE_SPEC = new ECParameterSpec(curve, curve.createPoint(x, y), new BigInteger(1, CURVE_R), BigInteger.valueOf(CURVE_K));
+
         statefulCard = connect();
     }
 
@@ -102,9 +114,8 @@ public class JCMathLibTest extends BaseTest {
         @Test
         public void eccMultiplyGenerator() throws Exception {
             perfMap.put("eccMultiplyGenerator/INS_EC_MUL", new Long(-1));
-            ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256r1");
-            ECPoint point = ecSpec.getG();
-            BigInteger scalar = randomBigNat(256);
+            ECPoint point = CURVE_SPEC.getG();
+            BigInteger scalar = randomBigNat(BIGNAT_BIT_LENGTH);
             ECPoint result = point.multiply(scalar);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_MUL, scalar.toByteArray().length, 0, Util.concat(scalar.toByteArray(), point.getEncoded(false)));
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -119,7 +130,7 @@ public class JCMathLibTest extends BaseTest {
         public void eccMultiplyRandom() throws Exception {
             perfMap.put("eccMultiplyRandom/INS_EC_MUL", new Long(-1));
             ECPoint point = randECPoint();
-            BigInteger scalar = randomBigNat(256);
+            BigInteger scalar = randomBigNat(BIGNAT_BIT_LENGTH);
             ECPoint result = point.multiply(scalar);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_MUL, scalar.toByteArray().length, 0, Util.concat(scalar.toByteArray(), point.getEncoded(false)));
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -145,8 +156,7 @@ public class JCMathLibTest extends BaseTest {
         @Test
         public void eccDoubleGenerator() throws Exception {
             perfMap.put("eccDoubleGenerator/INS_EC_DBL", new Long(-1));
-            ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256r1");
-            ECPoint point = ecSpec.getG();
+            ECPoint point = CURVE_SPEC.getG();
             ECPoint doubled = point.add(point);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_DBL, 0, 0, point.getEncoded(false));
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -206,7 +216,7 @@ public class JCMathLibTest extends BaseTest {
             perfMap.put("eccMultRandomAndAdd/INS_EC_MUL_ADD", new Long(-1));
             ECPoint point1 = randECPoint();
             ECPoint point2 = randECPoint();
-            BigInteger scalar = randomBigNat(256);
+            BigInteger scalar = randomBigNat(BIGNAT_BIT_LENGTH);
             ECPoint result = point1.multiply(scalar).add(point2);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_EC_MUL_ADD, scalar.toByteArray().length, 0, Util.concat(Util.concat(scalar.toByteArray(), point1.getEncoded(false)), point2.getEncoded(false)));
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -360,6 +370,22 @@ public class JCMathLibTest extends BaseTest {
         }
 
         @Test
+        public void bigNatShiftLeft() throws Exception {
+            perfMap.put("bigNatShiftLeft(8b)/INS_BN_SHIFT_LEFT", (long) -1);
+            for (int bits = 0; bits < 8; ++bits) {
+                BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
+                BigInteger result = num1.shiftLeft(bits);
+                CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SHIFT_LEFT, bits, 0, num1.toByteArray());
+                ResponseAPDU resp = statefulCard.transmit(cmd);
+                perfMap.put("bigNatShiftLeft(8b)/INS_BN_SHIFT_LEFT", statefulCard.getLastTransmitTime());
+
+                Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, resp.getSW());
+                Assertions.assertEquals(result, new BigInteger(1, resp.getData()));
+            }
+            statefulCard.transmit(new CommandAPDU(APDU_CLEANUP));
+        }
+
+        @Test
         public void bigNatMultiplicationSlow() throws Exception {
             perfMap.put("bigNatMultiplicationSlow/INS_BN_MUL_SCHOOL", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
@@ -406,7 +432,7 @@ public class JCMathLibTest extends BaseTest {
         public void bigNatModSqrt() throws Exception {
             perfMap.put("bigNatModSqrt/INS_BN_SQRT_MOD", new Long(-1));
             BigInteger num = randomBigNat(BIGNAT_BIT_LENGTH);
-            BigInteger mod = new BigInteger(1, SecP256r1.p);
+            BigInteger mod = new BigInteger(1, CURVE_P);
             // Sample num until we get a quadratic residue
             while (!num.modPow(mod.subtract(BigInteger.valueOf(1)).divide(BigInteger.valueOf(2)), mod).equals(BigInteger.valueOf(1))) {
                 num = randomBigNat(BIGNAT_BIT_LENGTH);
@@ -427,7 +453,7 @@ public class JCMathLibTest extends BaseTest {
             perfMap.put("bigNatModAdd/INS_BN_ADD_MOD", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
-            BigInteger num3 = new BigInteger(1, SecP256r1.r);
+            BigInteger num3 = new BigInteger(1, CURVE_R);
 
             BigInteger result = (num1.add(num2)).mod(num3);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_ADD_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, Util.trimLeadingZeroes(num2.toByteArray()).length, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num2.toByteArray()), Util.trimLeadingZeroes(num3.toByteArray())));
@@ -444,7 +470,7 @@ public class JCMathLibTest extends BaseTest {
             perfMap.put("bigNatModSub/INS_BN_SUB_MOD", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
-            BigInteger num3 = new BigInteger(1, SecP256r1.r);
+            BigInteger num3 = new BigInteger(1, CURVE_R);
             BigInteger result = (num1.subtract(num2)).mod(num3);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SUB_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, Util.trimLeadingZeroes(num2.toByteArray()).length, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num2.toByteArray()), Util.trimLeadingZeroes(num3.toByteArray())));
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -460,7 +486,7 @@ public class JCMathLibTest extends BaseTest {
             perfMap.put("bigNatModMult/INS_BN_MUL_MOD", new Long(-1));
             BigInteger num1 = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger num2 = randomBigNat(BIGNAT_BIT_LENGTH);
-            BigInteger num3 = new BigInteger(1, SecP256r1.r);
+            BigInteger num3 = new BigInteger(1, CURVE_R);
             BigInteger result = (num1.multiply(num2)).mod(num3);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_MUL_MOD, Util.trimLeadingZeroes(num1.toByteArray()).length, Util.trimLeadingZeroes(num2.toByteArray()).length, Util.concat(Util.trimLeadingZeroes(num1.toByteArray()), Util.trimLeadingZeroes(num2.toByteArray()), Util.trimLeadingZeroes(num3.toByteArray())));
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -476,9 +502,9 @@ public class JCMathLibTest extends BaseTest {
             perfMap.put("bigNatModExp/INS_BN_EXP_MOD", new Long(-1));
             // Test multiple configurations (to check for OperationSupport.RSA_KEY_REFRESH)
             for (int i = 0; i < 3; ++i) {
-                BigInteger base = randomBigNat(256);
-                BigInteger exp = randomBigNat(256);
-                BigInteger mod = new BigInteger(1, SecP256r1.r);
+                BigInteger base = randomBigNat(BIGNAT_BIT_LENGTH);
+                BigInteger exp = randomBigNat(BIGNAT_BIT_LENGTH);
+                BigInteger mod = new BigInteger(1, CURVE_R);
                 BigInteger result = (base.modPow(exp, mod));
                 CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_EXP_MOD, Util.trimLeadingZeroes(base.toByteArray()).length, Util.trimLeadingZeroes(exp.toByteArray()).length, Util.concat(Util.trimLeadingZeroes(base.toByteArray()), Util.trimLeadingZeroes(exp.toByteArray()), Util.trimLeadingZeroes(mod.toByteArray())));
                 ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -493,9 +519,9 @@ public class JCMathLibTest extends BaseTest {
         @Test
         public void bigNatModSq() throws Exception {
             perfMap.put("bigNatModSq/INS_BN_SQ_MOD", new Long(-1));
-            BigInteger base = randomBigNat(256);
+            BigInteger base = randomBigNat(BIGNAT_BIT_LENGTH);
             BigInteger exp = BigInteger.valueOf(2);
-            BigInteger mod = new BigInteger(1, SecP256r1.r);
+            BigInteger mod = new BigInteger(1, CURVE_R);
             BigInteger result = (base.modPow(exp, mod));
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_SQ_MOD, Util.trimLeadingZeroes(base.toByteArray()).length, (short) 0, Util.concat(Util.trimLeadingZeroes(base.toByteArray()), Util.trimLeadingZeroes(mod.toByteArray())));
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -510,7 +536,7 @@ public class JCMathLibTest extends BaseTest {
         public void bigNatModInv() throws Exception {
             perfMap.put("bigNatModInv/INS_BN_INV_MOD", new Long(-1));
             BigInteger base = randomBigNat(BIGNAT_BIT_LENGTH);
-            BigInteger mod = new BigInteger(1, SecP256r1.r);
+            BigInteger mod = new BigInteger(1, CURVE_R);
             BigInteger result = base.modInverse(mod);
             CommandAPDU cmd = new CommandAPDU(UnitTests.CLA_OC_UT, UnitTests.INS_BN_INV_MOD, Util.trimLeadingZeroes(base.toByteArray()).length, 0, Util.concat(Util.trimLeadingZeroes(base.toByteArray()), Util.trimLeadingZeroes(mod.toByteArray())));
             ResponseAPDU resp = statefulCard.transmit(cmd);
@@ -668,9 +694,8 @@ public class JCMathLibTest extends BaseTest {
     public static ECPoint randECPoint() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
 
-        ECParameterSpec ecSpec_named = ECNamedCurveTable.getParameterSpec("secp256r1");
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("ECDSA", "BC");
-        kpg.initialize(ecSpec_named);
+        kpg.initialize(CURVE_SPEC);
         KeyPair apair = kpg.generateKeyPair();
         ECPublicKey apub = (ECPublicKey) apair.getPublic();
         return apub.getQ();

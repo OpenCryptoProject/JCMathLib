@@ -1,7 +1,6 @@
 package opencrypto.jcmathlib;
 
 import javacard.framework.JCSystem;
-import javacard.framework.Util;
 import javacard.security.ECPrivateKey;
 import javacard.security.ECPublicKey;
 import javacard.security.KeyBuilder;
@@ -15,6 +14,7 @@ public class ECCurve {
     public ResourceManager rm;
 
     public byte[] p, a, b, G, r;
+    public short k;
     public BigNat pBN, aBN, bBN, rBN;
 
 
@@ -32,8 +32,22 @@ public class ECCurve {
      * @param G array with base point G
      * @param r array with r
      */
-    public ECCurve(byte[] p, byte[] a, byte[] b, byte[] G, byte[] r, ResourceManager rm) {
-        KEY_BIT_LENGTH = (short) (p.length * 8);
+    public ECCurve(byte[] p, byte[] a, byte[] b, byte[] G, byte[] r, short k, ResourceManager rm) {
+        short bits = (short) (p.length * 8);
+        if (OperationSupport.getInstance().EC_PRECISE_BITLENGTH) {
+            for (short i = 0; i < (short) p.length; ++i) {
+                bits -= 8;
+                if (p[i] != (byte) 0x00) {
+                    short tmp = (short) (p[i] & 0xff);
+                    while (tmp != (short) 0x00) {
+                        tmp >>= (short) 1;
+                        ++bits;
+                    }
+                    break;
+                }
+            }
+        }
+        KEY_BIT_LENGTH = bits;
         POINT_SIZE = (short) G.length;
         COORD_SIZE = (short) ((short) (G.length - 1) / 2);
 
@@ -42,6 +56,7 @@ public class ECCurve {
         this.b = b;
         this.G = G;
         this.r = r;
+        this.k = k;
         this.rm = rm;
 
         pBN = new BigNat(COORD_SIZE, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
@@ -56,8 +71,8 @@ public class ECCurve {
         disposablePair = newKeyPair(null);
         disposablePriv = (ECPrivateKey) disposablePair.getPrivate();
         disposablePub = (ECPublicKey) disposablePair.getPublic();
-    }    
-    
+    }
+
     /**
      * Refresh critical information stored in RAM for performance reasons after a card reset (RAM was cleared).
      */
@@ -90,16 +105,21 @@ public class ECCurve {
         privKey.setB(b, (short) 0, (short) b.length);
         privKey.setG(G, (short) 0, (short) G.length);
         privKey.setR(r, (short) 0, (short) r.length);
-        privKey.setK((short) 1);
+        privKey.setK(OperationSupport.getInstance().EC_SET_COFACTOR ? k : (short) 1);
 
         pubKey.setFieldFP(p, (short) 0, (short) p.length);
         pubKey.setA(a, (short) 0, (short) a.length);
         pubKey.setB(b, (short) 0, (short) b.length);
         pubKey.setG(G, (short) 0, (short) G.length);
         pubKey.setR(r, (short) 0, (short) r.length);
-        pubKey.setK((short) 1);
+        pubKey.setK(OperationSupport.getInstance().EC_SET_COFACTOR ? k : (short) 1);
 
-        keyPair.genKeyPair();
+        if (OperationSupport.getInstance().EC_GEN) {
+            keyPair.genKeyPair();
+        } else {
+            privKey.setS(ResourceManager.CONST_ONE, (short) 0, (short) 1);
+            pubKey.setW(G, (short) 0, (short) G.length);
+        }
 
         return keyPair;
     }

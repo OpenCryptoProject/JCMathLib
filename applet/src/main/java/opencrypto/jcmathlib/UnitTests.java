@@ -18,12 +18,6 @@ import javacard.security.CryptoException;
  */
 public class UnitTests extends Applet {
     public final static short CARD_TYPE = OperationSupport.SIMULATOR; // TODO set your card
-    //public final static short CARD_TYPE = OperationSupport.JCOP21;
-    //public final static short CARD_TYPE = OperationSupport.SECORA;
-    //public final static short CARD_TYPE = OperationSupport.JCOP3_P60;
-    //public final static short CARD_TYPE = OperationSupport.JCOP4_P71;
-    //public final static short CARD_TYPE = OperationSupport.GD60;
-    //public final static short CARD_TYPE = OperationSupport.GD70;
 
     public final static byte CLA_OC_UT = (byte) 0xB0;
     public final static byte INS_CLEANUP = (byte) 0x03;
@@ -47,6 +41,7 @@ public class UnitTests extends Applet {
     public final static byte INS_BN_SQ = (byte) 0x26;
     public final static byte INS_BN_MUL_SCHOOL = (byte) 0x27;
     public final static byte INS_BN_SET_VALUE = (byte) 0x28;
+    public final static byte INS_BN_SHIFT_LEFT = (byte) 0x29;
 
     public final static byte INS_BN_ADD_MOD = (byte) 0x30;
     public final static byte INS_BN_SUB_MOD = (byte) 0x31;
@@ -91,10 +86,6 @@ public class UnitTests extends Applet {
     ECPoint point1;
     ECPoint point2;
 
-    byte[] customG;
-    ECCurve customCurve;
-    ECPoint customPoint;
-
     BigNat bn1;
     BigNat bn2;
     BigNat bn3;
@@ -120,17 +111,13 @@ public class UnitTests extends Applet {
 
 
         // Pre-allocate test objects (no new allocation for every tested operation)
-        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, rm);
+        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, SecP256r1.k, rm);
         memoryInfoOffset = snapshotAvailableMemory((short) 3, memoryInfo, memoryInfoOffset);
-        customG = new byte[(short) SecP256r1.G.length];
-        Util.arrayCopyNonAtomic(SecP256r1.G, (short) 0, customG, (short) 0, (short) SecP256r1.G.length);
-        customCurve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, customG, SecP256r1.r, rm);
 
         memoryInfoOffset = snapshotAvailableMemory((short) 5, memoryInfo, memoryInfoOffset);
         point1 = new ECPoint(curve);
         memoryInfoOffset = snapshotAvailableMemory((short) 6, memoryInfo, memoryInfoOffset);
         point2 = new ECPoint(curve);
-        customPoint = new ECPoint(customCurve);
 
         // Testing BigNat objects used in tests
         memoryInfoOffset = snapshotAvailableMemory((short) 7, memoryInfo, memoryInfoOffset);
@@ -248,6 +235,9 @@ public class UnitTests extends Applet {
                 case INS_BN_SHIFT_RIGHT:
                     testBnShiftRight(apdu, dataLen);
                     break;
+                case INS_BN_SHIFT_LEFT:
+                    testBnShiftLeft(apdu, dataLen);
+                    break;
                 case INS_BN_MUL_SCHOOL:
                     testBnMulSchool(apdu, dataLen);
                     break;
@@ -354,9 +344,6 @@ public class UnitTests extends Applet {
         if (curve != null) {
             curve.updateAfterReset();
         }
-        if (customCurve != null) {
-            customCurve.updateAfterReset();
-        }
         if (rm != null) {
             rm.refreshAfterReset();
             rm.unlockAll();
@@ -366,10 +353,10 @@ public class UnitTests extends Applet {
     void testEcDbl(APDU apdu) {
         byte[] apduBuffer = apdu.getBuffer();
 
-        customPoint.setW(apduBuffer, ISO7816.OFFSET_CDATA, customCurve.POINT_SIZE);
-        customPoint.makeDouble();
+        point1.setW(apduBuffer, ISO7816.OFFSET_CDATA, curve.POINT_SIZE);
+        point1.makeDouble();
 
-        short len = customPoint.getW(apduBuffer, (short) 0);
+        short len = point1.getW(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
 
@@ -528,6 +515,16 @@ public class UnitTests extends Applet {
 
         bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, dataLen);
         bn1.shiftRight(p1);
+        short len = bn1.copyToByteArray(apduBuffer, (short) 0);
+        apdu.setOutgoingAndSend((short) 0, len);
+    }
+
+    void testBnShiftLeft(APDU apdu, short dataLen) {
+        byte[] apduBuffer = apdu.getBuffer();
+        short p1 = (short) (apduBuffer[ISO7816.OFFSET_P1] & 0x00FF);
+
+        bn1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, dataLen);
+        bn1.shiftLeft(p1);
         short len = bn1.copyToByteArray(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
     }
@@ -713,7 +710,9 @@ public class UnitTests extends Applet {
         int1.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, p1);
         int2.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + p1), p1);
 
+        short size = int1.getSize();
         int1.divide(int2);
+        int1.setSize(size);
 
         short len = int1.toByteArray(apduBuffer, (short) 0);
         apdu.setOutgoingAndSend((short) 0, len);
