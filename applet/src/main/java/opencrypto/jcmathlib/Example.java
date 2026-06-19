@@ -46,7 +46,7 @@ public class Example extends Applet {
 
     public Example() {
         OperationSupport.getInstance().setCard(OperationSupport.SIMULATOR); // TODO set your card
-        if (!OperationSupport.getInstance().DEFERRED_INITIALIZATION) {
+        if (OperationSupport.getInstance().DEFERRED_INITIALIZATION == (short) 0x0000) {
             initialize();
         }
     }
@@ -89,16 +89,16 @@ public class Example extends Applet {
             initialize();
         }
 
-        point1.randomize(); // Generate the first point at random
+        point1.ctRandomize(); // Generate the first point at random
         point2.setW(ECPOINT_TEST_VALUE, (short) 0, (short) ECPOINT_TEST_VALUE.length); // Set the second point to a predefined value
-        point1.add(point2); // Add the second point to the first one
+        point1.ctAdd(point2); // Add the second point to the first one
 
-        scalar1.setValue((byte) 42); // Set the first scalar to 42
+        scalar1.ctSetValue((byte) 42); // Set the first scalar to 42
         scalar2.fromByteArray(SCALAR_TEST_VALUE, (short) 0, (short) SCALAR_TEST_VALUE.length); // Set the second scalar to a predefined value
-        scalar1.modSq(curve.rBN); // Square the first scalar modulo curve order
-        scalar1.modMult(scalar2, curve.rBN); // Multiply the two scalars modulo curve order
+        scalar1.ctModSq(curve.rBN); // Square the first scalar modulo curve order
+        scalar1.ctModMult(scalar2, curve.rBN); // Multiply the two scalars modulo curve order
 
-        point1.multiplication(scalar1); // Multiply the resulting point by the resulting scalar
+        point1.ctMultiplication(scalar1); // Multiply the resulting point by the resulting scalar
 
         short len = point1.getW(apdu.getBuffer(), (short) 0); // Serialize the point to APDU buffer
         apdu.setOutgoingAndSend((short) 0, len); // Send the result to the host

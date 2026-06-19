@@ -3,7 +3,7 @@ package opencrypto.jcmathlib;
 /**
  * OperationSupport class
  *
- * @author Antonin Dufka
+ * @author Antonin Dufka, modified by Veronika Hanulikova
  */
 public class OperationSupport {
     private static OperationSupport instance;
@@ -17,27 +17,29 @@ public class OperationSupport {
     public static final short SECORA = 0x0006;      // Infineon Secora ID S
 
     public short MIN_RSA_BIT_LENGTH = 512;
-    public boolean DEFERRED_INITIALIZATION = false;
+    public short trueValue = (short) 0xffff;
+    public short falseValue = (short) 0x0000;
+    public short DEFERRED_INITIALIZATION = falseValue;
 
-    public boolean RSA_EXP = true;
-    public boolean RSA_SQ = true;
-    public boolean RSA_PUB = false;
-    public boolean RSA_CHECK_ONE = false;
-    public boolean RSA_CHECK_EXP_ONE = false;
-    public boolean RSA_KEY_REFRESH = false;
-    public boolean RSA_PREPEND_ZEROS = false;
-    public boolean RSA_EXTRA_MOD = false;
-    public boolean RSA_RESIZE_MOD = true;
-    public boolean RSA_APPEND_MOD = false;
+    public short RSA_EXP = trueValue;
+    public short RSA_SQ = falseValue;
+    public short RSA_PUB = falseValue;
+    public short RSA_CHECK_ONE = falseValue;
+    public short RSA_CHECK_EXP_ONE = falseValue;
+    public short RSA_KEY_REFRESH = falseValue;
+    public short RSA_PREPEND_ZEROS = falseValue;
+    public short RSA_EXTRA_MOD = falseValue;
+    public short RSA_RESIZE_MOD = trueValue;
+    public short RSA_APPEND_MOD = falseValue;
 
-    public boolean EC_HW_XY = false;
-    public boolean EC_HW_X = true;
-    public boolean EC_HW_ADD = false;
-    public boolean EC_SW_DOUBLE = false;
-    public boolean EC_PRECISE_BITLENGTH = true;
-    public boolean EC_SET_COFACTOR = false;
-    public boolean EC_GEN = true;
-    public boolean EC_HW_X_ECDSA = true;
+    public short EC_HW_XY = falseValue;
+    public short EC_HW_X = trueValue;
+    public short EC_HW_ADD = falseValue;
+    public short EC_SW_DOUBLE = falseValue;
+    public short EC_PRECISE_BITLENGTH = trueValue;
+    public short EC_SET_COFACTOR = falseValue;
+    public short EC_GEN = trueValue;
+    public short EC_HW_X_ECDSA = trueValue;
 
     private OperationSupport() {
     }
@@ -50,53 +52,57 @@ public class OperationSupport {
     public void setCard(short card_identifier) {
         switch (card_identifier) {
             case SIMULATOR:
-                RSA_KEY_REFRESH = true;
-                RSA_PREPEND_ZEROS = true;
-                RSA_RESIZE_MOD = false;
-                EC_HW_XY = true;
-                EC_HW_ADD = true;
-                EC_SW_DOUBLE = true;
-                EC_PRECISE_BITLENGTH = false;
+                RSA_KEY_REFRESH = trueValue;
+                RSA_PREPEND_ZEROS = trueValue;
+                RSA_RESIZE_MOD = falseValue;
+                EC_HW_XY = trueValue;
+                EC_HW_ADD = trueValue;
+                EC_SW_DOUBLE = trueValue;
+                EC_PRECISE_BITLENGTH = falseValue;
                 break;
             case JCOP21:
-                RSA_PUB = true;
-                RSA_EXTRA_MOD = true;
-                RSA_APPEND_MOD = true;
-                EC_SW_DOUBLE = true;
-                // EC_GEN = false; // required by Wei25519
-                // EC_HW_X_ECDSA = false; // required by Wei25519
+                RSA_PUB = trueValue;
+                RSA_EXTRA_MOD = trueValue;
+                RSA_APPEND_MOD = trueValue;
+                EC_SW_DOUBLE = trueValue;
+                RSA_SQ = trueValue;
+                // EC_GEN = falseValue; // required by Wei25519
+                // EC_HW_X_ECDSA = falseValue; // required by Wei25519
                 break;
             case GD60:
-                RSA_PUB = true;
-                RSA_EXTRA_MOD = true;
-                RSA_APPEND_MOD = true;
+                RSA_PUB = trueValue;
+                RSA_EXTRA_MOD = trueValue;
+                RSA_APPEND_MOD = trueValue;
+                RSA_SQ = trueValue;
                 break;
             case GD70:
-                RSA_PUB = true;
-                RSA_CHECK_ONE = true;
-                RSA_EXTRA_MOD = true;
-                RSA_APPEND_MOD = true;
+                RSA_PUB = trueValue;
+                RSA_CHECK_ONE = trueValue;
+                RSA_EXTRA_MOD = trueValue;
+                RSA_APPEND_MOD = trueValue;
+                RSA_SQ = trueValue;
                 break;
             case JCOP3_P60:
-                DEFERRED_INITIALIZATION = true;
-                RSA_PUB = true;
-                EC_HW_XY = true;
-                EC_HW_ADD = true;
+                DEFERRED_INITIALIZATION = trueValue;
+                RSA_PUB = trueValue;
+                EC_HW_XY = trueValue;
+                EC_HW_ADD = trueValue;
+                RSA_SQ = trueValue;
                 break;
             case JCOP4_P71:
-                DEFERRED_INITIALIZATION = true;
-                EC_HW_XY = true;
-                EC_HW_ADD = true;
+                DEFERRED_INITIALIZATION = trueValue;
+                EC_HW_XY = trueValue;
+                EC_HW_ADD = trueValue;
+                RSA_SQ = trueValue;
                 break;
             case SECORA:
                 MIN_RSA_BIT_LENGTH = 1024;
-                RSA_SQ = false;
-                RSA_CHECK_EXP_ONE = true;
-                RSA_PUB = true;
-                RSA_EXTRA_MOD = true;
-                RSA_APPEND_MOD = true;
-                EC_HW_XY = true;
-                EC_PRECISE_BITLENGTH = false;
+                RSA_CHECK_EXP_ONE = trueValue;
+                RSA_PUB = trueValue;
+                RSA_EXTRA_MOD = trueValue;
+                RSA_APPEND_MOD = trueValue;
+                EC_HW_XY = trueValue;
+                EC_PRECISE_BITLENGTH = falseValue;
                 break;
             default:
                 break;

@@ -34,7 +34,7 @@ public class ECCurve {
      */
     public ECCurve(byte[] p, byte[] a, byte[] b, byte[] G, byte[] r, short k, ResourceManager rm) {
         short bits = (short) (p.length * 8);
-        if (OperationSupport.getInstance().EC_PRECISE_BITLENGTH) {
+        if (OperationSupport.getInstance().EC_PRECISE_BITLENGTH == (short) 0xffff) {
             for (short i = 0; i < (short) p.length; ++i) {
                 bits -= 8;
                 if (p[i] != (byte) 0x00) {
@@ -105,16 +105,16 @@ public class ECCurve {
         privKey.setB(b, (short) 0, (short) b.length);
         privKey.setG(G, (short) 0, (short) G.length);
         privKey.setR(r, (short) 0, (short) r.length);
-        privKey.setK(OperationSupport.getInstance().EC_SET_COFACTOR ? k : (short) 1);
+        privKey.setK(ConstantTime.ctSelect(OperationSupport.getInstance().EC_SET_COFACTOR,  k, (short) 1));
 
         pubKey.setFieldFP(p, (short) 0, (short) p.length);
         pubKey.setA(a, (short) 0, (short) a.length);
         pubKey.setB(b, (short) 0, (short) b.length);
         pubKey.setG(G, (short) 0, (short) G.length);
         pubKey.setR(r, (short) 0, (short) r.length);
-        pubKey.setK(OperationSupport.getInstance().EC_SET_COFACTOR ? k : (short) 1);
+        pubKey.setK(ConstantTime.ctSelect(OperationSupport.getInstance().EC_SET_COFACTOR,  k, (short) 1));
 
-        if (OperationSupport.getInstance().EC_GEN) {
+        if (OperationSupport.getInstance().EC_GEN == (short) 0xffff) {
             keyPair.genKeyPair();
         } else {
             privKey.setS(ResourceManager.CONST_ONE, (short) 0, (short) 1);

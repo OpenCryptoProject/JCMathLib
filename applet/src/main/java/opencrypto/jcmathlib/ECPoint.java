@@ -5,7 +5,7 @@ import javacard.framework.Util;
 import javacard.security.*;
 
 /**
- * @author Vasilios Mavroudis and Petr Svenda and Antonin Dufka
+ * @author Vasilios Mavroudis and Petr Svenda and Antonin Dufka, modified by Veronika Hanulikova
  */
 public class ECPoint {
     private final ResourceManager rm;
@@ -46,20 +46,20 @@ public class ECPoint {
     /**
      * Generates new random point value.
      */
-    public void randomize() {
-        if (OperationSupport.getInstance().EC_GEN) {
+    public void ctRandomize() {
+        if (OperationSupport.getInstance().EC_GEN == (short) 0xffff) {
             pointKeyPair.genKeyPair(); // Fails for some curves on some cards
         } else {
             BigNat tmp = rm.EC_BN_A;
             rm.lock(rm.ARRAY_A);
             rm.rng.generateData(rm.ARRAY_A, (short) 0, (short) (curve.KEY_BIT_LENGTH / 8 + 16));
             tmp.lock();
-            tmp.fromByteArray(rm.ARRAY_A, (short) 0, (short) (curve.KEY_BIT_LENGTH / 8 + 16));
-            tmp.mod(curve.rBN);
-            tmp.shrink();
+            tmp.ctFromByteArray(rm.ARRAY_A, (short) 0, (short) (curve.KEY_BIT_LENGTH / 8 + 16));
+            tmp.ctMod(curve.rBN);
+            tmp.ctShrink();
             rm.unlock(rm.ARRAY_A);
             point.setW(curve.G, (short) 0, (short) curve.G.length);
-            multiplication(tmp);
+            ctMultiplication(tmp);
             tmp.unlock();
         }
     }
@@ -98,7 +98,7 @@ public class ECPoint {
     /**
      * Returns current value of this point.
      *
-     * @param buffer memory array where to store serailized point value
+     * @param buffer memory array where to store serialized point value
      * @param offset start offset for output serialized point
      * @return length of serialized point (number of bytes)
      */
@@ -134,15 +134,16 @@ public class ECPoint {
      * @param offset start offset within output array
      * @return length of X coordinate (in bytes)
      */
-    public short getX(byte[] buffer, short offset) {
+    public short ctGetX(byte[] buffer, short offset) {
         byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);
         point.getW(pointBuffer, (short) 0);
-        Util.arrayCopyNonAtomic(pointBuffer, (short) 1, buffer, offset, curve.COORD_SIZE);
+        CTUtil.ctArrayCopyNonAtomic(pointBuffer, (short) 1, buffer, offset, curve.COORD_SIZE);
         rm.unlock(pointBuffer);
         return curve.COORD_SIZE;
     }
+
 
     /**
      * Returns the Y coordinate of this point in uncompressed form.
@@ -151,12 +152,12 @@ public class ECPoint {
      * @param offset start offset within output array
      * @return length of Y coordinate (in bytes)
      */
-    public short getY(byte[] buffer, short offset) {
+    public short ctGetY(byte[] buffer, short offset) {
         byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);
         point.getW(pointBuffer, (short) 0);
-        Util.arrayCopyNonAtomic(pointBuffer, (short) (1 + curve.COORD_SIZE), buffer, offset, curve.COORD_SIZE);
+        CTUtil.ctArrayCopyNonAtomic(pointBuffer, (short) (1 + curve.COORD_SIZE), buffer, offset, curve.COORD_SIZE);
         rm.unlock(pointBuffer);
         return curve.COORD_SIZE;
     }
@@ -164,7 +165,7 @@ public class ECPoint {
     /**
      * Double this point. Pure implementation without KeyAgreement.
      */
-    public void swDouble() {
+    public void ctSwDouble() {
         byte[] pointBuffer = rm.POINT_ARRAY_A;
         BigNat pX = rm.EC_BN_B;
         BigNat pY = rm.EC_BN_C;
@@ -175,51 +176,50 @@ public class ECPoint {
         getW(pointBuffer, (short) 0);
 
         pX.lock();
-        pX.fromByteArray(pointBuffer, (short) 1, curve.COORD_SIZE);
+        pX.ctFromByteArray(pointBuffer, (short) 1, curve.COORD_SIZE);
 
         pY.lock();
-        pY.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
+        pY.ctFromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
 
         lambda.lock();
-        lambda.clone(pX);
-        lambda.modSq(curve.pBN);
-        lambda.modMult(ResourceManager.THREE, curve.pBN);
-        lambda.modAdd(curve.aBN, curve.pBN);
+        lambda.ctClone(pX);
+        lambda.ctModSq(curve.pBN);
+        lambda.ctModMult(ResourceManager.THREE, curve.pBN);
+        lambda.ctModAdd(curve.aBN, curve.pBN);
 
         tmp.lock();
-        tmp.clone(pY);
-        tmp.modAdd(tmp, curve.pBN);
-        tmp.modInv(curve.pBN);
-        lambda.modMult(tmp, curve.pBN);
-        tmp.clone(lambda);
-        tmp.modSq(curve.pBN);
-        tmp.modSub(pX, curve.pBN);
-        tmp.modSub(pX, curve.pBN);
-        tmp.prependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);
+        tmp.ctClone(pY);
+        tmp.ctModAdd(tmp, curve.pBN);
+        tmp.ctModInv(curve.pBN);
+        lambda.ctModMult(tmp, curve.pBN);
+        tmp.ctClone(lambda);
+        tmp.ctModSq(curve.pBN);
+        tmp.ctModSub(pX, curve.pBN);
+        tmp.ctModSub(pX, curve.pBN);
+        tmp.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);
 
-        tmp.modSub(pX, curve.pBN);
+        tmp.ctModSub(pX, curve.pBN);
         pX.unlock();
-        tmp.modMult(lambda, curve.pBN);
+        tmp.ctModMult(lambda, curve.pBN);
         lambda.unlock();
-        tmp.modAdd(pY, curve.pBN);
-        tmp.modNegate(curve.pBN);
+        tmp.ctModAdd(pY, curve.pBN);
+        tmp.ctModNegate(curve.pBN);
         pY.unlock();
-        tmp.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
+        tmp.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
         tmp.unlock();
 
         setW(pointBuffer, (short) 0, curve.POINT_SIZE);
         rm.unlock(pointBuffer);
     }
 
-
     /**
      * Doubles the current value of this point.
      */
-    public void makeDouble() {
+    public void ctMakeDouble() {
         // doubling via add sometimes causes exception inside KeyAgreement engine
         // this.add(this);
         // Use bit slower, but more robust version via multiplication by 2
-        this.multiplication(ResourceManager.TWO);
+        ctSwDouble();
     }
 
     /**
@@ -227,9 +227,9 @@ public class ECPoint {
      *
      * @param other point to be added to this.
      */
-    public void add(ECPoint other) {
-        if (OperationSupport.getInstance().EC_HW_ADD) {
-            hwAdd(other);
+    public void ctAdd(ECPoint other) {
+        if (OperationSupport.getInstance().EC_HW_ADD == (short) 0xffff) {
+            ctHwAdd(other);
         } else {
             swAdd(other);
         }
@@ -239,11 +239,12 @@ public class ECPoint {
      * Implements adding of two points without ALG_EC_PACE_GM.
      *
      * @param other point to be added to this.
+     * @implNote reimplementation skipped deu to complicated algorithm, removing if-else statements would need temporary objects to work on
      */
     private void swAdd(ECPoint other) {
-        boolean samePoint = this == other || isEqual(other);
-        if (samePoint && OperationSupport.getInstance().EC_HW_XY) {
-            multiplication(ResourceManager.TWO);
+        boolean samePoint = this == other || (ctIsEqual(other) == (short) 0xffff);
+        if (samePoint && (OperationSupport.getInstance().EC_HW_XY == (short) 0xffff)) {
+            this.ctMultiplication(ResourceManager.TWO);
             return;
         }
 
@@ -260,10 +261,10 @@ public class ECPoint {
         rm.lock(pointBuffer);
         point.getW(pointBuffer, (short) 0);
         xP.lock();
-        xP.setSize(curve.COORD_SIZE);
+        xP.ctSetSize(curve.COORD_SIZE);
         xP.fromByteArray(pointBuffer, (short) 1, curve.COORD_SIZE);
         yP.lock();
-        yP.setSize(curve.COORD_SIZE);
+        yP.ctSetSize(curve.COORD_SIZE);
         yP.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
         rm.unlock(pointBuffer);
 
@@ -278,40 +279,40 @@ public class ECPoint {
         if (samePoint) {
             // lambda = (3(x_p^2)+a)/(2y_p)
             // (3(x_p^2)+a)
-            nominator.clone(xP);
-            nominator.modSq(curve.pBN);
-            nominator.modMult(ResourceManager.THREE, curve.pBN);
-            nominator.modAdd(curve.aBN, curve.pBN);
+            nominator.ctClone(xP);
+            nominator.ctModSq(curve.pBN);
+            nominator.ctModMult(ResourceManager.THREE, curve.pBN);
+            nominator.ctModAdd(curve.aBN, curve.pBN);
             // (2y_p)
-            denominator.clone(yP);
-            denominator.modMult(ResourceManager.TWO, curve.pBN);
-            denominator.modInv(curve.pBN);
+            denominator.ctClone(yP);
+            denominator.ctModMult(ResourceManager.TWO, curve.pBN);
+            denominator.ctModInv(curve.pBN);
 
         } else {
             // lambda = (y_q-y_p) / (x_q-x_p) mod p
             rm.lock(pointBuffer);
             other.point.getW(pointBuffer, (short) 0);
             xQ.lock();
-            xQ.setSize(curve.COORD_SIZE);
+            xQ.ctSetSize(curve.COORD_SIZE);
             xQ.fromByteArray(pointBuffer, (short) 1, other.curve.COORD_SIZE);
-            nominator.setSize(curve.COORD_SIZE);
+            nominator.ctSetSize(curve.COORD_SIZE);
             nominator.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
             rm.unlock(pointBuffer);
 
-            nominator.mod(curve.pBN);
+            nominator.ctMod(curve.pBN);
 
-            nominator.modSub(yP, curve.pBN);
+            nominator.ctModSub(yP, curve.pBN);
 
             // (x_q-x_p)
-            denominator.clone(xQ);
-            denominator.mod(curve.pBN);
-            denominator.modSub(xP, curve.pBN);
-            denominator.modInv(curve.pBN);
+            denominator.ctClone(xQ);
+            denominator.ctMod(curve.pBN);
+            denominator.ctModSub(xP, curve.pBN);
+            denominator.ctModInv(curve.pBN);
         }
 
         lambda.lock();
-        lambda.clone(nominator);
-        lambda.modMult(denominator, curve.pBN);
+        lambda.ctClone(nominator);
+        lambda.ctModMult(denominator, curve.pBN);
         nominator.unlock();
         denominator.unlock();
 
@@ -322,33 +323,33 @@ public class ECPoint {
         xR.lock();
         if (samePoint) {
             rm.lock(pointBuffer);
-            short len = multXKA(ResourceManager.TWO, pointBuffer, (short) 0);
+            short len = ctMultXKA(ResourceManager.TWO, pointBuffer, (short) 0);
             xR.fromByteArray(pointBuffer, (short) 0, len);
             rm.unlock(pointBuffer);
         } else {
-            xR.clone(lambda);
-            xR.modSq(curve.pBN);
-            xR.modSub(xP, curve.pBN);
-            xR.modSub(xQ, curve.pBN);
+            xR.ctClone(lambda);
+            xR.ctModSq(curve.pBN);
+            xR.ctModSub(xP, curve.pBN);
+            xR.ctModSub(xQ, curve.pBN);
         }
         xQ.unlock();
 
         // y_r = lambda(x_p - x_r) - y_p
         yR.lock();
-        yR.clone(xP);
+        yR.ctClone(xP);
         xP.unlock();
-        yR.modSub(xR, curve.pBN);
-        yR.modMult(lambda, curve.pBN);
+        yR.ctModSub(xR, curve.pBN);
+        yR.ctModMult(lambda, curve.pBN);
         lambda.unlock();
-        yR.modSub(yP, curve.pBN);
+        yR.ctModSub(yP, curve.pBN);
         yP.unlock();
 
         rm.lock(pointBuffer);
         pointBuffer[0] = (byte) 0x04;
         // If x_r.length() and y_r.length() is smaller than curve.COORD_SIZE due to leading zeroes which were shrunk before, then we must add these back
-        xR.prependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);
+        xR.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);
         xR.unlock();
-        yR.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
+        yR.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
         yR.unlock();
         setW(pointBuffer, (short) 0, curve.POINT_SIZE);
         rm.unlock(pointBuffer);
@@ -359,11 +360,11 @@ public class ECPoint {
      *
      * @param other point to be added to this.
      */
-    private void hwAdd(ECPoint other) {
+    private void ctHwAdd(ECPoint other) {
         byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);
-        setW(pointBuffer, (short) 0, multAndAddKA(ResourceManager.ONE_COORD, other, pointBuffer, (short) 0));
+        setW(pointBuffer, (short) 0, ctMultAndAddKA(ResourceManager.ONE_COORD, other, pointBuffer, (short) 0));
         rm.unlock(pointBuffer);
     }
 
@@ -372,13 +373,13 @@ public class ECPoint {
      *
      * @param scalarBytes value of scalar for multiplication
      */
-    public void multiplication(byte[] scalarBytes, short scalarOffset, short scalarLen) {
+    public void ctMultiplication(byte[] scalarBytes, short scalarOffset, short scalarLen) {
         BigNat scalar = rm.EC_BN_F;
 
         scalar.lock();
-        scalar.setSize(scalarLen);
+        scalar.ctSetSize(scalarLen);
         scalar.fromByteArray(scalarBytes, scalarOffset, scalarLen);
-        multiplication(scalar);
+        this.ctMultiplication(scalar);
         scalar.unlock();
     }
 
@@ -386,16 +387,14 @@ public class ECPoint {
      * Multiply value of this point by provided scalar. Stores the result into this point.
      *
      * @param scalar value of scalar for multiplication
+     * @implNote simplified: scalar should be checked for being the same number - use doubling
      */
-    public void multiplication(BigNat scalar) {
-        if (OperationSupport.getInstance().EC_SW_DOUBLE && scalar.equals(ResourceManager.TWO)) {
-            swDouble();
-        // } else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY) {
-        } else if (rm.ecMultKA.getAlgorithm() == (byte) 6) {
-            multXY(scalar);
-        //} else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN) {
+    public void ctMultiplication(BigNat scalar) {
+        if (rm.ecMultKA.getAlgorithm() == (byte) 6) {
+            ctMultXY(scalar);
+            //} else if (rm.ecMultKA.getAlgorithm() == KeyAgreement.ALG_EC_SVDP_DH_PLAIN) {
         } else if (rm.ecMultKA.getAlgorithm() == (byte) 3) {
-            multX(scalar);
+            ctMultX(scalar);
         } else {
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
         }
@@ -407,16 +406,16 @@ public class ECPoint {
      * @param scalar value of scalar for multiplication
      * @param point the other point
      */
-    public void multAndAdd(BigNat scalar, ECPoint point) {
-        if (OperationSupport.getInstance().EC_HW_ADD) {
+    public void ctMultAndAdd(BigNat scalar, ECPoint point) {
+        if (OperationSupport.getInstance().EC_HW_ADD == (short) 0xffff) {
             byte[] pointBuffer = rm.POINT_ARRAY_A;
 
             rm.lock(pointBuffer);
-            setW(pointBuffer, (short) 0, multAndAddKA(scalar, point, pointBuffer, (short) 0));
+            setW(pointBuffer, (short) 0, ctMultAndAddKA(scalar, point, pointBuffer, (short) 0));
             rm.unlock(pointBuffer);
         } else {
-            multiplication(scalar);
-            add(point);
+            ctMultiplication(scalar);
+            ctAdd(point);
         }
     }
 
@@ -428,13 +427,13 @@ public class ECPoint {
      * @param outBuffer output buffer
      * @param outBufferOffset offset in the output buffer
      */
-    private short multAndAddKA(BigNat scalar, ECPoint point, byte[] outBuffer, short outBufferOffset) {
+    private short ctMultAndAddKA(BigNat scalar, ECPoint point, byte[] outBuffer, short outBufferOffset) {
         byte[] pointBuffer = rm.POINT_ARRAY_B;
 
         rm.lock(pointBuffer);
         short len = getW(pointBuffer, (short) 0);
         curve.disposablePriv.setG(pointBuffer, (short) 0, len);
-        scalar.prependZeros((short) curve.r.length, pointBuffer, (short) 0);
+        scalar.ctPrependZeros((short) curve.r.length, pointBuffer, (short) 0);
         curve.disposablePriv.setS(pointBuffer, (short) 0, (short) curve.r.length);
         rm.ecAddKA.init(curve.disposablePriv);
 
@@ -449,11 +448,11 @@ public class ECPoint {
      *
      * @param scalar value of scalar for multiplication
      */
-    public void multXY(BigNat scalar) {
+    public void ctMultXY(BigNat scalar) {
         byte[] pointBuffer = rm.POINT_ARRAY_A;
 
         rm.lock(pointBuffer);
-        short len = multXYKA(scalar, pointBuffer, (short) 0);
+        short len = ctMultXYKA(scalar, pointBuffer, (short) 0);
         setW(pointBuffer, (short) 0, len);
         rm.unlock(pointBuffer);
     }
@@ -468,11 +467,11 @@ public class ECPoint {
      * @param outBufferOffset offset within output array
      * @return length of resulting value (in bytes)
      */
-    public short multXYKA(BigNat scalar, byte[] outBuffer, short outBufferOffset) {
+    public short ctMultXYKA(BigNat scalar, byte[] outBuffer, short outBufferOffset) {
         byte[] pointBuffer = rm.POINT_ARRAY_B;
 
         rm.lock(pointBuffer);
-        scalar.prependZeros((short) curve.r.length, pointBuffer, (short) 0);
+        scalar.ctPrependZeros((short) curve.r.length, pointBuffer, (short) 0); // this is the only reimplemented thing
         curve.disposablePriv.setS(pointBuffer, (short) 0, (short) curve.r.length);
         rm.ecMultKA.init(curve.disposablePriv);
 
@@ -484,10 +483,11 @@ public class ECPoint {
 
     /**
      * Multiply value of this point by provided scalar using X-only key agreement. Stores the result into this point.
-     *
+     * Partially implemeneted
      * @param scalar value of scalar for multiplication
+     * @implNote too slow for actual verification because of ctModSqrt
      */
-    private void multX(BigNat scalar) {
+    private void ctMultX(BigNat scalar) {
         byte[] pointBuffer = rm.POINT_ARRAY_A;
         byte[] pointBuffer2 = rm.POINT_ARRAY_B;
         byte[] resultBuffer = rm.ARRAY_A;
@@ -499,33 +499,33 @@ public class ECPoint {
         BigNat denominator = rm.EC_BN_D;
 
         rm.lock(pointBuffer);
-        short len = multXKA(scalar, pointBuffer, (short) 0);
+        short len = ctMultXKA(scalar, pointBuffer, (short) 0);
         x.lock();
         x.fromByteArray(pointBuffer, (short) 0, len);
         rm.unlock(pointBuffer);
 
         // Solve for Y in Weierstrass equation: Y^2 = X^3 + XA + B = x(x^2+A)+B
         ySq.lock();
-        ySq.clone(x);
-        ySq.modExp(ResourceManager.TWO, curve.pBN);
-        ySq.modAdd(curve.aBN, curve.pBN);
-        ySq.modMult(x, curve.pBN);
-        ySq.modAdd(curve.bBN, curve.pBN);
+        ySq.ctClone(x);
+        ySq.ctModExp(ResourceManager.TWO, curve.pBN);
+        ySq.ctModAdd(curve.aBN, curve.pBN);
+        ySq.ctModMult(x, curve.pBN);
+        ySq.ctModAdd(curve.bBN, curve.pBN);
         y.lock();
-        y.clone(ySq);
+        y.ctClone(ySq);
         ySq.unlock();
-        y.modSqrt(curve.pBN);
+        y.ctModSqrt(curve.pBN);
 
         // Construct public key with <x, y>
         rm.lock(pointBuffer);
         pointBuffer[0] = 0x04;
-        x.prependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);
+        x.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);
         x.unlock();
-        y.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
+        y.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
         y.unlock();
 
-        boolean negate;
-        if (OperationSupport.getInstance().EC_HW_X_ECDSA) {
+        short negate; // cannot remove boolean here
+        if (OperationSupport.getInstance().EC_HW_X_ECDSA == (short) 0xffff) {
             rm.lock(pointBuffer2);
             getW(pointBuffer2, (short) 0);
             curve.disposablePriv.setG(pointBuffer2, (short) 0, curve.POINT_SIZE);
@@ -536,20 +536,20 @@ public class ECPoint {
 
             // Check if <x, y> corresponds to the "secret" (i.e., our scalar)
             rm.lock(resultBuffer);
-            scalar.prependZeros((short) curve.r.length, resultBuffer, (short) 0);
+            scalar.ctPrependZeros((short) curve.r.length, resultBuffer, (short) 0);
             curve.disposablePriv.setS(resultBuffer, (short) 0, (short) curve.r.length);
             curve.disposablePub.setW(pointBuffer, (short) 0, curve.POINT_SIZE);
-            negate = !SignVerifyECDSA(curve.disposablePriv, curve.disposablePub, rm.verifyEcdsa, resultBuffer);
+            negate = (short) (SignVerifyECDSA(curve.disposablePriv, curve.disposablePub, rm.verifyEcdsa, resultBuffer) ? 0 : (short) 0xffff);
             rm.unlock(resultBuffer);
         } else {
             // Check that (<x, y> + P)_x == ((scalar + 1)P)_x
             x.lock();
             rm.lock(resultBuffer);
-            scalar.increment();
-            len = multXKA(scalar, resultBuffer, (short) 0);
+            scalar.ctIncrement();
+            len = ctMultXKA(scalar, resultBuffer, (short) 0);
             x.fromByteArray(resultBuffer, (short) 0, len);
             rm.unlock(resultBuffer);
-            scalar.decrement(); // keep the original
+            scalar.ctDecrement(); // keep the original
 
             rm.lock(pointBuffer2);
             getW(pointBuffer2, (short) 0);
@@ -560,35 +560,36 @@ public class ECPoint {
             lambda.fromByteArray(pointBuffer2, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
             tmp.lock();
             tmp.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
-            lambda.modSub(tmp, curve.pBN);
+            lambda.ctModSub(tmp, curve.pBN);
 
             // (x_1 - x_2)^-1
             denominator.lock();
             denominator.fromByteArray(pointBuffer2, (short) 1, curve.COORD_SIZE);
             tmp.fromByteArray(pointBuffer, (short) 1, curve.COORD_SIZE);
-            denominator.modSub(tmp, curve.pBN);
-            denominator.modInv(curve.pBN);
+            denominator.ctModSub(tmp, curve.pBN);
+            denominator.ctModInv(curve.pBN);
 
             // λ = (y_1 - y_2)/(x_1 - x_2)
-            lambda.modMult(denominator, curve.pBN);
+            lambda.ctModMult(denominator, curve.pBN);
             denominator.unlock();
 
             // x_3 = λ^2 - x_1 - x_2
-            lambda.modSq(curve.pBN);
+            lambda.ctModSq(curve.pBN);
             tmp.fromByteArray(pointBuffer2, (short) 1, curve.COORD_SIZE);
-            lambda.modSub(tmp, curve.pBN);
+            lambda.ctModSub(tmp, curve.pBN);
             tmp.fromByteArray(pointBuffer, (short) 1, curve.COORD_SIZE);
-            lambda.modSub(tmp, curve.pBN);
+            lambda.ctModSub(tmp, curve.pBN);
             tmp.unlock();
 
             // If <x, y> + P != (scalar + 1)P, negate the point
-            negate = !lambda.equals(x);
+            negate = (short) ~lambda.ctEquals(x);
             lambda.unlock();
             x.unlock();
         }
         rm.unlock(pointBuffer);
-        if (negate)
-            negate();
+
+        if (negate == (short) 0xffff) // time leak, could be solved by creating temporary object
+            ctNegate();
     }
 
     /**
@@ -601,11 +602,11 @@ public class ECPoint {
      * @param outBufferOffset offset within output array
      * @return length of resulting value (in bytes)
      */
-    private short multXKA(BigNat scalar, byte[] outBuffer, short outBufferOffset) {
+    private short ctMultXKA(BigNat scalar, byte[] outBuffer, short outBufferOffset) {
         byte[] pointBuffer = rm.POINT_ARRAY_B;
         // NOTE: potential problem on real cards (j2e) - when small scalar is used (e.g., BigNat.TWO), operation sometimes freezes
         rm.lock(pointBuffer);
-        scalar.prependZeros((short) curve.r.length, pointBuffer, (short) 0);
+        scalar.ctPrependZeros((short) curve.r.length, pointBuffer, (short) 0);
         curve.disposablePriv.setS(pointBuffer, (short) 0, (short) curve.r.length);
 
         rm.ecMultKA.init(curve.disposablePriv);
@@ -613,7 +614,7 @@ public class ECPoint {
         short len = getW(pointBuffer, (short) 0);
         rm.ecMultKA.generateSecret(pointBuffer, (short) 0, len, outBuffer, outBufferOffset);
         rm.unlock(pointBuffer);
-        // Return always length of whole coordinate X instead of len - some real cards returns shorter value equal to SHA-1 output size although PLAIN results is filled into buffer (GD60) 
+        // Return always length of whole coordinate X instead of len - some real cards returns shorter value equal to SHA-1 output size although PLAIN results is filled into buffer (GD60)
         return curve.COORD_SIZE;
     }
 
@@ -621,17 +622,17 @@ public class ECPoint {
      * Computes negation of this point.
      * The operation will dump point into uncompressed_point_arr, negate Y and restore back
      */
-    public void negate() {
+    public void ctNegate() {
         byte[] pointBuffer = rm.POINT_ARRAY_A;
         BigNat y = rm.EC_BN_C;
 
         y.lock();
         rm.lock(pointBuffer);
         point.getW(pointBuffer, (short) 0);
-        y.setSize(curve.COORD_SIZE);
-        y.fromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
-        y.modNegate(curve.pBN);
-        y.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
+        y.ctSetSize(curve.COORD_SIZE);
+        y.ctFromByteArray(pointBuffer, (short) (1 + curve.COORD_SIZE), curve.COORD_SIZE);
+        y.ctModNegate(curve.pBN);
+        y.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
         y.unlock();
         setW(pointBuffer, (short) 0, curve.POINT_SIZE);
         rm.unlock(pointBuffer);
@@ -644,13 +645,13 @@ public class ECPoint {
      * @param xOffset offset in the byte array
      * @param xLen    length of the X coordinate
      */
-    public boolean fromX(byte[] xCoord, short xOffset, short xLen) {
+    public short ctFromX(byte[] xCoord, short xOffset, short xLen) {
         BigNat x = rm.EC_BN_F;
 
         x.lock();
-        x.setSize(xLen);
+        x.ctSetSize(xLen);
         x.fromByteArray(xCoord, xOffset, xLen);
-        boolean result = fromX(x);
+        short result = ctFromX(x);
         x.unlock();
         return result;
     }
@@ -659,36 +660,39 @@ public class ECPoint {
      * Restore point from X coordinate. Stores one of the two results into this point.
      *
      * @param x the x coordinate
+     * @implNote too slow for actual verification because of ctModSqrt
      */
-    private boolean fromX(BigNat x) {
+    private short ctFromX(BigNat x) {
         BigNat ySq = rm.EC_BN_C;
         BigNat y = rm.EC_BN_D;
         byte[] pointBuffer = rm.POINT_ARRAY_A;
+        short result = (short) 0xffff;
 
         //Y^2 = X^3 + XA + B = x(x^2+A)+B
         ySq.lock();
-        ySq.clone(x);
-        ySq.modSq(curve.pBN);
-        ySq.modAdd(curve.aBN, curve.pBN);
-        ySq.modMult(x, curve.pBN);
-        ySq.modAdd(curve.bBN, curve.pBN);
+        ySq.ctClone(x);
+        ySq.ctModSq(curve.pBN);
+        ySq.ctModAdd(curve.aBN, curve.pBN);
+        ySq.ctModMult(x, curve.pBN);
+        ySq.ctModAdd(curve.bBN, curve.pBN);
         y.lock();
-        y.clone(ySq);
-        if (!y.isQuadraticResidue(curve.pBN)) {
-            return false;
-        }
+        y.ctClone(ySq);
+        result &= y.ctIsQuadraticResidue(curve.pBN); // denotes whether there should be any side effect
+
         ySq.unlock();
-        y.modSqrt(curve.pBN);
+        y.ctModSqrt(curve.pBN);
 
         // Construct public key with <x, y_1>
         rm.lock(pointBuffer);
         pointBuffer[0] = 0x04;
-        x.prependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);
-        y.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
+        x.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);
+        y.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) (1 + curve.COORD_SIZE));
         y.unlock();
-        setW(pointBuffer, (short) 0, curve.POINT_SIZE);
+        
+        if (result == (short) 0xffff) // time leak
+            setW(pointBuffer, (short) 0, curve.POINT_SIZE);
         rm.unlock(pointBuffer);
-        return true;
+        return result;
     }
 
     /**
@@ -710,12 +714,11 @@ public class ECPoint {
      * Compares this and provided point for equality. The comparison is made using hash of both values to prevent leak of position of mismatching byte.
      *
      * @param other second point for comparison
-     * @return true if both point are exactly equal (same length, same value), false otherwise
+     * @return 0xffff if both point are exactly equal (same length, same value), 0x0000 otherwise
      */
-    public boolean isEqual(ECPoint other) {
-        if (length() != other.length()) {
-            return false;
-        }
+    public short ctIsEqual(ECPoint other) {
+        short result = ConstantTime.ctEqual(length(), other.length());
+
         // The comparison is made with hash of point values instead of directly values.
         // This way, offset of first mismatching byte is not leaked via timing side-channel.
         // Additionally, only single array is required for storage of plain point values thus saving some RAM.
@@ -728,11 +731,11 @@ public class ECPoint {
         rm.hashEngine.doFinal(pointBuffer, (short) 0, len, hashBuffer, (short) 0);
         len = other.getW(pointBuffer, (short) 0);
         len = rm.hashEngine.doFinal(pointBuffer, (short) 0, len, pointBuffer, (short) 0);
-        boolean bResult = Util.arrayCompare(hashBuffer, (short) 0, pointBuffer, (short) 0, len) == 0;
+        short bResult = ConstantTime.ctIsZero(Util.arrayCompare(hashBuffer, (short) 0, pointBuffer, (short) 0, len));
         rm.unlock(hashBuffer);
         rm.unlock(pointBuffer);
 
-        return bResult;
+        return (short) (bResult & result & (short) 0xffff);
     }
 
     static byte[] msg = {(byte) 0x01, (byte) 0x01, (byte) 0x02, (byte) 0x03};
@@ -751,12 +754,14 @@ public class ECPoint {
      * @param point array containing SEC1-encoded point
      * @param offset offset within the output buffer
      * @param length length of the encoded point
-     * @return true if the point was compressed; false otherwise
+     * @return 0xffff if the point was compressed; 0x0000 otherwise
+     * @implNote partially reimplemented, still distinguishing among compressed and uncompressed
+     * @implNote too slow for actual verification because of ctModSqrt
      */
-    public boolean decode(byte[] point, short offset, short length) {
+    public short ctDecode(byte[] point, short offset, short length) {
         if(length == (short) (1 + 2 * curve.COORD_SIZE) && point[offset] == 0x04) {
             setW(point, offset, length);
-            return false;
+            return (short) 0x0000;
         }
         if (length == (short) (1 + curve.COORD_SIZE)) {
             BigNat y = rm.EC_BN_C;
@@ -769,35 +774,35 @@ public class ECPoint {
 
             //Y^2 = X^3 + XA + B = x(x^2+A)+B
             y.lock();
-            y.clone(x);
-            y.modSq(curve.pBN);
-            y.modAdd(curve.aBN, curve.pBN);
-            y.modMult(x, curve.pBN);
-            y.modAdd(curve.bBN, curve.pBN);
-            y.modSqrt(curve.pBN);
+            y.ctClone(x);
+            y.ctModSq(curve.pBN);
+            y.ctModAdd(curve.aBN, curve.pBN);
+            y.ctModMult(x, curve.pBN);
+            y.ctModAdd(curve.bBN, curve.pBN);
+            y.ctModSqrt(curve.pBN);
 
             rm.lock(pointBuffer);
             pointBuffer[0] = 0x04;
-            x.prependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);
+            x.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) 1);
             x.unlock();
 
             p.lock();
-            boolean odd = y.isOdd();
-            if ((!odd && point[offset] != (byte) 0x02) || (odd && point[offset] != (byte) 0x03)) {
-                p.clone(curve.pBN);
-                p.subtract(y);
-                p.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (curve.COORD_SIZE + 1));
-            } else {
-                y.prependZeros(curve.COORD_SIZE, pointBuffer, (short) (curve.COORD_SIZE + 1));
-            }
+            short odd = y.ctIsOdd();
+            short mask = (short) ((~odd & ~ConstantTime.ctEqual(point[offset], (byte) 0x02))
+                    | (odd & ~ConstantTime.ctEqual(point[offset], (byte) 0x03)));
+            p.ctClone(curve.pBN, (short) ~mask);
+            p.ctSubtract(y, (short) ~mask);
+            p.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) (curve.COORD_SIZE + 1), (short) ~mask);
+            y.ctPrependZeros(curve.COORD_SIZE, pointBuffer, (short) (curve.COORD_SIZE + 1), mask);
+            
             y.unlock();
             p.unlock();
             setW(pointBuffer, (short) 0, curve.POINT_SIZE);
             rm.unlock(pointBuffer);
-            return true;
+            return (short) 0xffff;
         }
         ISOException.throwIt(ReturnCodes.SW_ECPOINT_INVALID);
-        return true; // unreachable
+        return (short) 0xffff; // unreachable
     }
 
     /**
@@ -807,8 +812,10 @@ public class ECPoint {
      * @param offset offset within the output buffer
      * @param compressed output compressed point if true; uncompressed otherwise
      * @return length of output point
+     * @implNote partially reimplemented, still distinguishing among compressed and uncompressed
+     * @implNote too slow for actual verification because of ctModSqrt
      */
-    public short encode(byte[] output, short offset, boolean compressed) {
+    public short ctEncode(byte[] output, short offset, boolean compressed) {
         getW(output, offset);
 
         if(compressed) {
@@ -827,22 +834,22 @@ public class ECPoint {
 
             //Y^2 = X^3 + XA + B = x(x^2+A)+B
             y.lock();
-            y.clone(x);
-            y.modSq(curve.pBN);
-            y.modAdd(curve.aBN, curve.pBN);
-            y.modMult(x, curve.pBN);
+            y.ctClone(x);
+            y.ctModSq(curve.pBN);
+            y.ctModAdd(curve.aBN, curve.pBN);
+            y.ctModMult(x, curve.pBN);
             x.unlock();
-            y.modAdd(curve.bBN, curve.pBN);
-            y.modSqrt(curve.pBN);
+            y.ctModAdd(curve.bBN, curve.pBN);
+            y.ctModSqrt(curve.pBN);
             p.lock();
-            boolean odd = y.isOdd();
-            if ((!odd && output[offset] != (byte) 0x02) || (odd && output[offset] != (byte) 0x03)) {
-                p.clone(curve.pBN);
-                p.subtract(y);
-                p.prependZeros(curve.COORD_SIZE, output, (short) (offset + curve.COORD_SIZE + 1));
-            } else {
-                y.prependZeros(curve.COORD_SIZE, output, (short) (offset + curve.COORD_SIZE + 1));
-            }
+            short odd = y.ctIsOdd();
+            short mask = (short) ((~odd & ~ConstantTime.ctEqual(output[offset], (byte) 0x02))
+                                | (odd & ~ConstantTime.ctEqual(output[offset], (byte) 0x03)));
+            p.ctClone(curve.pBN, (short) ~mask);
+            p.ctSubtract(y, (short) ~mask);
+            p.ctPrependZeros(curve.COORD_SIZE, output, (short) (offset + curve.COORD_SIZE + 1), (short) ~mask);
+            y.ctPrependZeros(curve.COORD_SIZE, output, (short) (offset + curve.COORD_SIZE + 1), mask);
+
             y.unlock();
             p.unlock();
             output[offset] = (byte) 0x04;

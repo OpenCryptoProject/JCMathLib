@@ -24,6 +24,7 @@ When citing our work, please use the following reference:
 }
 ```
 
+Modifications have been made by Veronika Hanulíková, as part of a master's thesis on Masaryk University in 2025.
 
 ## Table of Contents
 

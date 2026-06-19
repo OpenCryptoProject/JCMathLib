@@ -8,7 +8,7 @@ import javacardx.crypto.Cipher;
 import javacard.security.KeyBuilder;
 
 /**
- * @author Vasilios Mavroudis and Petr Svenda and Antonin Dufka
+ * @author Vasilios Mavroudis and Petr Svenda and Antonin Dufka, modified by Veronika Hanulikova
  */
 public class BigNat extends BigNatInternal {
 
@@ -22,101 +22,124 @@ public class BigNat extends BigNatInternal {
     /**
      * Division of this BigNat by provided other BigNat.
      */
-    public void divide(BigNat other) {
-        BigNat tmp = rm.BN_E;
+    public void ctDivide(BigNat other) {
+        BigNat tmp = rm.BN_A; // rm.BN_Eis too big for ctIsLesser implementation over 128B numbers
 
         tmp.lock();
-        tmp.clone(this);
-        tmp.remainderDivide(other, this);
+        tmp.ctClone( this);
+        tmp.ctRemainderDivideOptimized(other, this);
         tmp.unlock();
     }
 
     /**
      * Greatest common divisor of this BigNat with other BigNat. Result is stored into this.
      */
-    public void gcd(BigNat other) {
+    public void ctGcd(BigNat other) {
         BigNat tmp = rm.BN_A;
         BigNat tmpOther = rm.BN_B;
 
         tmp.lock();
         tmpOther.lock();
 
-        tmpOther.clone(other);
+        tmpOther.ctClone(other);
 
-        // TODO: optimise?
-        while (!other.isZero()) {
-            tmp.clone(tmpOther);
-            mod(tmpOther);
-            tmpOther.clone(this);
-            clone(tmp);
+        short thisZeros = ctShiftRightByTrailingZeroes((short) 0);
+        short otherZeros = tmpOther.ctShiftRightByTrailingZeroes((short) 0);
+        short done = 0;
+        short count = 273;
+        while(count > 0) {
+            // Swap if necessary so other ≤ this
+            short thisLesser = this.ctIsLesser(tmpOther);
+            tmp.ctClone(this, done);
+            this.ctClone(tmpOther, (short) (~thisLesser | done));
+            tmpOther.ctClone(tmp, (short) (~thisLesser | done));
+            // Identity 4: gcd(u, v) = gcd(u, v-u) as u ≤ v and u, v are both odd
+            this.ctSubtract(tmpOther, done);
+            // this is now even
+            done |= this.ctIsZero();
+
+            // Identity 3: gcd(u, 2ʲ v) = gcd(u, v) as u is odd
+            this.ctShiftRightByTrailingZeroes(done);
+            count--;
         }
-
-        tmp.unlock();
-        tmpOther.unlock();
+        this.ctClone(tmpOther);
+        short min = ConstantTime.ctSelect((ConstantTime.ctLessThan(thisZeros, otherZeros)), thisZeros, otherZeros);
+        this.ctShiftLeft(min);
+        ctShrink();
     }
 
     /**
      * Decides whether the arguments are co-prime or not.
      */
-    public boolean isCoprime(BigNat a, BigNat b) {
+    public short ctIsCoprime(BigNat other) {
         BigNat tmp = rm.BN_C;
 
         tmp.lock();
-        tmp.clone(a);
+        tmp.ctClone(this);
 
-        tmp.gcd(b);
-        boolean result = tmp.isOne();
+        tmp.ctGcd(other);
+        short result = tmp.ctIsOne();
         tmp.unlock();
         return result;
     }
 
     /**
      * Square computation supporting base greater than MAX_BIGNAT_LENGTH.
+     * Constant-time implementation.
+     * Use with RSA_SQ = 0x0000, when length of number is smaller than 2 or bigger than 155
      */
-    public void sq() {
-        if (!OperationSupport.getInstance().RSA_SQ) {
+    public void ctSq() {
+        if (OperationSupport.getInstance().RSA_SQ != (short) 0xffff) {
             BigNat tmp = rm.BN_E;
             tmp.lock();
-            tmp.setSize(length());
-            tmp.copy(this);
-            super.mult(tmp);
+            tmp.ctSetSize(length());
+            tmp.ctCopy(this);
+            super.ctMult(tmp);
+            tmp.unlock();
             return;
         }
+
         if ((short) (rm.MAX_SQ_LENGTH - 1) < (short) (2 * length())) {
             ISOException.throwIt(ReturnCodes.SW_BIGNAT_INVALIDSQ);
         }
 
         byte[] resultBuffer = rm.ARRAY_A;
+        byte[] tmpBuffer = rm.ARRAY_B;
         short offset = (short) (rm.MAX_SQ_LENGTH - length());
 
         rm.lock(resultBuffer);
+        rm.lock(tmpBuffer);
         Util.arrayFillNonAtomic(resultBuffer, (short) 0, offset, (byte) 0x00);
-        copyToByteArray(resultBuffer, offset);
+        Util.arrayFillNonAtomic(tmpBuffer, (short) 0, offset, (byte) 0x00);
+        ctCopyToByteArray(resultBuffer, offset);
+        ctCopyToByteArray(tmpBuffer, offset);
         short len = rm.sqCiph.doFinal(resultBuffer, (short) 0, rm.MAX_SQ_LENGTH, resultBuffer, (short) 0);
-        if (len != rm.MAX_SQ_LENGTH) {
-            if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
-                Util.arrayCopyNonAtomic(resultBuffer, (short) 0, resultBuffer, (short) (rm.MAX_SQ_LENGTH - len), len);
-                Util.arrayFillNonAtomic(resultBuffer, (short) 0, (short) (rm.MAX_SQ_LENGTH - len), (byte) 0);
-            } else {
-                ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
-            }
-        }
+        rm.sqCiph.doFinal(tmpBuffer, (short) 0, rm.MAX_SQ_LENGTH, tmpBuffer, (short) 0);
+        BigNat tmp = rm.BN_E;
+        tmp.lock();
+        tmp.ctSetSize(length());
+
+        short lenMax = ConstantTime.ctEqual(len, rm.MAX_SQ_LENGTH);
+        short blind = (short) (~(~lenMax & OperationSupport.getInstance().RSA_PREPEND_ZEROS));
+        CTUtil.ctArrayCopyNonAtomic(resultBuffer, (short) 0, resultBuffer, (short) (rm.MAX_SQ_LENGTH - len), len, blind);
+        CTUtil.ctArrayFillNonAtomic(resultBuffer, (short) 0, (short) (rm.MAX_SQ_LENGTH - len), (byte) 0, blind);
+
         short zeroPrefix = (short) (rm.MAX_SQ_LENGTH - (short) 2 * length());
         fromByteArray(resultBuffer, zeroPrefix, (short) (rm.MAX_SQ_LENGTH - zeroPrefix));
         rm.unlock(resultBuffer);
-        shrink();
+        ctShrink();
+
+        if ((~lenMax & ~OperationSupport.getInstance().RSA_PREPEND_ZEROS) == (short) 0xffff) {
+            ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
+        }
     }
 
     /**
      * Computes this * other and stores the result into this.
      */
-    public void mult(BigNat other) {
-        if (OperationSupport.getInstance().RSA_CHECK_ONE && isOne()) {
-            clone(other);
-            return;
-        }
-        if (!OperationSupport.getInstance().RSA_SQ || length() <= (short) 16) {
-            super.mult(other);
+    public void ctMult(BigNat other) {
+        if (OperationSupport.getInstance().RSA_SQ == (short) 0x0000) {
+            super.ctMultDirect(other);
             return;
         }
 
@@ -124,121 +147,133 @@ public class BigNat extends BigNatInternal {
         BigNat tmp = rm.BN_G;
 
         result.lock();
-        result.setSize((short) ((length() > other.length() ? length() : other.length()) + 1));
-        result.copy(this);
-        result.add(other);
-        result.sq();
+        result.ctSetSize((short) ((length() > other.length() ? length() : other.length()) + 1));
+        result.ctCopy(this);
+        result.ctAdd(other);
+        result.ctSq();
 
         tmp.lock();
-        if (isLesser(other)) {
-            tmp.clone(other);
-            tmp.subtract(this);
-        } else {
-            tmp.clone(this);
-            tmp.subtract(other);
-        }
-        tmp.sq();
+        short thisLesser = ctIsLesser(other);
+        tmp.ctClone(other, (short) ~thisLesser);
+        tmp.ctSubtract(this,  (short) ~thisLesser);
+        tmp.ctClone(this, thisLesser);
+        tmp.ctSubtract(other, thisLesser);
+        tmp.ctSq();
 
-        result.subtract(tmp);
+        result.ctSubtract(tmp);
         tmp.unlock();
-        result.shiftRight((short) 2);
+        result.ctShiftRightBits((short) 2);
 
-        setSizeToMax(false);
-        copy(result);
-        shrink();
+        ctSetSizeToMax(false, (short) 0x00);
+        ctCopy(result);
+        ctShrink();
         result.unlock();
     }
 
     /**
      * Computes modulo and stores the result in this.
      */
-    public void mod(BigNat mod) {
-        remainderDivide(mod, null);
+    public void ctMod(BigNat mod) {
+        BigNat tmpQuotient = rm.BN_C;
+        tmpQuotient.lock();
+        ctRemainderDivideOptimized(mod, tmpQuotient);
+        tmpQuotient.unlock();
     }
 
     /**
      * Negate current BigNat modulo provided modulus.
      */
-    public void modNegate(BigNat mod) {
+    public void ctModNegate(BigNat mod) {
         BigNat tmp = rm.BN_B;
 
         tmp.lock();
-        tmp.clone(mod);
-        tmp.subtract(this);
-        setSize(mod.length());
-        copy(tmp);
+        tmp.ctClone(mod);
+        tmp.ctSubtract(this);
+        ctSetSize(mod.length());
+        ctCopy(tmp);
         tmp.unlock();
     }
 
     /**
      * Modular addition of a BigNat to this.
      */
-    public void modAdd(BigNat other, BigNat mod) {
-        resize((short) (mod.length() + 1));
-        add(other);
-        if (!isLesser(mod)) {
-            subtract(mod);
-        }
-        setSize(mod.length());
+    public void ctModAdd(BigNat other, BigNat mod) {
+        ctResize((short) (mod.length() + 1));
+        ctAdd(other);
+        short thisIsLesser = ctIsLesser(mod);
+        ctSubtract(mod, thisIsLesser);
+        ctSetSize(mod.length());
     }
 
     /**
      * Modular subtraction of a BigNat from this.
      */
-    public void modSub(BigNat other, BigNat mod) {
-        resize((short) (mod.length() + 1));
-        if (isLesser(other)) {
-            add(mod);
-        }
-        subtract(other);
-        setSize(mod.length());
+    public void ctModSub(BigNat other, BigNat mod) {
+        ctResize((short) (mod.length() + 1));
+        short thisLesser = ctIsLesser(other);
+        ctAdd(mod, (short) (~thisLesser));
+        ctSubtract(other);
+        ctSetSize(mod.length());
     }
 
     /**
      * Square this mod a modulus fixed with fixModSqMod method.
      */
-    private void modSqFixed() {
+    private short ctModSqFixed() {
+        short error = 0;
+
         BigNat tmpMod = rm.BN_F;
         byte[] tmpBuffer = rm.ARRAY_A;
         short modLength;
 
-        tmpMod.setSize(rm.MAX_EXP_LENGTH);
-        if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
+        tmpMod.ctSetSize(rm.MAX_EXP_LENGTH);
+
+        // not based on sensitive data, might stay as it is
+        if (OperationSupport.getInstance().RSA_RESIZE_MOD == (short) 0xffff) {
             modLength = rm.MAX_EXP_LENGTH;
         } else {
             modLength = rm.fixedMod.length();
         }
 
-        prependZeros(modLength, tmpBuffer, (short) 0);
+        ctPrependZeros(modLength, tmpBuffer, (short) 0);
         short len = rm.modSqCiph.doFinal(tmpBuffer, (short) 0, modLength, tmpBuffer, (short) 0);
 
-        if (len != rm.MAX_EXP_LENGTH) {
-            if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
-                Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, tmpBuffer, (short) (rm.MAX_EXP_LENGTH - len), len);
-                Util.arrayFillNonAtomic(tmpBuffer, (short) 0, (short) (rm.MAX_EXP_LENGTH - len), (byte) 0);
-            } else {
-                ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
-            }
-        }
-        tmpMod.fromByteArray(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
+        // len == rm.MAX_EXP_LENGTH
+        short validLength = ConstantTime.ctEqual(len, rm.MAX_EXP_LENGTH);
+        // len != rm.MAX_EXP_LENGTH && !OperationSupport.getInstance().RSA_PREPEND_ZEROS
+        error = (short) (~validLength & ~OperationSupport.getInstance().RSA_PREPEND_ZEROS);
+        short mask = (short) (~validLength & OperationSupport.getInstance().RSA_PREPEND_ZEROS);
+        CTUtil.ctArrayCopyNonAtomic(tmpBuffer, (short) 0, tmpBuffer, (short) (rm.MAX_EXP_LENGTH - len), len, (short) ~mask);
+        CTUtil.ctArrayFillNonAtomic(tmpBuffer, (short) 0, (short) (rm.MAX_EXP_LENGTH - len), (byte) 0, (short) ~mask);
 
-        if (OperationSupport.getInstance().RSA_EXTRA_MOD) {
-            tmpMod.mod(rm.fixedMod);
+        tmpMod.ctFromByteArray(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
+
+        // not based on sensitive data, might stay as it is
+        if (OperationSupport.getInstance().RSA_EXTRA_MOD == (short) 0xffff) {
+            tmpMod.ctMod(rm.fixedMod);
         }
-        setSize(rm.fixedMod.length());
-        copy(tmpMod);
+        ctSetSize(rm.fixedMod.length(), error);
+        ctCopy(tmpMod, error);
+        return error;
     }
+
 
     /**
      * Computes (this ^ exp % mod) using RSA algorithm and store results into this.
+     * @param exp
+     * @param mod
+     * @implNote will not work when
+     *  1. exponent is 1 AND card does not support RSA with exponent 1
+     *  2. exponent is 2 AND card does not support using RSA for squaring
      */
-    public void modExp(BigNat exp, BigNat mod) {
-        if (!OperationSupport.getInstance().RSA_EXP)
+    public void ctModExp(BigNat exp, BigNat mod) {
+        // These branches are hard to incorporate into CT code, let it leak
+        if (OperationSupport.getInstance().RSA_EXP != (short) 0xffff)
             ISOException.throwIt(ReturnCodes.SW_OPERATION_NOT_SUPPORTED);
-        if (OperationSupport.getInstance().RSA_CHECK_EXP_ONE && exp.isOne())
+        if ((OperationSupport.getInstance().RSA_CHECK_EXP_ONE & exp.ctIsOne()) == (short) 0xffff)
             return;
-        if (!OperationSupport.getInstance().RSA_SQ && exp.isTwo()) {
-            modMult(this, mod);
+        if ((~OperationSupport.getInstance().RSA_SQ & exp.ctIsTwo()) == (short) 0xffff) {
+            ctModMult(this, mod);
             return;
         }
 
@@ -247,160 +282,156 @@ public class BigNat extends BigNatInternal {
         short modLength;
 
         tmpMod.lock();
-        tmpMod.setSize(rm.MAX_EXP_LENGTH);
+        tmpMod.ctSetSize(rm.MAX_EXP_LENGTH);
 
-        if (OperationSupport.getInstance().RSA_PUB) {
+        if (OperationSupport.getInstance().RSA_PUB == (short) 0xffff) {
             // Verify if pre-allocated engine match the required values
+            // leaking length of mod
             if (rm.expPub.getSize() < (short) (mod.length() * 8) || rm.expPub.getSize() < (short) (length() * 8)) {
                 ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
             }
-            if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
+            if (OperationSupport.getInstance().RSA_KEY_REFRESH == (short) 0xffff) {
                 // Simulator fails when reusing the original object
                 rm.expPub = (RSAPublicKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PUBLIC, rm.MAX_EXP_BIT_LENGTH, false);
             }
             rm.lock(tmpBuffer);
-            short len = exp.copyToByteArray(tmpBuffer, (short) 0);
+            short len = exp.ctCopyToByteArray(tmpBuffer, (short) 0);
             rm.expPub.setExponent(tmpBuffer, (short) 0, len);
-            if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
-                if (OperationSupport.getInstance().RSA_APPEND_MOD) {
-                    mod.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+            if (OperationSupport.getInstance().RSA_RESIZE_MOD == (short) 0xffff) {
+                if (OperationSupport.getInstance().RSA_APPEND_MOD == (short) 0xffff) {
+                    mod.ctAppendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 } else {
-                    mod.prependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+                    mod.ctAppendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 }
                 rm.expPub.setModulus(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
                 modLength = rm.MAX_EXP_LENGTH;
             } else {
-                modLength = mod.copyToByteArray(tmpBuffer, (short) 0);
+                modLength = mod.ctCopyToByteArray(tmpBuffer, (short) 0);
                 rm.expPub.setModulus(tmpBuffer, (short) 0, modLength);
             }
             rm.expCiph.init(rm.expPub, Cipher.MODE_DECRYPT);
         } else {
             // Verify if pre-allocated engine match the required values
+            // leaking length of mod
             if (rm.expPriv.getSize() < (short) (mod.length() * 8) || rm.expPriv.getSize() < (short) (length() * 8)) {
                 ISOException.throwIt(ReturnCodes.SW_BIGNAT_MODULOTOOLARGE);
             }
-            if (OperationSupport.getInstance().RSA_KEY_REFRESH) {
+            if (OperationSupport.getInstance().RSA_KEY_REFRESH == (short) 0xffff) {
                 // Simulator fails when reusing the original object
                 rm.expPriv = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, rm.MAX_EXP_BIT_LENGTH, false);
             }
             rm.lock(tmpBuffer);
-            short len = exp.copyToByteArray(tmpBuffer, (short) 0);
+            short len = exp.ctCopyToByteArray(tmpBuffer, (short) 0);
             rm.expPriv.setExponent(tmpBuffer, (short) 0, len);
-            if (OperationSupport.getInstance().RSA_RESIZE_MOD) {
-                if (OperationSupport.getInstance().RSA_APPEND_MOD) {
-                    mod.appendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+            if (OperationSupport.getInstance().RSA_RESIZE_MOD == (short) 0xffff) {
+                if (OperationSupport.getInstance().RSA_APPEND_MOD == (short) 0xffff) {
+                    mod.ctAppendZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
                 } else {
-                    mod.prependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
+                    mod.ctPrependZeros(rm.MAX_EXP_LENGTH, tmpBuffer, (short) 0);
 
                 }
                 rm.expPriv.setModulus(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
                 modLength = rm.MAX_EXP_LENGTH;
             } else {
-                modLength = mod.copyToByteArray(tmpBuffer, (short) 0);
+                modLength = mod.ctCopyToByteArray(tmpBuffer, (short) 0);
                 rm.expPriv.setModulus(tmpBuffer, (short) 0, modLength);
             }
             rm.expCiph.init(rm.expPriv, Cipher.MODE_DECRYPT);
         }
 
-        prependZeros(modLength, tmpBuffer, (short) 0);
+        ctPrependZeros(modLength, tmpBuffer, (short) 0);
         short len = rm.expCiph.doFinal(tmpBuffer, (short) 0, modLength, tmpBuffer, (short) 0);
 
-        if (len != rm.MAX_EXP_LENGTH) {
-            if (OperationSupport.getInstance().RSA_PREPEND_ZEROS) {
-                // Decrypted length can be either tmp_size or less because of leading zeroes consumed by simulator engine implementation
-                // Move obtained value into proper position with zeroes prepended
-                Util.arrayCopyNonAtomic(tmpBuffer, (short) 0, tmpBuffer, (short) (rm.MAX_EXP_LENGTH - len), len);
-                Util.arrayFillNonAtomic(tmpBuffer, (short) 0, (short) (rm.MAX_EXP_LENGTH - len), (byte) 0);
-            } else {
-                // real cards should keep whole length of block
-                ISOException.throwIt(ReturnCodes.SW_ECPOINT_UNEXPECTED_KA_LEN);
-            }
-        }
-        tmpMod.fromByteArray(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
+        // len == rm.MAX_EXP_LENGTH
+        short validLength = ConstantTime.ctEqual(len, rm.MAX_EXP_LENGTH);
+        // len != rm.MAX_EXP_LENGTH && !OperationSupport.getInstance().RSA_PREPEND_ZEROS
+        short error = (short) (~validLength & ~OperationSupport.getInstance().RSA_PREPEND_ZEROS);
+        short mask = (short) (~validLength & OperationSupport.getInstance().RSA_PREPEND_ZEROS);
+        CTUtil.ctArrayCopyNonAtomic(tmpBuffer, (short) 0, tmpBuffer, (short) (rm.MAX_EXP_LENGTH - len), len, (short) ~mask);
+        CTUtil.ctArrayFillNonAtomic(tmpBuffer, (short) 0, (short) (rm.MAX_EXP_LENGTH - len), (byte) 0, (short) ~mask);
+
+        tmpMod.ctFromByteArray(tmpBuffer, (short) 0, rm.MAX_EXP_LENGTH);
         rm.unlock(tmpBuffer);
 
-        if (OperationSupport.getInstance().RSA_EXTRA_MOD) {
-            tmpMod.mod(mod);
+        if (OperationSupport.getInstance().RSA_EXTRA_MOD == (short) 0xffff) {
+            tmpMod.ctMod(mod);
         }
-        setSize(mod.length());
-        copy(tmpMod);
+        ctSetSize(mod.length(), error);
+        ctCopy(tmpMod, error);
         tmpMod.unlock();
     }
+
 
     /**
      * Computes modular inversion. The result is stored into this.
      */
-    public void modInv(BigNat mod) {
+    public void ctModInv(BigNat mod) {
         BigNat tmp = rm.BN_B;
         tmp.lock();
-        tmp.clone(mod);
-        tmp.decrement();
-        tmp.decrement();
+        tmp.ctClone(mod);
+        tmp.ctSubtract(ResourceManager.TWO);
 
-        modExp(tmp, mod);
+        ctModExp(tmp, mod);
         tmp.unlock();
     }
 
     /**
      * Multiplication of this and other modulo mod. The result is stored to this.
+     * @param other
+     * @param mod
+     * @implNote will not work, when this is 1
      */
-    public void modMult(BigNat other, BigNat mod) {
+    public void ctModMult(BigNat other, BigNat mod) {
         BigNat tmp = rm.BN_D;
         BigNat result = rm.BN_E;
 
-        if (OperationSupport.getInstance().RSA_CHECK_ONE && isOne()) {
-            copy(other);
-            return;
-        }
-
         result.lock();
-        if (!OperationSupport.getInstance().RSA_SQ || OperationSupport.getInstance().RSA_EXTRA_MOD) {
-            result.clone(this);
-            result.mult(other);
-            result.mod(mod);
+        if ((OperationSupport.getInstance().RSA_SQ != (short) 0xffff) || (OperationSupport.getInstance().RSA_EXTRA_MOD == (short) 0xffff)) {
+            // simple slow implementation
+            result.ctClone(this);
+            result.ctMult(other);
+            result.ctMod(mod);
         } else {
-            result.setSize((short) (mod.length() + 1));
-            result.copy(this);
-            result.add(other);
+            result.ctSetSize((short) (mod.length() + 1));
+            result.ctCopy(this);
+            result.ctAdd(other);
 
-            short carry = (byte) 0;
-            if (result.isOdd()) {
-                if (result.isLesser(mod)) {
-                    carry = result.add(mod);
-                } else {
-                    result.subtract(mod);
-                }
-            }
-            result.shiftRight((short) 1, carry);
-            result.resize(mod.length());
+            short isOdd = result.ctIsOdd();
+            short isLesser = result.ctIsLesser(mod);
+            short carry = result.ctAdd(mod, (short) ~(isOdd & isLesser));
+            result.ctSubtract(mod, (short) ~(isOdd & ~isLesser));
+
+            result.ctShiftRightBits((short) 1, carry);
+            result.ctResize(mod.length());
 
             tmp.lock();
-            tmp.clone(result);
-            tmp.modSub(other, mod);
+            tmp.ctClone(result);
+            tmp.ctModSub(other, mod);
 
-            result.modSq(mod);
-            tmp.modSq(mod);
+            result.ctModSq(mod);
+            tmp.ctModSq(mod);
 
-            result.modSub(tmp, mod);
+            result.ctModSub(tmp, mod);
             tmp.unlock();
         }
-        setSize(mod.length());
-        copy(result);
+        ctSetSize(mod.length());
+        ctCopy(result);
         result.unlock();
     }
 
-    /**
-     * Computes modulo square of this BigNat.
+    /**Constant-time implementation of modulo square of this BigNat.
+     *
+     * @param mod modulo BigNat
      */
-    public void modSq(BigNat mod) {
-        if (OperationSupport.getInstance().RSA_SQ) {
+    public void ctModSq(BigNat mod) {
+        if (OperationSupport.getInstance().RSA_SQ == (short) 0xffff) {
             if (rm.fixedMod != null && rm.fixedMod == mod) {
-                modSqFixed();
+                ctModSqFixed();
             } else {
-                modExp(ResourceManager.TWO, mod);
+                ctModExp(ResourceManager.TWO, mod);
             }
         } else {
-            modMult(this, mod);
+            ctModMult(this, mod);
         }
     }
 
@@ -408,22 +439,24 @@ public class BigNat extends BigNatInternal {
      * Checks whether this BigNat is a quadratic residue modulo p.
      * @param p modulo
      */
-    public boolean isQuadraticResidue(BigNat p) {
+    public short ctIsQuadraticResidue(BigNat p) {
         BigNat tmp = rm.BN_A;
         BigNat exp = rm.BN_B;
-        tmp.clone(this);
-        exp.clone(p);
-        exp.decrement();
-        exp.shiftRight((short) 1);
-        tmp.modExp(exp, p);
-        return tmp.isOne();
+        tmp.ctClone(this);
+        exp.ctClone(p);
+        exp.ctDecrement();
+        exp.ctShiftRight((short) 1, (short) 0x00);
+        tmp.ctModExp(exp, p);
+        return tmp.ctIsOne();
     }
 
     /**
      * Computes square root of provided BigNat which MUST be prime using Tonelli Shanks Algorithm. The result (one of
      * the two roots) is stored to this.
+     *
+     * @implNote: CT methods applied but due to the nature of the algorithm reimplemented version with bounded loops would be unusably slow
      */
-    public void modSqrt(BigNat p) {
+    public void ctModSqrt(BigNat p) {
         BigNat exp = rm.BN_G;
         BigNat p1 = rm.BN_B;
         BigNat q = rm.BN_C;
@@ -434,62 +467,61 @@ public class BigNat extends BigNatInternal {
 
         // 1. Find Q and S such that p - 1 = Q * 2^S and Q is odd
         p1.lock();
-        p1.clone(p);
-        p1.decrement();
+        p1.ctClone(p);
+        p1.ctDecrement();
 
         q.lock();
-        q.clone(p1);
+        q.ctClone(p1);
 
         short s = 0;
-        while (!q.isOdd()) {
+        while (q.ctIsOdd() == (short) 0x0000) {
             ++s;
-            q.shiftRight((short) 1);
+            q.ctShiftRightBits((short) 1);
         }
 
         // 2. Find the first quadratic non-residue z by brute-force search
         exp.lock();
-        exp.clone(p1);
-        exp.shiftRight((short) 1);
-
+        exp.ctClone(p1);
+        exp.ctShiftRightBits((short) 1);
 
         z.lock();
-        z.setSize(p.length());
-        z.setValue((byte) 1);
+        z.ctSetSize(p.length());
+        z.ctSetValue((byte) 1);
         tmp.lock();
-        tmp.setSize(p.length());
-        tmp.setValue((byte) 1);
+        tmp.ctSetSize(p.length());
+        tmp.ctSetValue((byte) 1);
 
-        while (!tmp.equals(p1)) {
-            z.increment();
-            tmp.copy(z);
-            tmp.modExp(exp, p); // Euler's criterion
+        while (tmp.ctEquals(p1) == (short) 0x0000) {
+            z.ctIncrement();
+            tmp.ctCopy(z);
+            tmp.ctModExp(exp, p); // Euler's criterion
         }
         p1.unlock();
         tmp.unlock();
 
         // 3. Compute the first candidate
-        exp.clone(q);
-        exp.increment();
-        exp.shiftRight((short) 1);
+        exp.ctClone(q);
+        exp.ctIncrement();
+        exp.ctShiftRightBits((short) 1);
 
         t.lock();
-        t.clone(this);
-        t.modExp(q, p);
+        t.ctClone(this);
+        t.ctModExp(q, p);
 
-        if (t.isZero()) {
+        if (t.ctIsZero() == (short) 0xffff) {
             z.unlock();
             t.unlock();
             exp.unlock();
             q.unlock();
-            zero();
+            ctZero();
             return;
         }
 
-        mod(p);
-        modExp(exp, p);
+        ctMod(p);
+        ctModExp(exp, p);
         exp.unlock();
 
-        if (t.isOne()) {
+        if (t.ctIsOne() == (short) 0xffff) {
             z.unlock();
             t.unlock();
             q.unlock();
@@ -497,47 +529,47 @@ public class BigNat extends BigNatInternal {
         }
 
         // 4. Search for further candidates
-        z.modExp(q, p);
+        z.ctModExp(q, p);
         q.unlock();
 
         while(true) {
             tmp.lock();
-            tmp.clone(t);
+            tmp.ctClone(t);
             short i = 0;
 
             do {
-                tmp.modSq(p);
+                tmp.ctModSq(p);
                 ++i;
-            } while (!tmp.isOne());
+            } while (tmp.ctIsOne() == (short) 0x0000);
 
             tmp.unlock();
 
             b.lock();
-            b.clone(z);
+            b.ctClone(z);
             s -= i;
             --s;
 
             tmp.lock();
-            tmp.setSize((short) 1);
-            tmp.setValue((byte) 1);
+            tmp.ctSetSize((short) 1);
+            tmp.ctSetValue((byte) 1);
             while(s != 0) {
-                tmp.shiftLeft((short) 1);
+                tmp.ctShiftLeftBits((short) 1);
                 --s;
             }
-            b.modExp(tmp, p);
+            b.ctModExp(tmp, p);
             tmp.unlock();
             s = i;
-            z.clone(b);
-            z.modSq(p);
-            t.modMult(z, p);
-            modMult(b, p);
+            z.ctClone(b);
+            z.ctModSq(p);
+            t.ctModMult(z, p);
+            ctModMult(b, p);
             b.unlock();
 
-            if(t.isZero()) {
-                zero();
+            if(t.ctIsZero() == (short) 0xffff) {
+                ctZero();
                 break;
             }
-            if(t.isOne()) {
+            if(t.ctIsOne() == (short) 0xffff) {
                 break;
             }
         }

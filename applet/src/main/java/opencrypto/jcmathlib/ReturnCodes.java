@@ -13,6 +13,7 @@ public class ReturnCodes {
     public static final short SW_BIGNAT_INVALIDRESIZE           = (short) 0x7004;
     public static final short SW_BIGNAT_INVALIDMULT             = (short) 0x7005;
     public static final short SW_BIGNAT_INVALIDSQ               = (short) 0x7006;
+    public static final short SW_BIGNAT_INVALIDSHIFT            = (short) 0x7008;
     public static final short SW_LOCK_ALREADYLOCKED             = (short) 0x7010;
     public static final short SW_LOCK_NOTLOCKED                 = (short) 0x7011;
     public static final short SW_LOCK_OBJECT_NOT_FOUND          = (short) 0x7012;
